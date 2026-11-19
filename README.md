@@ -6,7 +6,7 @@
 
 > ### 非官方声明
 >
-> 本项目是**第三方、非官方**的社区插件，与**华为技术有限公司无任何关联**，
+> 本项目是**个人自用**的第三方工具，**未公开发布**，与**华为技术有限公司无任何关联**，
 > 未获其授权、认可或支持。
 >
 > `Huawei`、`HUAWEI Cloud`、`CodeArts`、`码道` 等是华为技术有限公司的商标，
@@ -35,15 +35,24 @@
 
 ---
 
-## 安装
+## 安装（仅本机）
 
-这是一个 DSH bundle。先在「插件 → 添加插件」里把本仓库目录（或克隆下来的路径）
-装进去，DSH 会读它的 `cordis.patch.yml` 注册 provider；**装完重启一次 DSH**，
-「设置 → 码道」就会出现。
+本项目为**个人自用**，未公开发布，仓库已删除。安装只针对本机这份目录：
 
-```bash
-git clone https://github.com/Jensen0925/dsh-connect-codearts.git
+本机这个 profile 用 **link 安装**指向这份源码，改动立即生效，不需要重新拉取：
+
 ```
+~/.dsh/profiles/<profile>/node_modules/dsh-connect-codearts
+  -> <本目录>
+```
+
+一次性的登记（若重建 profile 时需要重做）：
+
+1. profile 的 `package.json` 里
+   `"dsh-connect-codearts": "link:<本目录绝对路径>"`，并把它加入
+   `dsh.profile.bundles`（顺序决定设置页里各卡片的位置）。
+2. 建立上面的软链接。
+3. **重启一次 DSH**（宿主启动时读取插件清单，改配置后必须重启）。
 
 目录即插件包，不需要构建：源码是可直接运行的 ES 模块（`src/`），
 浏览器端是 `client.js`（走 DSH 的 `__ModuleLoader__` 约定，无打包步骤）。

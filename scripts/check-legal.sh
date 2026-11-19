@@ -22,7 +22,9 @@ chk '凭据借用声明仅本机本人'          'grep -q "本机" README.md && 
 chk '凭证文件权限 0600'               'grep -q "0o600" src/accounts.js'
 chk '无第三方遥测域名'                '! grep -rqE "google-analytics\\.com|sentry\\.io|api\\.segment\\.io|mixpanel\\.com|posthog|amplitude" src/ client.js'
 chk 'package.json 有 license 字段'    'grep -q "\"license\": \"MIT\"" package.json'
-chk 'package.json 有 repository'      'grep -q "\"repository\"" package.json'
+chk 'package.json 无死链接'           '! grep -qE "\"(repository|bugs|homepage)\"[^}]*github\\.com/Jensen0925/dsh-connect-codearts" package.json'
+chk 'README 声明个人自用'             'head -14 README.md | grep -q "个人自用"'
+chk 'README 声明未公开发布'           'head -14 README.md | grep -q "未公开发布"'
 chk '新文档已列入 files'              'grep -q "DISCLAIMER.md" package.json && grep -q "SECURITY.md" package.json'
 chk '.gitignore 排除凭证文件'         'grep -q "credentials.json" .gitignore'
 

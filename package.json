@@ -66,18 +66,10 @@
     "ai-coding-agent"
   ],
   "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Jensen0925/dsh-connect-codearts.git"
-  },
   "scripts": {
     "test": "npm run check:legal && node --no-warnings test/sm4.test.mjs && node --no-warnings test/protocol.test.mjs && node --no-warnings test/accounts.test.mjs && node --no-warnings test/registration.test.mjs && node --no-warnings test/visual.test.mjs && node --no-warnings test/adapter.test.mjs && node --no-warnings test/assembler.test.mjs",
     "test:live": "node --no-warnings test/live-probe.mjs",
     "check:legal": "bash scripts/check-legal.sh"
   },
-  "private": true,
-  "homepage": "https://github.com/Jensen0925/dsh-connect-codearts#readme",
-  "bugs": {
-    "url": "https://github.com/Jensen0925/dsh-connect-codearts/issues"
-  }
+  "private": true
 }
