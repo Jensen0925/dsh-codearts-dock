@@ -1,0 +1,10 @@
+# Register the 码道 provider as a bundle row. The provider route itself is
+# registered by the plugin at activation, so no profile-level model list is
+# written here: the catalog is whatever the gateway advertised at the last
+# refresh, and a model selection therefore never needs a restart.
+- insert:
+    - id: dsh-connect-codearts
+      name: dsh-connect-codearts
+      config:
+        enabled: true
+        composerChip: true

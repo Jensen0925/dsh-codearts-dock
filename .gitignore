@@ -1,0 +1,17 @@
+# Dependencies, if anyone installs them locally. The lockfile is ignored on
+# purpose: this package is installed by the Host into a profile, so the profile
+# owns resolution; committing a lock here would pin a tree nobody installs from.
+node_modules/
+package-lock.json
+
+# Local credentials are never committed. The plugin reads them from
+# ~/.config/dsh-connect-codearts/credentials.json (or the environment), not
+# from the checkout, so nothing here should ever hold a key.
+credentials.json
+credentials.enc
+
+# Editor and OS noise
+.DS_Store
+*.log
+.idea/
+.vscode/

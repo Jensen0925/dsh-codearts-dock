@@ -1,0 +1,80 @@
+{
+  "name": "dsh-connect-codearts",
+  "version": "1.0.0",
+  "displayName": "dsh-connect-codearts",
+  "description": "把华为云码道（CodeArts Agent）的模型接入 DeepSeek Harness：原生 LLM 适配器直连网关，自签 SDK-HMAC-SHA256、P-256 密钥协商与 SM4-GCM 载荷加密，并带设置面板与输入框积分胶囊。",
+  "type": "module",
+  "main": "src/index.js",
+  "icon": "icons/dsh-connect-codearts-128.png",
+  "exports": {
+    ".": "./src/index.js",
+    "./client": "./client.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./locale/*.json": "./locale/*.json",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src",
+    "client.js",
+    "cordis.patch.yml",
+    "locale",
+    "docs",
+    "icons",
+    "test",
+    "README.md",
+    "LICENSE",
+    "THIRD_PARTY_NOTICES.md"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-settings",
+        "@deepseek-ai/dsh-client-ui-slots",
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-conversation"
+      ]
+    }
+  },
+  "dependencies": {
+    "@deepseek-ai/schemastery": "3.18.5"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/dsh-llm": ">=0.1.7-rc.1 <0.3.0-0"
+  },
+  "peerDependenciesMeta": {
+    "@deepseek-ai/dsh-llm": {
+      "optional": true
+    }
+  },
+  "keywords": [
+    "dsh-plugin",
+    "deepseek-harness",
+    "codearts",
+    "huawei-cloud",
+    "madao",
+    "model-provider",
+    "llm-adapter",
+    "sm4-gcm",
+    "huawei-signature",
+    "ai-coding-agent"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Jensen0925/dsh-connect-codearts.git"
+  },
+  "scripts": {
+    "test": "node --no-warnings test/sm4.test.mjs && node --no-warnings test/protocol.test.mjs && node --no-warnings test/accounts.test.mjs && node --no-warnings test/registration.test.mjs && node --no-warnings test/visual.test.mjs && node --no-warnings test/adapter.test.mjs && node --no-warnings test/assembler.test.mjs",
+    "test:live": "node --no-warnings test/live-probe.mjs"
+  },
+  "private": true,
+  "homepage": "https://github.com/Jensen0925/dsh-connect-codearts#readme",
+  "bugs": {
+    "url": "https://github.com/Jensen0925/dsh-connect-codearts/issues"
+  }
+}

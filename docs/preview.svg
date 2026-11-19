@@ -1,0 +1,78 @@
+<svg width="640" height="300" viewBox="0 0 640 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="dsh_codearts_preview_hero" x1="40" y1="40" x2="300" y2="260" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#EDF3FF"/>
+      <stop offset="1" stop-color="#E4E9FF"/>
+    </linearGradient>
+    <linearGradient id="dsh_codearts_preview_accent" x1="60" y1="60" x2="260" y2="240" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#4C8DFF"/>
+      <stop offset="1" stop-color="#2C3EDB"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Settings page surface -->
+  <rect x="32" y="28" width="288" height="244" rx="14" fill="url(#dsh_codearts_preview_hero)"/>
+
+  <!-- Page header -->
+  <rect x="52" y="48" width="96" height="10" rx="5" fill="#2C3EDB" fill-opacity="0.75"/>
+  <rect x="52" y="66" width="180" height="6" rx="3" fill="#2C3EDB" fill-opacity="0.22"/>
+
+  <!-- Tab strip -->
+  <rect x="52" y="86" width="42" height="6" rx="3" fill="url(#dsh_codearts_preview_accent)"/>
+  <rect x="104" y="86" width="34" height="6" rx="3" fill="#2C3EDB" fill-opacity="0.2"/>
+  <rect x="148" y="86" width="34" height="6" rx="3" fill="#2C3EDB" fill-opacity="0.2"/>
+  <rect x="52" y="98" width="164" height="1.5" rx="0.75" fill="#2C3EDB" fill-opacity="0.15"/>
+
+  <!-- Credential card: two fields -->
+  <rect x="52" y="112" width="248" height="56" rx="9" fill="#FFFFFF" fill-opacity="0.85"/>
+  <rect x="64" y="124" width="52" height="5" rx="2.5" fill="#2C3EDB" fill-opacity="0.3"/>
+  <rect x="64" y="134" width="100" height="20" rx="5" fill="#FFFFFF" stroke="#2C3EDB" stroke-opacity="0.2"/>
+  <rect x="170" y="124" width="60" height="5" rx="2.5" fill="#2C3EDB" fill-opacity="0.3"/>
+  <rect x="170" y="134" width="118" height="20" rx="5" fill="#FFFFFF" stroke="#2C3EDB" stroke-opacity="0.2"/>
+  <rect x="72" y="142" width="30" height="4" rx="2" fill="#2C3EDB" fill-opacity="0.35"/>
+  <rect x="178" y="142" width="42" height="4" rx="2" fill="#2C3EDB" fill-opacity="0.35"/>
+
+  <!-- Save / test buttons -->
+  <rect x="64" y="160" width="44" height="16" rx="5" fill="url(#dsh_codearts_preview_accent)"/>
+  <rect x="116" y="160" width="44" height="16" rx="5" fill="#FFFFFF" stroke="#2C3EDB" stroke-opacity="0.25"/>
+  <rect x="168" y="160" width="52" height="16" rx="5" fill="#FFFFFF" stroke="#2C3EDB" stroke-opacity="0.25"/>
+
+  <!-- Model catalog rows with multipliers -->
+  <rect x="52" y="186" width="248" height="70" rx="9" fill="#FFFFFF" fill-opacity="0.85"/>
+  <rect x="64" y="196" width="60" height="5" rx="2.5" fill="#2C3EDB" fill-opacity="0.55"/>
+
+  <rect x="64" y="208" width="72" height="5" rx="2.5" fill="#2C3EDB" fill-opacity="0.28"/>
+  <rect x="238" y="206" width="46" height="10" rx="5" fill="#4C8DFF" fill-opacity="0.22"/>
+  <rect x="248" y="209" width="26" height="4" rx="2" fill="#2C3EDB" fill-opacity="0.55"/>
+
+  <rect x="64" y="224" width="88" height="5" rx="2.5" fill="#2C3EDB" fill-opacity="0.28"/>
+  <rect x="238" y="222" width="46" height="10" rx="5" fill="#2C3EDB" fill-opacity="0.12"/>
+  <rect x="248" y="225" width="26" height="4" rx="2" fill="#2C3EDB" fill-opacity="0.45"/>
+
+  <rect x="64" y="240" width="64" height="5" rx="2.5" fill="#2C3EDB" fill-opacity="0.28"/>
+  <rect x="238" y="238" width="46" height="10" rx="5" fill="#2C3EDB" fill-opacity="0.12"/>
+  <rect x="248" y="241" width="26" height="4" rx="2" fill="#2C3EDB" fill-opacity="0.45"/>
+
+  <!-- Arrow: the same connector, now reachable from the composer -->
+  <path d="M336 150h34" stroke="#2C3EDB" stroke-opacity="0.35" stroke-width="2" stroke-linecap="round"/>
+  <path d="M362 142l10 8-10 8" stroke="#2C3EDB" stroke-opacity="0.45" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Composer surface with the credit pill -->
+  <rect x="384" y="96" width="224" height="120" rx="14" fill="url(#dsh_codearts_preview_hero)"/>
+  <rect x="402" y="116" width="150" height="6" rx="3" fill="#2C3EDB" fill-opacity="0.25"/>
+  <rect x="402" y="132" width="188" height="6" rx="3" fill="#2C3EDB" fill-opacity="0.15"/>
+
+  <!-- The credit pill itself -->
+  <rect x="402" y="176" width="92" height="24" rx="12" fill="#FFFFFF" stroke="#2C3EDB" stroke-opacity="0.3"/>
+  <circle cx="417" cy="188" r="4" fill="url(#dsh_codearts_preview_accent)"/>
+  <rect x="427" y="185" width="26" height="6" rx="3" fill="#2C3EDB" fill-opacity="0.55"/>
+  <rect x="459" y="185" width="22" height="6" rx="3" fill="#2C3EDB" fill-opacity="0.3"/>
+
+  <!-- Send affordance -->
+  <circle cx="576" cy="188" r="14" fill="url(#dsh_codearts_preview_accent)"/>
+  <path d="M571 188h10M577 184l4 4-4 4" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Caption: the provider route -->
+  <rect x="384" y="240" width="120" height="6" rx="3" fill="#2C3EDB" fill-opacity="0.22"/>
+  <rect x="384" y="254" width="86" height="6" rx="3" fill="#2C3EDB" fill-opacity="0.14"/>
+</svg>

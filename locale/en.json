@@ -1,0 +1,7 @@
+{
+  "meta": {
+    "title": "dsh-connect-codearts",
+    "description": "Connects Huawei Cloud CodeArts (码道 / CodeArts Agent) models to DSH through a native adapter that speaks the gateway's own encrypted protocol — SDK-HMAC-SHA256 signing, P-256 key agreement, and SM4-GCM payloads — with no local bridge process and no occupied port. Configure it under Settings → 码道: one permanent AK/SK pair is exchanged for STS and renewed automatically, or the plugin borrows the local CodeArts client's sign-in. The model catalog is re-read from upstream every five minutes, so credit multipliers, context windows, and image support follow the gateway, and a read-only credit pill sits beside the composer.",
+    "detail": "docs/DETAIL.md"
+  }
+}
