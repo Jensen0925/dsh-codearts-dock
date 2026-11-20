@@ -67,17 +67,19 @@ check('the account pool is a grid table with an uppercase header row', () => {
   has('padding:10px 14px', 'row rhythm')
 })
 
-check('check-in has no bulk button: the daily switch is the only way to claim', () => {
-  // The one-off button was removed on request. The daily switch remains, and the
-  // per-row status still reports each account's state, so removing the button
-  // did not remove the ability to know where an account stands.
-  assert.ok(!source.includes('pool.checkinAll'), 'the bulk button is gone')
-  assert.ok(!source.includes("postRoute('/checkin/auto', { now: true })"), 'so is its one-off call')
-  assert.ok(source.includes('pool.checkinDone'), 'the per-row status is still reported')
+check('one bulk claim button sits beside the daily switch', () => {
+  // Restored on request, in the place the reference puts it: one control for the
+  // whole pool, on the switch row. Still NEVER one per row — a daily bonus must
+  // not cost one click per account.
+  assert.ok(source.includes("'pool.checkinAll': ['一键签到'"), 'the bulk button exists')
+  assert.ok(source.includes('dca-checkin-now'), 'and sits on the switch row')
   assert.ok(
     !source.includes('dca-pool-col-checkin'),
-    'and there is still no per-row claim control — one daily bonus must not cost one click per account',
+    'never a per-row claim control',
   )
+  // Disabled when there is nothing to claim, so a press that cannot act never
+  // looks like a broken button.
+  assert.ok(source.includes('disabled: busy || !anyClaimable'), 'disabled with nothing to claim')
 })
 
 check('import lives inside the add-account card, revealed on demand', () => {
@@ -100,14 +102,19 @@ check('hints and row metadata use the reference type scale', () => {
   has('font-size:11px;line-height:16px', 'row metadata line')
 })
 
-check('the daily check-in switch writes the preference, not a one-off run', () => {
-  // With the one-off button gone there is exactly one caller, and it must send
-  // the standing preference rather than a `now: true` sweep. A stray `now` flag
-  // would claim on every toggle, which is the opposite of what a switch means.
+check('the switch writes the preference; the button fires a one-off run', () => {
+  // Two callers now, and the distinction is the whole point: a SWITCH expresses
+  // a standing preference, a BUTTON performs an action once. Swapping them would
+  // make the button opt someone into daily automation, or make the switch claim
+  // on every toggle.
   const calls = [...source.matchAll(/postRoute\('\/checkin\/auto', \{([^}]*)\}\)/g)]
-  assert.equal(calls.length, 1, 'exactly one caller of the check-in route')
-  assert.ok(calls[0][1].includes('enabled'), 'it writes the preference')
-  assert.ok(!calls[0][1].includes('now'), 'and never fires a one-off sweep')
+  assert.equal(calls.length, 2, 'two callers of the check-in route')
+  const prefs = calls.filter((c) => c[1].includes('enabled'))
+  const oneOff = calls.filter((c) => c[1].includes('now'))
+  assert.equal(prefs.length, 1, 'exactly one writes the preference')
+  assert.equal(oneOff.length, 1, 'exactly one fires a one-off sweep')
+  assert.ok(!prefs[0][1].includes('now'), 'the switch never fires a sweep')
+  assert.ok(!oneOff[0][1].includes('enabled'), 'the button never flips the preference')
 })
 
 check('every class the markup uses has a rule in the stylesheet', () => {

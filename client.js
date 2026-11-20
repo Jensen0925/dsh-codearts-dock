@@ -240,6 +240,12 @@ window.__ModuleLoader__.load({
       'pool.checkinUnavailable': ['不可领取', 'Unavailable'],
       'pool.checkinNone': ['无活动', 'No campaign'],
       'pool.autoTitle': ['每日自动签到', 'Daily auto check-in'],
+      'pool.checkinAll': ['一键签到', 'Check in now'],
+      'pool.checkinAllHint': ['立刻为所有可签到的账号领取一次（不改变上面的每日开关）', 'Claim once for every account that can right now (the daily switch above is left as it is)'],
+      'pool.checkinClaiming': ['签到中…', 'Claiming…'],
+      'pool.checkinNoneToday': ['今天已没有可领取的签到', 'Nothing left to claim today'],
+      'pool.checkinResult': ['{claimed} 个账号已签到，{failed} 个失败', '{claimed} claimed, {failed} failed'],
+      'pool.checkinFailed': ['签到失败', 'Check-in failed'],
       'pool.autoToday': ['今天 {done}/{total}', '{done}/{total} today'],
       'pool.autoRun': ['立刻签到一次', 'Check in now'],
       'pool.autoRunning': ['签到中…', 'Checking in…'],
@@ -490,6 +496,9 @@ window.__ModuleLoader__.load({
    padding and hairline of the card that wrapped it, and with the card gone those
    would leave a control floating under a stray rule. */
 .dca-switchrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+/* The one-off claim is pushed to the row's end: the switch and its label are the
+   preference on the left, the action on the right. */
+.dca-checkin-now{margin-inline-start:auto}
 .dca-switchrow input[type="checkbox"]{
   margin:0;flex:none;width:16px;height:16px;
   accent-color:var(--dsw-alias-brand-primary,#5686fe);
@@ -1290,6 +1299,9 @@ window.__ModuleLoader__.load({
         await onRename(id, next)
       }, [draftLabel, onRename])
       const accounts = pool?.accounts ?? []
+      // Something to claim right now? The button is disabled otherwise, so a
+      // press that cannot do anything never looks like a broken button.
+      const anyClaimable = accounts.some((account) => account.checkin?.claimable)
       const active = accounts.find((account) => account.active)
       return h(
         'div',
@@ -1321,6 +1333,25 @@ window.__ModuleLoader__.load({
             h('span', { className: 'dca-sw-track' }),
           ),
           h('b', { className: 'dca-modebar-label' }, t('pool.autoTitle')),
+          // A one-off claim beside the standing switch, pushed to the row's end.
+          // The switch is a PREFERENCE and this is an ACTION: pressing it must
+          // claim now without opting anyone into daily automation, which is why
+          // it sends `now: true` rather than flipping `enabled`.
+          accounts.length === 0
+            ? null
+            : h(
+                'button',
+                {
+                  type: 'button',
+                  className: 'dca-btn dca-btn-xs dca-checkin-now',
+                  disabled: busy || !anyClaimable,
+                  title: anyClaimable
+                    ? t('pool.checkinAllHint')
+                    : t('pool.checkinNoneToday'),
+                  onClick: onCheckinAll,
+                },
+                busy === 'checkin' ? t('pool.checkinClaiming') : t('pool.checkinAll'),
+              ),
         ),
 
         accounts.length === 0
@@ -1500,6 +1531,37 @@ window.__ModuleLoader__.load({
         } finally { setBusyId(null) }
       }, [reload, report])
 
+      /**
+       * Claim the daily bonus once, for every account that can.
+       *
+       * `now: true` is what makes this an ACTION rather than a preference: the
+       * host runs one sweep and leaves the standing daily switch exactly as the
+       * user set it. Sending `enabled: true` here would silently opt someone into
+       * daily automation from a button labelled "check in now".
+       */
+      const checkinAll = useCallback(async () => {
+        setBusy('checkin')
+        try {
+          const result = await postRoute('/checkin/auto', { now: true })
+          const summary = result.summary
+          if (summary) {
+            report({
+              kind: summary.failures.length === 0 ? 'success' : 'warn',
+              text: t('pool.checkinResult')
+                .replace('{claimed}', summary.claimed)
+                .replace('{failed}', summary.failures.length),
+            })
+          } else if (result.error) {
+            report({ kind: 'error', text: result.error })
+          }
+          await reload()
+        } catch (error) {
+          report({ kind: 'error', text: `${t('pool.checkinFailed')}：${error.message}` })
+        } finally {
+          setBusy(null)
+        }
+      }, [reload, report])
+
       /** Rename one account; the pool's inline editor calls this. */
       const rename = useCallback(async (id, label) => {
         try {
@@ -1618,6 +1680,7 @@ window.__ModuleLoader__.load({
           onRemove: remove,
           autoOn: pool?.autoCheckin === true,
           onToggleAuto: toggleAuto,
+          onCheckinAll: checkinAll,
           onRename: rename,
         }),
 
