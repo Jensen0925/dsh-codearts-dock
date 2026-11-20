@@ -96,7 +96,8 @@ export const Config = z.object({
   modelOverrides: z.dict(z.object({
     images: z.boolean(),
     allowOff: z.boolean(),
-  })).description('按模型覆盖能力开关'),
+    defaultStrength: z.string(),
+  })).description('按模型覆盖能力开关与默认推理强度'),
 })
 
 export const inject = ['llm']
@@ -450,7 +451,10 @@ async function buildStatus(deps) {
 }
 
 async function buildModels(deps) {
-  const all = deps.catalog.models()
+  // Effective models, not the raw roster: `defaultStrength` here is what the
+  // ADAPTER will use, so a page that reported the upstream value would show one
+  // thing and send another.
+  const all = deps.catalog.models().map((model) => deps.catalog.effective(model))
   const overrides = deps.settings.modelOverrides ?? {}
   const selectionIsDefault = deps.settings.enabledModelIds === null
   return {
@@ -734,6 +738,9 @@ async function handleModelSelection(req, deps) {
       const entry = {}
       if (typeof value.images === 'boolean') entry.images = value.images
       if (typeof value.allowOff === 'boolean') entry.allowOff = value.allowOff
+      if (typeof value.defaultStrength === 'string' && value.defaultStrength !== '') {
+        entry.defaultStrength = value.defaultStrength
+      }
       if (Object.keys(entry).length > 0) overrides[id] = entry
     }
   }

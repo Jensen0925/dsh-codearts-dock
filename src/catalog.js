@@ -103,7 +103,7 @@ export class Catalog {
    *
    * @param {object} selection the saved selection.
    * @param {string[]|null} [selection.enabledIds] ids to offer, or null for all.
-   * @param {Record<string, {images?: boolean, allowOff?: boolean}>} [selection.overrides] per-model capability overrides.
+   * @param {Record<string, {images?: boolean, allowOff?: boolean, defaultStrength?: string}>} [selection.overrides] per-model overrides.
    */
   configure(selection) {
     this.enabledIds = selection?.enabledIds ?? null
@@ -133,6 +133,13 @@ export class Catalog {
       ...model,
       supportsImages: typeof override.images === 'boolean' ? override.images : model.supportsImages,
       allowOff: typeof override.allowOff === 'boolean' ? override.allowOff : model.allowOff,
+      // Only honour a level the model actually offers: a stale or hand-edited
+      // preference must not become a request the upstream will reject.
+      defaultStrength:
+        typeof override.defaultStrength === 'string' &&
+        (model.strengths ?? []).includes(override.defaultStrength)
+          ? override.defaultStrength
+          : model.defaultStrength,
     }
   }
 

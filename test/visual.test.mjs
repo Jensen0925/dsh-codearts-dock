@@ -370,6 +370,30 @@ check('the settings jump is a standing function, not a conditional prop', () => 
   assert.ok(!chip.includes('openSettings\n            ? h('), 'no render branch on its presence')
 })
 
+check('the default thinking level is chosen, not captioned', () => {
+  // A caption told the user what upstream decided. A reasoning model's default
+  // is a decision the user makes per model, and the picker cannot express a
+  // per-model default on its own.
+  assert.ok(source.includes("className: 'dca-effort-select'"), 'a select, not a label')
+  assert.ok(source.includes("setOverride(model.id, { defaultStrength:"), 'it writes the override')
+  assert.ok(source.includes('dca-effort'), 'and carries the inline effort styling')
+})
+
+check('an override the model cannot honour is ignored, not sent upstream', () => {
+  // A stale preference, or one hand-edited in preferences.json, must not become
+  // a request the gateway rejects.
+  const catalog = readFileSync(new URL('../src/catalog.js', import.meta.url), 'utf8')
+  assert.ok(catalog.includes("(model.strengths ?? []).includes(override.defaultStrength)"), 'the level is validated')
+  assert.ok(catalog.includes(': model.defaultStrength'), 'and falls back to upstream')
+})
+
+check('the model page reports the EFFECTIVE default, not upstream\'s', () => {
+  // Showing one value while the adapter sends another is the "shows A, bills B"
+  // trap this plugin keeps guarding against.
+  const host = readFileSync(new URL('../src/index.js', import.meta.url), 'utf8')
+  assert.ok(host.includes('deps.catalog.effective(model)'), 'the row is the effective model')
+})
+
 console.log(results.join('\n'))
 if (process.exitCode) console.log('\nvisual: some checks failed')
 else console.log('\nvisual: all checks passed')

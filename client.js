@@ -671,6 +671,21 @@ window.__ModuleLoader__.load({
   min-width:0;
 }
 .dca-model-name b{font-size:13px;font-weight:500}
+.dca-effort{display:inline-flex;align-items:center;gap:5px;cursor:pointer}
+/* A quiet pill, not a boxed form control: the row already carries two checkboxes,
+   and a third bordered control would make a settings table look like a form. */
+.dca-effort-select{
+  font:inherit;font-size:11px;line-height:15px;
+  color:var(--dsw-alias-label-secondary,#c6c9d0);
+  background:rgba(174,179,187,.11);
+  border:1px solid transparent;border-radius:999px;
+  padding:1px 6px;cursor:pointer;max-width:180px;
+}
+.dca-effort-select:hover:not(:disabled){border-color:var(--dsw-alias-border-l2,#3a3d45)}
+.dca-effort-select:focus-visible{
+  outline:2px solid var(--dsw-alias-brand-primary,#5686fe);outline-offset:1px;
+}
+.dca-effort-select:disabled{opacity:.55;cursor:default}
 .dca-model-meta{
   display:flex;align-items:center;gap:7px 12px;flex-wrap:wrap;
   color:var(--dsw-alias-label-tertiary,#999);font-size:11px;line-height:16px;
@@ -1869,13 +1884,32 @@ window.__ModuleLoader__.load({
                           { className: 'dca-num' },
                           `${t('models.colOutput')} ${formatTokens(model.maxOutput)}`,
                         ),
+                        // The default thinking level is a CHOICE, not a caption:
+                        // a user running a reasoning model wants to decide how
+                        // much it thinks before each request, and the picker
+                        // cannot express a per-model default on its own.
                         model.strengths?.length
                           ? h(
-                              'span',
-                              null,
-                              `${t('models.effort')} ${effortLabel(
-                                model.defaultStrength ?? model.strengths[0],
-                              )}`,
+                              'label',
+                              { className: 'dca-effort' },
+                              h('span', null, t('models.effort')),
+                              h(
+                                'select',
+                                {
+                                  className: 'dca-effort-select',
+                                  value: override.defaultStrength ?? model.defaultStrength ?? model.strengths[0],
+                                  disabled: !on,
+                                  'aria-label': `${t('models.effort')} — ${model.name}`,
+                                  onChange: (event) =>
+                                    setOverride(model.id, { defaultStrength: event.target.value }),
+                                },
+                                ...(model.allowOff !== false ? ['off'] : []).map((level) =>
+                                  h('option', { key: level, value: level }, effortLabel(level)),
+                                ),
+                                ...model.strengths.map((level) =>
+                                  h('option', { key: level, value: level }, effortLabel(level)),
+                                ),
+                              ),
                             )
                           : null,
                         h('span', { className: 'dca-id' }, model.id),
