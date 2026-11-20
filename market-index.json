@@ -1,0 +1,66 @@
+{
+  "format": 1,
+  "title": {
+    "zh": "CodeArts Dock 插件索引",
+    "en": "CodeArts Dock plugin index"
+  },
+  "description": {
+    "zh": "项目维护的第三方插件索引；非官方审核或推荐。",
+    "en": "Project-maintained third-party index; not an official review or endorsement."
+  },
+  "metadata": {
+    "categories": {
+      "models": {
+        "title": {
+          "zh": "模型接入",
+          "en": "Model providers"
+        }
+      }
+    }
+  },
+  "plugins": [
+    {
+      "name": "dsh-codearts-dock",
+      "title": {
+        "zh": "CodeArts Dock · 码道驿站",
+        "en": "CodeArts Dock"
+      },
+      "description": {
+        "zh": "为 DeepSeek Harness 接入华为云码道模型的非官方插件，提供多账号、积分提醒、模型预设、本机用量与加密配置备份。",
+        "en": "Unofficial CodeArts model connector with accounts, credits, presets and encrypted backups."
+      },
+      "author": "Jensen0925",
+      "homepage": "https://github.com/Jensen0925/dsh-codearts-dock",
+      "repository": {
+        "url": "https://github.com/Jensen0925/dsh-codearts-dock"
+      },
+      "icon": "https://raw.githubusercontent.com/Jensen0925/dsh-codearts-dock/d13780fef1bea8b5eb9592d08fc889764de6a4d0/icons/dsh-connect-codearts-128.png",
+      "metadata": {
+        "category": "models",
+        "keywords": [
+          "dsh-plugin",
+          "deepseek-harness",
+          "codearts",
+          "huawei-cloud",
+          "madao",
+          "model-provider",
+          "llm-adapter",
+          "sm4-gcm",
+          "huawei-signature",
+          "ai-coding-agent"
+        ]
+      },
+      "versions": [
+        {
+          "version": "1.0.0",
+          "publishTimestamp": 1795164379,
+          "source": {
+            "type": "git",
+            "url": "https://github.com/Jensen0925/dsh-codearts-dock",
+            "commit": "d13780fef1bea8b5eb9592d08fc889764de6a4d0"
+          }
+        }
+      ]
+    }
+  ]
+}
