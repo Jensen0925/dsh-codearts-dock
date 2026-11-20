@@ -17,7 +17,7 @@
  */
 
 window.__ModuleLoader__.load({
-  id: 'dsh-connect-codearts',
+  id: 'dsh-codearts-dock',
   factory(require) {
     const module = { exports: {} }
     const exports = module.exports
@@ -46,14 +46,131 @@ window.__ModuleLoader__.load({
     const NAV_ICON = 'data:image/png;base64,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'
 
     /** Localisation text, with an English fallback per key. */
+    const balanceDismissals = new Map()
+
     const STRINGS = {
+      'health.updateHint': ['更新「{name}」：填写同一个 AK 和新的 SK，将更新已有账号。', 'Update {name}: enter the same AK and the new SK to update the existing account.'],
+      "features.saved": ["已保存", "Saved"],
+      "features.refresh": ["刷新", "Refresh"],
+      "reminder.title": ["余额提醒", "Balance alerts"],
+      "reminder.enabled": ["启用低余额提醒", "Enable low-balance alerts"],
+      "reminder.threshold": ["提醒阈值（积分）", "Alert threshold (credits)"],
+      "reminder.hint": ["低于阈值时积分胶囊变色。可用备用账号会在面板中列出，提醒可暂时忽略。", "The credit chip changes color below this threshold. Available backup accounts appear in the panel; alerts can be dismissed."],
+      "reminder.low": ["当前账号余额偏低", "The current account has a low balance"],
+      "reminder.backups": ["可用备用账号：{count} 个", "Available backup accounts: {count}"],
+      "reminder.dismiss": ["暂时忽略", "Dismiss for now"],
+      "health.available": ["可用", "Available"],
+      "health.insufficient": ["余额不足", "Insufficient credits"],
+      "health.credentials": ["凭证失效或权限不足", "Invalid credentials or permissions"],
+      "health.rate_limited": ["被限流", "Rate limited"],
+      "health.network": ["网络异常", "Network error"],
+      "health.gateway": ["上游异常", "Gateway error"],
+      "health.unknown": ["状态未确认", "Status unknown"],
+      "health.checked": ["最近检查", "Last checked"],
+      "health.recheck": ["重新检查", "Recheck"],
+      "health.update": ["更新凭证", "Update credentials"],
+      "health.switch": ["可切换备用账号", "Switch to a backup account"],
+      "models.imagesOnly": ["支持图片", "Image input"],
+      "models.reasoningOnly": ["支持推理", "Reasoning"],
+      "presets.title": ["模型配置预设", "Model presets"],
+      "presets.choose": ["选择预设…", "Choose a preset…"],
+      "presets.daily": ["日常低倍率", "Everyday / lower multiplier"],
+      "presets.deep": ["深度推理", "Deep reasoning"],
+      "presets.images": ["图片任务", "Image tasks"],
+      "presets.preview": ["预览配置", "Preview configuration"],
+      "presets.previewHint": ["预览：将启用 {count} 个模型。应用后仍需点击保存。", "Preview: {count} models will be enabled. Save after applying."],
+      "presets.apply": ["应用到草稿", "Apply to draft"],
+      "presets.applied": ["预设已应用到草稿，请确认后保存。", "Preset applied to draft. Review and save."],
+      "presets.name": ["预设名称", "Preset name"],
+      "presets.save": ["保存当前草稿为预设", "Save current draft as preset"],
+      "presets.delete": ["删除预设", "Delete preset"],
+      "presets.deleteConfirm": ["删除这个模型预设？当前模型配置不会改变。", "Delete this preset? Current model settings will remain."],
+      "presets.noModels": ["这套预设没有可用模型", "No available models for this preset"],
+      "presets.missing": ["部分模型已不在当前目录中，应用时只保留可用模型。", "Some models are no longer in the catalog; only available models will be applied."],
+      "backup.title": ["配置备份与迁移", "Configuration backup and migration"],
+      "backup.hint": ["包含模型选择、能力开关、推理强度、预设和提醒偏好。账号凭证可选，勾选后必须设置密码加密。", "Includes model selection, capabilities, reasoning, presets and alert preferences. Credentials are optional and require password encryption."],
+      "backup.export": ["导出配置", "Export configuration"],
+      "backup.include": ["包含账号凭证（AK/SK）", "Include account credentials (AK/SK)"],
+      "backup.exportPassword": ["加密密码（不含凭证时可留空）", "Encryption password (optional without credentials)"],
+      "backup.confirmPassword": ["确认加密密码", "Confirm encryption password"],
+      "backup.passwordHint": ["密码至少 8 位，两次输入需一致。请妥善保存密码。", "Use at least 8 characters and matching passwords. Keep the password safe."],
+      "backup.download": ["下载备份", "Download backup"],
+      "backup.exported": ["备份已生成并开始下载。", "Backup generated; download started."],
+      "backup.restore": ["恢复配置", "Restore configuration"],
+      "backup.choose": ["选择备份文件", "Choose backup file"],
+      "backup.content": ["备份内容（也可粘贴 JSON）", "Backup contents (or paste JSON)"],
+      "backup.importPassword": ["解密密码（未加密文件可留空）", "Decryption password (blank for unencrypted files)"],
+      "backup.preview": ["读取并预览", "Read and preview"],
+      "backup.summary": ["将更新 {settings} 项配置，新增 {added} 个账号，更新 {updated} 个账号。", "Updates {settings} settings, adds {added} accounts and updates {updated} accounts."],
+      "backup.mergeHint": ["配置将以备份为准；账号按 AK 合并，不移除现有账号。自动签到开关也会随配置恢复。", "Settings follow the backup; accounts merge by AK without removing existing accounts. The auto-check-in preference is restored too."],
+      "backup.changes": ["查看将恢复的配置", "View settings to restore"],
+      "backup.confirm": ["确认恢复", "Confirm restore"],
+      "backup.restored": ["配置已恢复，新增 {added} 个账号，更新 {updated} 个账号。", "Restored; {added} accounts added and {updated} updated."],
+      "backup.failed": ["备份操作失败", "Backup operation failed"],
+      "backup.tooLarge": ["备份文件过大（最大 768 KB）", "Backup is too large (maximum 768 KB)"],
+      "tab.usage": ["用量", "Usage"],
+      "usage.title": ["本机用量记录", "Local usage history"],
+      "usage.enabled": ["记录最近 200 次请求", "Record the latest 200 requests"],
+      "usage.hint": ["仅保存在本机：模型、时间、耗时、Token 和结果。不记录对话、工具参数或凭证；关闭后停止记录，历史可清空。每次重试单独计数；不估算积分账单。", "Stored locally: model, time, duration, tokens and result. No conversations, tool arguments or credentials. Disable to stop recording or clear history. Retries count separately; credit charges are not estimated."],
+      "usage.clear": ["清空记录", "Clear history"],
+      "usage.clearConfirm": ["清空本机用量记录？此操作无法撤销。", "Clear local usage history? This cannot be undone."],
+      "usage.cleared": ["用量记录已清空", "Usage history cleared"],
+      "usage.today": ["今日请求（已保留记录）", "Today (retained records)"],
+      "usage.successRate": ["今日成功率（不含取消）", "Today’s success rate (excluding cancellations)"],
+      "usage.tokens": ["今日已上报 Token", "Today’s reported tokens"],
+      "usage.search": ["按模型搜索记录", "Search records by model"],
+      "usage.result": ["结果", "Result"],
+      "usage.all": ["全部结果", "All results"],
+      "usage.success": ["成功", "Success"],
+      "usage.error": ["失败", "Failed"],
+      "usage.aborted": ["已取消", "Cancelled"],
+      "usage.time": ["时间", "Time"],
+      "usage.model": ["模型", "Model"],
+      "usage.duration": ["耗时", "Duration"],
+      "usage.input": ["输入 Token", "Input tokens"],
+      "usage.output": ["输出 Token", "Output tokens"],
+      "usage.empty": ["暂无符合条件的记录", "No matching records"],
+
       'meta.title': ['码道连接器', 'CodeArts connector'],
       'meta.description': [
         '把华为云码道（CodeArts Agent）的模型接入 DSH：原生适配器直连网关，带凭证管理、模型目录与只读积分概览。',
         'Connects Huawei Cloud CodeArts models to DSH through a native adapter, with credential management, a model catalog, and a read-only credit overview.',
       ],
+      'common.more': ['更多操作', 'More actions'],
+      'pool.current': ['使用中', 'In use'],
+      'pool.allSigned': ['今日全部已签', 'All checked in today'],
+      'pool.manage': ['凭证管理', 'Credential management'],
+      'pool.showSecret': ['显示', 'Show'],
+      'pool.hideSecret': ['隐藏', 'Hide'],
+      'models.search': ['搜索模型名称或 ID', 'Search model name or ID'],
+      'models.all': ['全部', 'All'],
+      'models.enabledOnly': ['已启用', 'Enabled'],
+      'models.selectedCount': ['已启用 {enabled} / {total} 个', '{enabled} of {total} enabled'],
+      'models.sort': ['模型排序', 'Sort models'],
+      'models.sortDefault': ['默认顺序', 'Default order'],
+      'models.sortRatio': ['倍率从低到高', 'Multiplier: low to high'],
+      'models.sortName': ['名称排序', 'Name'],
+      'models.noMatches': ['没有符合条件的模型', 'No matching models'],
+      'models.clearFilters': ['清除筛选', 'Clear filters'],
+      'models.about': ['目录说明与使用帮助', 'About the catalog'],
+      'models.clean': ['所有修改已保存', 'All changes saved'],
+      'models.unsaved': ['有未保存的修改', 'Unsaved changes'],
+      'models.needOne': ['请至少启用一个模型后保存', 'Enable at least one model to save'],
+      'diag.details': ['技术详情', 'Technical details'],
+      'diag.copy': ['复制脱敏诊断信息', 'Copy redacted diagnostics'],
+      'diag.copied': ['已复制脱敏诊断信息', 'Redacted diagnostics copied'],
+      'diag.copyFailed': ['无法自动复制，请从下方手动复制。', 'Could not copy automatically. Copy the report below.'],
+      'diag.configured': ['凭证已配置', 'Credentials configured'],
+      'diag.notConfigured': ['尚未配置凭证', 'Credentials not configured'],
+      'diag.credentialIssue': ['凭证需要检查', 'Check credentials'],
+      'diag.catalogIssue': ['模型目录需要检查', 'Check catalog'],
+      'diag.catalogSynced': ['模型目录已同步', 'Catalog synced'],
+      'diag.catalogFallback': ['正在使用兜底目录', 'Using fallback catalog'],
+      'diag.catalogCached': ['正在使用缓存目录', 'Using cached catalog'],
+      'diag.errors': ['最近错误', 'Recent errors'],
+      'diag.noErrors': ['暂无错误记录', 'No errors reported'],
       'nav.label': ['码道', 'CodeArts'],
-      'tab.account': ['凭证', 'Credentials'],
+      'tab.account': ['账号', 'Accounts'],
       'tab.models': ['模型', 'Models'],
       'tab.diagnostics': ['诊断', 'Diagnostics'],
 
@@ -112,10 +229,12 @@ window.__ModuleLoader__.load({
       'models.refresh': ['重读模型目录', 'Reload catalog'],
       'models.source': ['来源', 'Source'],
       'models.sourceGateway': ['上游网关', 'Upstream gateway'],
+      'models.sourceCache': ['本地缓存', 'Local cache'],
       'models.sourceFallback': ['兜底清单（未连上网关）', 'Fallback list (gateway unreachable)'],
       'models.refreshedAt': ['上次刷新', 'Last refreshed'],
       'models.refreshed': ['已从上游重读模型目录', 'Catalog re-read from upstream'],
       'models.saved': ['已保存，模型选择器已更新', 'Saved; the model picker has been updated'],
+      'models.savedReloadFailed': ['已保存，暂时无法重读模型目录。', 'Saved, but the catalog could not be reloaded.'],
       'models.save': ['保存', 'Save'],
       'models.discard': ['放弃修改', 'Discard'],
       'models.saveFailed': ['保存失败', 'Save failed'],
@@ -123,7 +242,6 @@ window.__ModuleLoader__.load({
       'models.images': ['图片', 'Image'],
       'models.allowOff': ['可关闭思考', 'Can disable'],
       'models.effort': ['默认推理强度', 'Default reasoning'],
-      'models.cheer': ['鼓励一下', 'Star the project'],
       'models.footnote': [
         '只列上游接口明确公布的模型能力；勾选的模型才会出现在模型选择器里。',
         'Only capabilities the upstream interface publishes are shown; a model appears in the picker only while it is ticked.',
@@ -134,30 +252,19 @@ window.__ModuleLoader__.load({
       ],
       'models.refreshFailed': ['刷新失败', 'Refresh failed'],
       'models.count': ['个数', 'Count'],
-      'models.colName': ['模型', 'Model'],
       'models.colContext': ['上下文', 'Context'],
       'models.colOutput': ['输出上限', 'Output cap'],
-      'models.colRatio': ['倍率', 'Multiplier'],
-      'models.colImages': ['图片', 'Images'],
-      'models.colThinking': ['思考档位', 'Thinking levels'],
-      'models.imagesYes': ['支持', 'Yes'],
-      'models.imagesNo': ['不支持', 'No'],
-      'models.thinkingNone': ['无', 'None'],
 
       'diag.title': ['诊断', 'Diagnostics'],
-      'diag.hint': [
-        '这一栏是只读事实，用来贴进问题反馈：每个值都来自宿主自己的回答，不经过前端推测。',
-        'Read-only facts for a bug report: every value is the Host’s own answer, not a front-end guess.',
-      ],
       'diag.provider': ['Provider 路由', 'Provider route'],
       'diag.gateway': ['网关', 'Gateway'],
       'diag.credentialPath': ['凭证文件', 'Credential file'],
       'diag.catalogError': ['目录错误', 'Catalog error'],
       'diag.credentialError': ['凭证错误', 'Credential error'],
-      'diag.rawTitle': ['原始数据（已隐去凭证）', 'Raw data (credentials removed)'],
-      'diag.rawHint': [
-        '下面这段可以直接贴进问题反馈：凭证位只保留「是否已设置」，账号 id 已去掉。',
-        'This block can be pasted into a report: credential fields keep only whether a value is set, and the account id is removed.',
+      'diag.reportTitle': ['脱敏诊断 JSON', 'Redacted diagnostics JSON'],
+      'diag.reportHint': [
+        '仅包含状态、来源类型和数量等诊断字段。',
+        'Includes diagnostic fields such as status, source type, and counts.',
       ],
       'diag.none': ['（无）', '(none)'],
       'diag.configSchema': ['Config schema（模型页显示卡片的前提）', 'Config schema (required for the model card)'],
@@ -291,13 +398,16 @@ window.__ModuleLoader__.load({
     }
 
     /** Fetch one plugin route, tolerating a non-JSON answer. */
-    async function getRoute(path) {
-      const response = await fetch(`${ROUTE}${path}`, { headers: { accept: 'application/json' } })
+    async function getRoute(path, options = {}) {
+      const response = await fetch(`${ROUTE}${path}`, { ...options, headers: { accept: 'application/json' } })
       const text = await response.text()
       try {
-        return JSON.parse(text)
-      } catch {
-        throw new Error(`${path}: ${response.status} ${text.slice(0, 120)}`)
+        const payload = JSON.parse(text)
+        if (!response.ok) throw new Error(payload.error ?? `${path}: HTTP ${response.status}`)
+        return payload
+      } catch (error) {
+        if (error instanceof SyntaxError) throw new Error(`${path}: ${response.status} ${text.slice(0, 120)}`)
+        throw error
       }
     }
 
@@ -310,9 +420,12 @@ window.__ModuleLoader__.load({
       })
       const text = await response.text()
       try {
-        return JSON.parse(text)
-      } catch {
-        throw new Error(`${path}: ${response.status} ${text.slice(0, 120)}`)
+        const payload = JSON.parse(text)
+        if (!response.ok) throw new Error(payload.error ?? `${path}: HTTP ${response.status}`)
+        return payload
+      } catch (error) {
+        if (error instanceof SyntaxError) throw new Error(`${path}: ${response.status} ${text.slice(0, 120)}`)
+        throw error
       }
     }
 
@@ -622,9 +735,9 @@ window.__ModuleLoader__.load({
 /* Model rows are CARDS, not table rows — the reference lists models this way and
    a settings column cannot hold six nowrap columns. Each row is a surface on
    bg-layer-2, its facts on one 11px meta line, exactly like the reference. */
-/* One bordered box; its rows are divided by hairlines. The rounded corners are
-   drawn by this box, so overflow:hidden is load-bearing — without the clip the
-   first and last row would paint square corners over them. */
+/* One bordered box; its first and last rows receive their own corner radii so
+   contextual row menus can extend beyond the table without being clipped. */
+.dca-model-page{min-height:100%;padding-bottom:60px}
 .dca-models{
   display:flex;flex-direction:column;
   border:1px solid var(--dsw-alias-border-l2,#36373b);
@@ -633,33 +746,23 @@ window.__ModuleLoader__.load({
 .dca-model{
   box-sizing:border-box;display:grid;grid-template-columns:minmax(0,1fr);gap:7px;
   padding:10px 12px;background:var(--dsw-alias-bg-layer-2,#232529);
-  transition:opacity .16s;
+  transition:background-color .16s;
 }
 .dca-model + .dca-model{border-top:1px solid var(--dsw-alias-border-l2,#36373b)}
 /* An unticked model stays visible but recedes: it is still a thing you can
    enable, so hiding it would make the catalog feel arbitrary. */
-.dca-model-off{opacity:.55}
+.dca-model-off{background:var(--dsw-alias-bg-layer-1,#1c1d21)}
 /* The model panel's action bar: always present, disabled when clean. */
 .dca-model-actions{
   display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;
+  position:sticky;bottom:0;z-index:3;flex-shrink:0;
   gap:12px;row-gap:8px;
+  background:var(--dsw-alias-bg-layer-1,#17181b);
+  box-shadow:0 -6px 16px rgba(0,0,0,.04);
   border-top:1px solid var(--dsw-alias-border-l2,#36373b);
-  padding-top:12px;
+  padding:12px 0;
 }
 .dca-model-actions-buttons{display:flex;align-items:center;justify-content:flex-end;gap:8px}
-.dca-cheer{
-  display:inline-flex;align-items:center;gap:4px;flex:none;
-  text-decoration:underline;text-underline-offset:2px;
-  color:var(--dsw-alias-label-tertiary,#999);
-  font-size:13px;line-height:1.5;transition:color .16s;
-}
-.dca-cheer:hover{color:var(--dsw-alias-label-primary,#e6e6e6)}
-.dca-cheer:focus-visible{outline:2px solid var(--dsw-alias-brand-primary,#5686fe);outline-offset:2px;border-radius:4px}
-.dca-cheer-star{font-size:12px}
-.dca-model-save-error{
-  flex:1;min-width:0;font-size:12px;line-height:16px;text-align:right;
-  color:var(--dsw-alias-state-error-primary,#ef4444);
-}
 .dca-dirty{
   margin-left:8px;padding:0 6px;border-radius:6px;
   font-size:10px;line-height:16px;font-weight:600;
@@ -749,7 +852,7 @@ window.__ModuleLoader__.load({
 .dca-pool-table{
   box-sizing:border-box;container-type:inline-size;
   border:1px solid var(--dsw-alias-border-l2,#3a3d45);
-  border-radius:12px;overflow:hidden;
+  border-radius:12px;
   background:var(--dsw-alias-bg-layer-2,#24262c);
 }
 .dca-pool-row{
@@ -815,6 +918,77 @@ window.__ModuleLoader__.load({
 .dca-tag-ok{color:var(--dsw-alias-state-success-primary,#3fb950);border-color:currentColor}
 .dca-tag-warn{color:var(--dsw-alias-state-warn-primary,#d29922);border-color:currentColor}
 
+
+
+/* Compact controls share the host's colors in either theme. */
+.dca-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.dca-search{flex:1 1 200px;min-width:140px}
+.dca-filter-group{display:inline-flex;gap:2px;padding:3px;border:1px solid var(--dsw-alias-border-l2,#36373b);border-radius:9px}
+.dca-filter{appearance:none;font:inherit;border:0;border-radius:6px;padding:3px 10px;cursor:pointer;background:transparent;color:var(--dsw-alias-label-secondary,#c6c9d0)}
+.dca-filter[aria-pressed="true"]{background:var(--dsw-alias-label-primary,#e6e6e6);color:var(--dsw-alias-bg-layer-1,#17181b)}
+.dca-filter:focus-visible,.dca-details > summary:focus-visible,.dca-account-menu > summary:focus-visible{outline:2px solid var(--dsw-alias-brand-primary,#5686fe);outline-offset:2px}
+.dca-sort{width:auto;max-width:100%;min-height:32px;font-family:inherit}
+.dca-catalog-meta{display:flex;align-items:center;gap:6px 14px;flex-wrap:wrap;font-size:12px;color:var(--dsw-alias-label-secondary,#c6c9d0)}
+.dca-model-meta{color:var(--dsw-alias-label-secondary,#b6b8be)}
+.dca-model-off .dca-model-controls,.dca-model-off .dca-effort{color:var(--dsw-alias-label-secondary,#b6b8be)}
+.dca-model-controls input:disabled,.dca-effort-select:disabled{opacity:.75}
+.dca-save-status{flex:1 1 180px;min-width:0;font-size:12px;color:var(--dsw-alias-label-secondary,#c6c9d0)}
+.dca-save-status-error{color:var(--dsw-alias-state-error-primary,#ef4444)}
+.dca-empty{padding:24px 16px;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center}
+.dca-details > summary{cursor:pointer;font-size:12px;color:var(--dsw-alias-label-secondary,#c6c9d0);border-radius:4px}
+.dca-details[open] > summary{margin-bottom:12px}
+.dca-details-body{display:flex;flex-direction:column;gap:12px;min-width:0}
+.dca-add-tools > summary{font-size:13px;font-weight:500;color:var(--dsw-alias-label-primary,#e6e6e6)}
+.dca-form-field{display:flex;flex-direction:column;gap:5px;flex:1 1 180px;min-width:0;font-size:12px;color:var(--dsw-alias-label-secondary,#c6c9d0)}
+.dca-form-field .dca-input{width:100%;min-width:0;flex:none}
+.dca-secret-field{display:flex;align-items:center;gap:6px}
+.dca-secret-field .dca-input{flex:1;min-width:0}
+.dca-form{display:flex;flex-direction:column;gap:12px}
+.dca-form .dca-fields{align-items:flex-start}
+.dca-account-menu{position:relative}
+.dca-account-menu > summary{cursor:pointer;list-style:none;padding:3px 10px;border:1px solid var(--dsw-alias-border-l2,#3a3d45);border-radius:8px;font-size:16px;line-height:20px}
+.dca-account-menu > summary::-webkit-details-marker{display:none}
+.dca-menu-actions{position:absolute;inset-inline-end:0;top:calc(100% + 4px);z-index:4;padding:5px;min-width:110px;border:1px solid var(--dsw-alias-border-l2,#3a3d45);border-radius:8px;background:var(--dsw-alias-bg-overlay,#26282e);box-shadow:0 4px 16px rgba(0,0,0,.12)}
+.dca-menu-actions .dca-btn-xs{width:100%;text-align:left;border-color:transparent}
+.dca-danger{color:var(--dsw-alias-state-error-primary,#ef4444)}
+.dca-pool-row-head{border-radius:11px 11px 0 0}
+.dca-pool-row:last-child{border-radius:0 0 11px 11px}
+.dca-current-tag{display:inline-flex;font-size:11px;font-weight:500;color:var(--dsw-alias-brand-primary,#5686fe)}
+.dca-diagnostic-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(190px,100%),1fr));gap:10px}
+.dca-summary-item{border:1px solid var(--dsw-alias-border-l2,#36373b);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:5px;min-width:0}
+.dca-summary-item strong{font-size:13px;font-weight:500}
+.dca-summary-item p{overflow-wrap:anywhere}
+.dca-section-error{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.dca-section-error .dca-msg{flex:1;min-width:0}
+@media(max-width:640px){
+  .dca-model-head{align-items:flex-start;gap:10px}
+  .dca-model-controls{justify-content:flex-start;padding-inline-start:24px}
+  .dca-model-actions{gap:8px}
+  .dca-model-actions-buttons{margin-inline-start:auto}
+  .dca-model-meta{gap:4px 10px}
+  .dca-pool-row{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"account credits" "probe actions";padding:10px}
+}
+
+.dca-feature-stack{display:flex;flex-direction:column;gap:12px;min-width:0;padding-top:12px}
+.dca-feature-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(210px,100%),1fr));gap:12px}
+.dca-subtitle{font-size:13px;font-weight:600;margin:0}
+.dca-preview-box{border:1px solid var(--dsw-alias-border-l2,#36373b);border-radius:8px;padding:12px;max-width:100%;overflow-wrap:anywhere}
+.dca-health{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:11px;color:var(--dsw-alias-label-secondary,#b6b8be)}
+.dca-health-bad{color:var(--dsw-alias-state-warn-primary,#d49937)}
+.dca-low-balance{color:var(--dsw-alias-state-warn-primary,#d49937)!important}
+.dca-balance-alert{padding:10px 12px;border:1px solid var(--dsw-alias-state-warn-primary,#d49937);border-radius:8px;font-size:12px;display:flex;flex-direction:column;gap:6px;overflow-wrap:anywhere}
+.dca-usage-table{overflow-x:auto;border:1px solid var(--dsw-alias-border-l2,#36373b);border-radius:8px}
+.dca-usage-table table{width:100%;border-collapse:collapse;font-size:12px;text-align:left}
+.dca-usage-table th,.dca-usage-table td{padding:9px 10px;border-bottom:1px solid var(--dsw-alias-border-l2,#36373b);vertical-align:top;min-width:76px;overflow-wrap:anywhere}
+.dca-usage-table th{font-weight:500;color:var(--dsw-alias-label-secondary,#b6b8be)}
+.dca-usage-table tr:last-child td{border-bottom:0}
+.dca-preset-preview{max-height:180px;overflow:auto;margin:0;padding-inline-start:20px}
+.dca-preset-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.dca-preset-row .dca-input{flex:1;min-width:min(180px,100%)}
+
+@media(prefers-reduced-motion:reduce){
+  .dca-page *,.dca-pop *{animation:none!important;transition:none!important}
+}
 
 /* ---- composer pill ----------------------------------------------------
    Plain composer text, no border or fill at rest: this row is a strip of
@@ -968,24 +1142,40 @@ window.__ModuleLoader__.load({
       )
     }
 
-    /**
-     * Strip credential material before the raw dump is copied into a bug report.
-     *
-     * The page's own hint invites pasting this block into an issue, and the
-     * masked values are eight characters of a forty-character key — half an AK
-     * and half an SK do not belong in public. Only the shape is kept: whether a
-     * value is set, and where it came from.
-     */
-    function redactForReport(status, account) {
-      const clone = (value) => (value === undefined ? undefined : JSON.parse(JSON.stringify(value)))
-      const out = { status: clone(status), account: clone(account) }
-      const credential = out.status?.credential
-      if (credential) {
-        credential.savedAk = credential.savedAk ? '(已设置)' : null
-        credential.savedSk = credential.savedSk ? '(已设置)' : null
+    /** Share only known diagnostic fields. Error strings and labels can contain secrets or paths. */
+    function diagnosticReport(status, account) {
+      const catalog = status?.catalog
+      const credential = status?.credential
+      const credentialSources = ['env', 'file', 'codearts']
+      return {
+        provider: PROVIDER_ID,
+        catalog: {
+          source: ['gateway', 'cache', 'fallback'].includes(catalog?.source) ? catalog.source : null,
+          count: Number.isInteger(catalog?.models) ? catalog.models : null,
+          refreshedAt: Number.isFinite(catalog?.refreshedAt) ? catalog.refreshedAt : null,
+          hasError: Boolean(catalog?.error),
+        },
+        credential: {
+          configured: credential?.configured === true,
+          source: credentialSources.includes(credential?.source) ? credential.source : null,
+          savedAkSet: Boolean(credential?.savedAk),
+          savedSkSet: Boolean(credential?.savedSk),
+          hasError: Boolean(credential?.error),
+        },
+        registration: { configSchema: status?.registration?.configSchema === true },
+        account: account ? {
+          ok: account.ok === true,
+          stage: ['credentials', 'gateway'].includes(account.stage) ? account.stage : null,
+          creditAvailable: Boolean(account.credit),
+        } : null,
       }
-      if (out.account) delete out.account.userId
-      return out
+    }
+
+    function catalogSourceLabel(source) {
+      if (source === 'gateway') return t('models.sourceGateway')
+      if (source === 'cache') return t('models.sourceCache')
+      if (source === 'fallback') return t('models.sourceFallback')
+      return '—'
     }
 
     /** A small labelled value row. */
@@ -1021,7 +1211,12 @@ window.__ModuleLoader__.load({
      * Blob is the reliable way out, and a file is what a user expects when the
      * button says 导出.
      */
-    function AccountTools({ onChanged, onResult }) {
+    function AccountTools({ onChanged, onResult, hasAccounts, updateTarget }) {
+      const [expanded, setExpanded] = useState(false)
+      useEffect(() => {
+        if (hasAccounts !== null) setExpanded(!hasAccounts)
+      }, [hasAccounts])
+      const [showSecret, setShowSecret] = useState(false)
       const [ak, setAk] = useState('')
       const [sk, setSk] = useState('')
       const [label, setLabel] = useState('')
@@ -1031,6 +1226,12 @@ window.__ModuleLoader__.load({
       /** The picked file's text, held here: the picker closes immediately, so
        *  there is no File on screen between preview and confirm. */
       const importText = useRef('')
+      const akInput = useRef(null)
+      useEffect(() => {
+        if (!updateTarget) return
+        setExpanded(true); setLabel(updateTarget.label ?? ''); setAk(''); setSk('')
+        akInput.current?.focus()
+      }, [updateTarget])
 
       const add = useCallback(async () => {
         if (ak.trim() === '' || sk.trim() === '') {
@@ -1042,6 +1243,8 @@ window.__ModuleLoader__.load({
           const result = await postRoute('/accounts/add', { ak, sk, label })
           if (result.ok) {
             setAk(''); setSk(''); setLabel('')
+            setShowSecret(false)
+            setExpanded(false)
             onResult({ kind: 'success', text: result.added ? t('pool.added') : t('pool.updated') })
             await onChanged()
           } else {
@@ -1093,108 +1296,68 @@ window.__ModuleLoader__.load({
         } finally { setBusy(null) }
       }, [onChanged, onResult])
 
-      /** Download the store as a JSON file. */
-      const doExport = useCallback(async () => {
-        setBusy('export')
-        try {
-          const result = await getRoute('/accounts/export')
-          if (!result.ok || typeof result.text !== 'string') {
-            onResult({ kind: 'error', text: result.error ?? t('pool.exportFailed') })
-            return
-          }
-          if (typeof document === 'undefined' || typeof Blob === 'undefined') {
-            onResult({ kind: 'warn', text: result.text })
-            return
-          }
-          const stamp = new Date()
-          const pad = (n) => String(n).padStart(2, '0')
-          const name = `codearts-accounts-${stamp.getFullYear()}-${pad(stamp.getMonth() + 1)}-${pad(stamp.getDate())}.json`
-          const blob = new Blob([result.text], { type: 'application/json' })
-          const url = URL.createObjectURL(blob)
-          const anchor = document.createElement('a')
-          anchor.href = url
-          anchor.download = name
-          document.body.appendChild(anchor)
-          anchor.click()
-          anchor.remove()
-          URL.revokeObjectURL(url)
-          onResult({ kind: 'success', text: t('pool.exported').replace('{name}', name) })
-        } catch (error) {
-          onResult({ kind: 'error', text: error.message })
-        } finally { setBusy(null) }
-      }, [onResult])
 
       return h(
-        'div',
-        { className: 'dca-card' },
-        h('h3', { className: 'dca-card-title' }, t('pool.addTitle')),
-        // One row of inputs with their labels INSIDE (placeholder only). The
-        // reference is this shape: three fields across, no label line above each,
-        // because a card about adding an account does not need to explain what an
-        // AK is a second time — the placeholders do it.
+        'details',
+        {
+          className: 'dca-card dca-details dca-add-tools',
+          open: expanded,
+          onToggle: (event) => setExpanded(event.currentTarget.open),
+        },
+        h('summary', null, t('pool.addTitle')),
+        updateTarget ? h('p', { className: 'dca-hint' }, t('health.updateHint').replace('{name}', updateTarget.label)) : null,
         h(
-          'div',
-          { className: 'dca-fields' },
-          h('input', {
-            id: 'dca-ak2',
-            className: 'dca-input',
-            value: ak,
-            autoComplete: 'off',
-            placeholder: t('account.ak'),
-            'aria-label': t('account.ak'),
-            onChange: (e) => setAk(e.target.value),
-          }),
-          h('input', {
-            id: 'dca-sk2',
-            className: 'dca-input',
-            type: 'password',
-            value: sk,
-            autoComplete: 'off',
-            placeholder: t('account.sk'),
-            'aria-label': t('account.sk'),
-            onChange: (e) => setSk(e.target.value),
-          }),
-          h('input', {
-            id: 'dca-label',
-            className: 'dca-input',
-            value: label,
-            autoComplete: 'off',
-            placeholder: t('pool.addLabelPlaceholder'),
-            'aria-label': t('pool.addLabel'),
-            onChange: (e) => setLabel(e.target.value),
-          }),
-        ),
-        h(
-          'div',
-          { className: 'dca-pool-actions-group' },
+          'form',
+          { className: 'dca-form', onSubmit: (event) => { event.preventDefault(); if (busy === null) void add() } },
           h(
-            'button',
-            { type: 'button', className: 'dca-btn dca-btn-primary', onClick: add, disabled: busy !== null },
-            busy === 'add' ? t('account.saving') : t('pool.add'),
+            'div',
+            { className: 'dca-fields' },
+            h('label', { className: 'dca-form-field', htmlFor: 'dca-ak2' },
+              t('account.ak'),
+              h('input', {
+                ref: akInput, id: 'dca-ak2', className: 'dca-input', value: ak, autoComplete: 'off',
+                placeholder: t('account.placeholderAk'), disabled: busy !== null,
+                'aria-label': t('account.ak'), onChange: (event) => setAk(event.target.value),
+              }),
+            ),
+            h('label', { className: 'dca-form-field', htmlFor: 'dca-sk2' },
+              t('account.sk'),
+              h('span', { className: 'dca-secret-field' },
+                h('input', {
+                  id: 'dca-sk2', className: 'dca-input', type: showSecret ? 'text' : 'password',
+                  value: sk, autoComplete: 'off', placeholder: t('account.placeholderSk'),
+                  disabled: busy !== null, 'aria-label': t('account.sk'),
+                  onChange: (event) => setSk(event.target.value),
+                }),
+                h('button', {
+                  type: 'button', className: 'dca-btn-xs', 'aria-controls': 'dca-sk2',
+                  'aria-pressed': showSecret, 'aria-label': t(showSecret ? 'pool.hideSecret' : 'pool.showSecret'), disabled: busy !== null,
+                  onClick: () => setShowSecret((current) => !current),
+                }, t(showSecret ? 'pool.hideSecret' : 'pool.showSecret')),
+              ),
+            ),
+            h('label', { className: 'dca-form-field', htmlFor: 'dca-label' },
+              t('pool.addLabel'),
+              h('input', {
+                id: 'dca-label', className: 'dca-input', value: label, autoComplete: 'off',
+                placeholder: t('pool.addLabelPlaceholder'), disabled: busy !== null,
+                onChange: (event) => setLabel(event.target.value),
+              }),
+            ),
           ),
-          h(
-            'button',
-            {
-              type: 'button',
-              className: 'dca-btn',
-              disabled: busy !== null,
+          h('div', { className: 'dca-pool-actions-group' },
+            h('button', {
+              type: 'submit', className: 'dca-btn dca-btn-primary',
+              disabled: busy !== null || !ak.trim() || !sk.trim(),
+            }, busy === 'add' ? t('account.saving') : t('pool.add')),
+            h('button', {
+              type: 'button', className: 'dca-btn', disabled: busy !== null,
               onClick: () => fileInput.current?.click(),
-            },
-            busy === 'import' ? t('pool.importing') : t('pool.import'),
-          ),
-          h(
-            'button',
-            { type: 'button', className: 'dca-btn', onClick: doExport, disabled: busy !== null },
-            t('pool.export'),
+            }, busy === 'import' ? t('pool.importing') : t('pool.import')),
           ),
         ),
-        // Mounted with the section, not inside the confirmation: the button must
-        // be able to open the picker before any dialog exists, and clearing the
-        // value after each pick lets the same file be chosen twice.
         h('input', {
-          ref: fileInput,
-          type: 'file',
-          accept: 'application/json,.json,.csv,.txt',
+          ref: fileInput, type: 'file', accept: 'application/json,.json,.csv,.txt',
           className: 'dca-file-input',
           onChange: (event) => {
             const file = event.target.files?.[0]
@@ -1250,7 +1413,10 @@ window.__ModuleLoader__.load({
               ),
             )
           : null,
-        h('p', { className: 'dca-hint' }, t('pool.exportHint')),
+        h('details', { className: 'dca-details' },
+          h('summary', null, t('account.whereToGet')),
+          h('p', { className: 'dca-hint' }, t('account.whereToGetBody')),
+        ),
       )
     }
 
@@ -1271,7 +1437,11 @@ window.__ModuleLoader__.load({
       onRemove,
       autoOn,
       onToggleAuto,
+      onCheckinAll,
       onRename,
+      onExport,
+      onCheck,
+      onUpdateCredentials,
     }) {
       /** Which row is being renamed, and its draft text. */
       const [editingId, setEditingId] = useState(null)
@@ -1299,9 +1469,13 @@ window.__ModuleLoader__.load({
         await onRename(id, next)
       }, [draftLabel, onRename])
       const accounts = pool?.accounts ?? []
+      // `busy` is the KIND ('checkin' | 'auto' | null); most checks only care
+      // whether anything is running.
+      const anyBusy = busy !== null && busy !== undefined && busy !== false
       // Something to claim right now? The button is disabled otherwise, so a
       // press that cannot do anything never looks like a broken button.
       const anyClaimable = accounts.some((account) => account.checkin?.claimable)
+      const allSigned = accounts.length > 0 && accounts.every((account) => account.checkin?.claimedToday === true)
       const active = accounts.find((account) => account.active)
       return h(
         'div',
@@ -1312,7 +1486,13 @@ window.__ModuleLoader__.load({
           { className: 'dca-pool-card-head' },
           h('h2', { className: 'dca-title' }, t('pool.title')),
           h('p', { className: 'dca-hint dca-pool-tagline' }, t('pool.tagline')),
-          active ? h('span', { className: 'dca-badge' }, `${t('pool.inUse')}${active.label}`) : null,
+          h('div', { className: 'dca-pool-actions-group' },
+            active ? h('span', { className: 'dca-badge' }, `${t('pool.inUse')}${active.label}`) : null,
+            accounts.length > 0 ? h('button', {
+              type: 'button', className: 'dca-btn-xs', onClick: onExport, disabled: anyBusy || busyId !== null,
+              title: t('pool.exportHint'),
+            }, t('pool.export')) : null,
+          ),
         ),
 
         // One switch, no card around it and no explanatory paragraph under it:
@@ -1327,7 +1507,8 @@ window.__ModuleLoader__.load({
             h('input', {
               type: 'checkbox',
               checked: autoOn === true,
-              disabled: busy,
+              disabled: anyBusy || busyId !== null,
+              'aria-label': t('pool.autoTitle'),
               onChange: () => onToggleAuto(autoOn !== true),
             }),
             h('span', { className: 'dca-sw-track' }),
@@ -1344,13 +1525,13 @@ window.__ModuleLoader__.load({
                 {
                   type: 'button',
                   className: 'dca-btn dca-btn-xs dca-checkin-now',
-                  disabled: busy || !anyClaimable,
+                  disabled: anyBusy || busyId !== null || !anyClaimable,
                   title: anyClaimable
                     ? t('pool.checkinAllHint')
                     : t('pool.checkinNoneToday'),
                   onClick: onCheckinAll,
                 },
-                busy === 'checkin' ? t('pool.checkinClaiming') : t('pool.checkinAll'),
+                busy === 'checkin' ? t('pool.checkinClaiming') : allSigned ? t('pool.allSigned') : t('pool.checkinAll'),
               ),
         ),
 
@@ -1385,6 +1566,7 @@ window.__ModuleLoader__.load({
                     h(
                       'div',
                       { className: 'dca-pool-account-row' },
+                      account.active ? h('span', { className: 'dca-current-tag' }, t('pool.current')) : null,
                       editingId === account.id
                         ? h('input', {
                             type: 'text',
@@ -1417,6 +1599,10 @@ window.__ModuleLoader__.load({
                     h(
                       'div',
                       { className: 'dca-pool-probe' },
+                      h('div', { className: `dca-health${account.health?.state && account.health.state !== 'available' ? ' dca-health-bad' : ''}` },
+                        h('span', null, t(`health.${account.health?.state ?? 'unknown'}`)),
+                        account.health?.checkedAt ? h('span', null, `${t('health.checked')} ${formatTime(account.health.checkedAt)}`) : null,
+                      ),
                       account.error
                         ? h('span', { className: 'dca-msg-error' }, account.error)
                         : h('span', null, account.accountName ?? account.akMasked),
@@ -1425,7 +1611,7 @@ window.__ModuleLoader__.load({
                   h(
                     'div',
                     { className: 'dca-pool-credits-row' },
-                    h('span', null, account.credit ? Number(account.credit.remain).toLocaleString() : '—'),
+                    h('span', { className: account.lowBalance ? 'dca-low-balance' : undefined }, account.credit ? Number(account.credit.remain).toLocaleString() : '—'),
                     account.credit?.plan ? h('span', { className: 'dca-pool-sub' }, account.credit.plan) : null,
                     // Warn about credits that lapse. The amount is real; the
                     // deadline is not knowable from this gateway, so the chip
@@ -1463,6 +1649,9 @@ window.__ModuleLoader__.load({
                     h(
                       'div',
                       { className: 'dca-pool-actions' },
+                      h('button', { type: 'button', className: 'dca-btn-xs', disabled: rowBusy || anyBusy || busyId !== null, onClick: () => onCheck(account.id) }, rowBusy ? t('common.loading') : t('health.recheck')),
+                      account.health?.state === 'credentials' ? h('button', { type: 'button', className: 'dca-btn-xs', disabled: rowBusy || anyBusy || busyId !== null, onClick: () => onUpdateCredentials(account) }, t('health.update')) : null,
+                      account.health?.state === 'insufficient' ? h('span', { className: 'dca-hint' }, t('health.switch')) : null,
                       account.active
                         ? null
                         : h(
@@ -1470,20 +1659,28 @@ window.__ModuleLoader__.load({
                             {
                               type: 'button',
                               className: 'dca-btn-xs',
-                              disabled: rowBusy || busy,
+                              disabled: rowBusy || anyBusy || busyId !== null,
                               onClick: () => onActivate(account.id),
                             },
                             t('pool.use'),
                           ),
-                      h(
-                        'button',
-                        {
-                          type: 'button',
-                          className: 'dca-btn-xs',
-                          disabled: rowBusy || busy,
-                          onClick: () => onRemove(account),
-                        },
-                        t('pool.remove'),
+                      h('details', { className: 'dca-account-menu' },
+                        h('summary', {
+                          'aria-label': `${t('common.more')} — ${account.label}`,
+                          title: t('common.more'),
+                          'aria-disabled': anyBusy || busyId !== null,
+                          onClick: (event) => { if (anyBusy || busyId !== null) event.preventDefault() },
+                        }, '⋯'),
+                        h('div', { className: 'dca-menu-actions' },
+                          h('button', {
+                            type: 'button', className: 'dca-btn-xs dca-danger',
+                            disabled: rowBusy || anyBusy || busyId !== null,
+                            onClick: (event) => {
+                              event.currentTarget.closest('details').open = false
+                              void onRemove(account)
+                            },
+                          }, t('pool.remove')),
+                        ),
                       ),
                     ),
                   ),
@@ -1496,16 +1693,49 @@ window.__ModuleLoader__.load({
 
     // ── credentials tab ────────────────────────────────────────────────────
 
-    function AccountTab({ status, account, pool, onChanged }) {
+    function AccountTab({ status, pool, preferences, onChanged, onPreferencesSaved }) {
       const [busy, setBusy] = useState(null)
       const [busyId, setBusyId] = useState(null)
       const [notice, setNotice] = useState(null)
+      const [updateTarget, setUpdateTarget] = useState(null)
 
       const credential = status?.credential
       const reload = onChanged
 
       /** One place to report an outcome, so every action gets the same voice. */
       const report = useCallback((next) => setNotice(next), [])
+
+      /** Download the store as a JSON file. */
+      const doExport = useCallback(async () => {
+        setBusy('export')
+        try {
+          const result = await getRoute('/accounts/export')
+          if (!result.ok || typeof result.text !== 'string') {
+            report({ kind: 'error', text: result.error ?? t('pool.exportFailed') })
+            return
+          }
+          if (typeof document === 'undefined' || typeof Blob === 'undefined') {
+            report({ kind: 'error', text: t('pool.exportFailed') })
+            return
+          }
+          const stamp = new Date()
+          const pad = (n) => String(n).padStart(2, '0')
+          const name = `codearts-accounts-${stamp.getFullYear()}-${pad(stamp.getMonth() + 1)}-${pad(stamp.getDate())}.json`
+          const blob = new Blob([result.text], { type: 'application/json' })
+          const url = URL.createObjectURL(blob)
+          const anchor = document.createElement('a')
+          anchor.href = url
+          anchor.download = name
+          document.body.appendChild(anchor)
+          anchor.click()
+          anchor.remove()
+          URL.revokeObjectURL(url)
+          report({ kind: 'success', text: `${t('pool.exported').replace('{name}', name)} · ${t('pool.exportHint')}` })
+        } catch (error) {
+          report({ kind: 'error', text: error.message })
+        } finally { setBusy(null) }
+      }, [report])
+
 
       const activate = useCallback(async (id) => {
         setBusyId(id)
@@ -1606,25 +1836,6 @@ window.__ModuleLoader__.load({
         }
       }, [onChanged])
 
-      const refresh = useCallback(async () => {
-        setBusy('refresh')
-        setNotice(null)
-        try {
-          const result = await getRoute('/refresh')
-          setNotice({
-            kind: result.ok ? 'success' : 'warning',
-            text: result.ok
-              ? `${t('models.count')}：${result.models}`
-              : (result.error ?? t('diag.none')),
-          })
-          await onChanged()
-        } catch (error) {
-          setNotice({ kind: 'error', text: error.message })
-        } finally {
-          setBusy(null)
-        }
-      }, [onChanged])
-
       // Destructive and irreversible from the UI, so it asks first — the button
       // sits at the same weight as the harmless refresh beside it.
       const clear = useCallback(async () => {
@@ -1644,6 +1855,15 @@ window.__ModuleLoader__.load({
         }
       }, [onChanged])
 
+      const checkAccount = async (id) => {
+        setBusyId(id)
+        try {
+          const result = await postRoute('/accounts/check', { id })
+          if (!result.ok) throw new Error(result.error ?? t('common.retry'))
+          report({ kind: result.account.health.state === 'available' ? 'success' : 'warn', text: `${result.account.label}：${t(`health.${result.account.health.state}`)}` })
+          await reload()
+        } catch (error) { report({ kind: 'error', text: error.message }) } finally { setBusyId(null) }
+      }
       const accounts = pool?.accounts ?? []
       return h(
         'div',
@@ -1675,16 +1895,24 @@ window.__ModuleLoader__.load({
         h(AccountPool, {
           pool,
           busyId,
-          busy: busy === 'checkin' || busy === 'auto',
+          // The pool takes the raw kind, not a collapsed boolean: the check-in
+          // button must know whether IT is the one running so it can show
+          // 「签到中…」 — a boolean cannot express that.
+          busy,
           onActivate: activate,
           onRemove: remove,
           autoOn: pool?.autoCheckin === true,
           onToggleAuto: toggleAuto,
           onCheckinAll: checkinAll,
           onRename: rename,
+          onExport: doExport,
+          onCheck: checkAccount,
+          onUpdateCredentials: (account) => setUpdateTarget({ ...account }),
         }),
 
-        h(AccountTools, { onChanged, onResult: report }),
+        h(AccountTools, { onChanged, onResult: report, hasAccounts: pool ? accounts.length > 0 : null, updateTarget }),
+        preferences ? h(ReminderSettings, { preferences, onSaved: onPreferencesSaved }) : null,
+        h(BackupTools, { onRestored: onChanged }),
 
         accounts.length === 0 || credential?.error
           ? null
@@ -1696,11 +1924,210 @@ window.__ModuleLoader__.load({
                 { className: 'dca-row' },
                 h('button', { type: 'button', className: 'dca-btn', onClick: test, disabled: busy !== null },
                   busy === 'test' ? t('account.testing') : t('account.test')),
-                h('button', { type: 'button', className: 'dca-btn', onClick: clear, disabled: busy !== null },
-                  t('account.clear')),
+
               ),
-              h('p', { className: 'dca-hint' }, t('account.whereToGetBody')),
+              h('details', { className: 'dca-details' },
+                h('summary', null, t('pool.manage')),
+                h('button', { type: 'button', className: 'dca-btn dca-danger', onClick: clear, disabled: busy !== null }, t('account.clear')),
+              ),
             ),
+      )
+    }
+
+    function FeatureNotice({ notice }) {
+      if (!notice) return null
+      return h('p', { className: `dca-msg dca-msg-${notice.kind === 'error' ? 'error' : 'ok'}`, role: notice.kind === 'error' ? 'alert' : 'status' }, notice.text)
+    }
+
+    function downloadJson(value, name) {
+      const url = URL.createObjectURL(new Blob([JSON.stringify(value, null, 2)], { type: 'application/json' }))
+      const anchor = document.createElement('a')
+      anchor.href = url
+      anchor.download = name
+      document.body.appendChild(anchor)
+      anchor.click()
+      anchor.remove()
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000)
+    }
+
+    function ReminderSettings({ preferences, onSaved }) {
+      const [draft, setDraft] = useState(null)
+      const [busy, setBusy] = useState(false)
+      const [notice, setNotice] = useState(null)
+      const enabled = draft?.enabled ?? preferences.lowBalanceEnabled
+      const threshold = draft?.threshold ?? String(preferences.lowBalanceThreshold)
+      const dirty = enabled !== preferences.lowBalanceEnabled || threshold !== String(preferences.lowBalanceThreshold)
+      const valid = threshold.trim() !== '' && Number.isFinite(Number(threshold)) && Number(threshold) >= 0 && Number(threshold) <= 1e9
+      const update = (patch) => { setDraft({ enabled, threshold, ...patch }); setNotice(null) }
+      const save = async (event) => {
+        event.preventDefault()
+        if (!valid || busy) return
+        setBusy(true)
+        try {
+          const result = await postRoute('/preferences/save', { lowBalanceEnabled: enabled, lowBalanceThreshold: Number(threshold) })
+          if (!result.ok) throw new Error(result.error ?? t('common.retry'))
+          await onSaved()
+          setDraft(null)
+          setNotice({ kind: 'success', text: t('features.saved') })
+        } catch (error) { setNotice({ kind: 'error', text: error.message }) } finally { setBusy(false) }
+      }
+      return h('details', { className: 'dca-card dca-details' },
+        h('summary', null, t('reminder.title')),
+        h('form', { className: 'dca-feature-stack', onSubmit: save },
+          h('label', { className: 'dca-row' }, h('input', { type: 'checkbox', checked: enabled, disabled: busy, onChange: (event) => update({ enabled: event.target.checked }) }), t('reminder.enabled')),
+          h('label', { className: 'dca-form-field' }, t('reminder.threshold'), h('input', { className: 'dca-input', type: 'number', min: 0, max: 1e9, step: 'any', value: threshold, disabled: busy, onChange: (event) => update({ threshold: event.target.value }) })),
+          h('p', { className: 'dca-hint' }, t('reminder.hint')),
+          h(FeatureNotice, { notice }),
+          h('div', { className: 'dca-row' }, h('button', { type: 'submit', className: 'dca-btn', disabled: busy || !dirty || !valid }, busy ? t('account.saving') : t('models.save'))),
+        ),
+      )
+    }
+
+    function BackupTools({ onRestored }) {
+      const [includeCredentials, setIncludeCredentials] = useState(false)
+      const [exportPassword, setExportPassword] = useState('')
+      const [confirmation, setConfirmation] = useState('')
+      const [text, setText] = useState('')
+      const [password, setPassword] = useState('')
+      const [preview, setPreview] = useState(null)
+      const [busy, setBusy] = useState(null)
+      const [notice, setNotice] = useState(null)
+      const fileInput = useRef(null)
+      const validPassword = exportPassword.length >= 8 && exportPassword.length <= 256 && exportPassword === confirmation
+      const exportBackup = async (event) => {
+        event.preventDefault()
+        if (busy || ((includeCredentials || exportPassword) && !validPassword)) return
+        setBusy('export')
+        setNotice(null)
+        try {
+          const result = await postRoute('/backup/export', { includeCredentials, password: exportPassword })
+          if (!result.ok) throw new Error(result.error ?? t('backup.failed'))
+          downloadJson(result.backup, `codearts-backup-${new Date().toISOString().slice(0, 10)}.json`)
+          setExportPassword(''); setConfirmation('')
+          setNotice({ kind: 'success', text: t('backup.exported') })
+        } catch (error) { setNotice({ kind: 'error', text: error.message }) } finally { setBusy(null) }
+      }
+      const inspect = async () => {
+        if (busy || !text.trim()) return
+        setBusy('preview'); setNotice(null); setPreview(null)
+        try {
+          const result = await postRoute('/backup/preview', { text, password })
+          if (!result.ok) throw new Error(result.error ?? t('backup.failed'))
+          setPreview(result)
+        } catch (error) { setNotice({ kind: 'error', text: error.message }) } finally { setBusy(null) }
+      }
+      const restore = async () => {
+        if (!preview || busy) return
+        setBusy('restore'); setNotice(null)
+        try {
+          const result = await postRoute('/backup/restore', { text, password })
+          if (!result.ok) throw new Error(result.error ?? t('backup.failed'))
+          setText(''); setPassword(''); setPreview(null)
+          await onRestored()
+          setNotice({ kind: 'success', text: t('backup.restored').replace('{added}', result.added).replace('{updated}', result.updated) })
+        } catch (error) { setNotice({ kind: 'error', text: error.message }) } finally { setBusy(null) }
+      }
+      return h('details', { className: 'dca-card dca-details' },
+        h('summary', null, t('backup.title')),
+        h('div', { className: 'dca-feature-stack' },
+          h('p', { className: 'dca-hint' }, t('backup.hint')),
+          h(FeatureNotice, { notice }),
+          h('form', { className: 'dca-feature-stack', onSubmit: exportBackup },
+            h('h3', { className: 'dca-subtitle' }, t('backup.export')),
+            h('label', { className: 'dca-row' }, h('input', { type: 'checkbox', checked: includeCredentials, disabled: busy !== null, onChange: (event) => setIncludeCredentials(event.target.checked) }), t('backup.include')),
+            h('div', { className: 'dca-feature-grid' },
+              h('label', { className: 'dca-form-field' }, t('backup.exportPassword'), h('input', { className: 'dca-input', type: 'password', autoComplete: 'new-password', maxLength: 256, value: exportPassword, disabled: busy !== null, onChange: (event) => setExportPassword(event.target.value) })),
+              h('label', { className: 'dca-form-field' }, t('backup.confirmPassword'), h('input', { className: 'dca-input', type: 'password', autoComplete: 'new-password', maxLength: 256, value: confirmation, disabled: busy !== null, onChange: (event) => setConfirmation(event.target.value) })),
+            ),
+            (includeCredentials || exportPassword) && !validPassword ? h('p', { className: 'dca-hint' }, t('backup.passwordHint')) : null,
+            h('div', { className: 'dca-row' }, h('button', { className: 'dca-btn', type: 'submit', disabled: busy !== null || ((includeCredentials || Boolean(exportPassword)) && !validPassword) }, busy === 'export' ? t('common.loading') : t('backup.download'))),
+          ),
+          h('h3', { className: 'dca-subtitle' }, t('backup.restore')),
+          h('div', { className: 'dca-row' },
+            h('button', { type: 'button', className: 'dca-btn', disabled: busy !== null, onClick: () => fileInput.current?.click() }, t('backup.choose')),
+            h('input', { ref: fileInput, type: 'file', accept: '.json,application/json', className: 'dca-file-input', disabled: busy !== null, onChange: async (event) => {
+              const file = event.target.files?.[0]; event.target.value = ''
+              if (!file) return
+              setPreview(null); setNotice(null)
+              try {
+                if (file.size > 768 * 1024) throw new Error(t('backup.tooLarge'))
+                setText(await file.text())
+              } catch (error) { setNotice({ kind: 'error', text: error.message }) }
+            } }),
+          ),
+          h('label', { className: 'dca-form-field' }, t('backup.content'), h('textarea', { className: 'dca-input', rows: 4, maxLength: 786432, value: text, disabled: busy !== null, onChange: (event) => { setText(event.target.value); setPreview(null) } })),
+          h('label', { className: 'dca-form-field' }, t('backup.importPassword'), h('input', { className: 'dca-input', type: 'password', autoComplete: 'off', maxLength: 256, value: password, disabled: busy !== null, onChange: (event) => { setPassword(event.target.value); setPreview(null) } })),
+          h('div', { className: 'dca-row' }, h('button', { type: 'button', className: 'dca-btn', disabled: busy !== null || !text.trim(), onClick: inspect }, busy === 'preview' ? t('common.loading') : t('backup.preview'))),
+          preview ? h('div', { className: 'dca-feature-stack dca-preview-box', role: 'region', 'aria-label': t('backup.preview') },
+            h('p', null, t('backup.summary').replace('{settings}', preview.changes.length).replace('{added}', preview.accounts.added).replace('{updated}', preview.accounts.updated)),
+            h('p', { className: 'dca-hint' }, t('backup.mergeHint')),
+            h('details', { className: 'dca-details' }, h('summary', null, t('backup.changes')), h('pre', { className: 'dca-pre', tabIndex: 0 }, JSON.stringify(preview.preferences, null, 2))),
+            h('div', { className: 'dca-row' },
+              h('button', { type: 'button', className: 'dca-btn dca-btn-primary', disabled: busy !== null, onClick: restore }, busy === 'restore' ? t('common.loading') : t('backup.confirm')),
+              h('button', { type: 'button', className: 'dca-btn', disabled: busy !== null, onClick: () => { setPreview(null); setText(''); setPassword('') } }, t('pool.cancel')),
+            ),
+          ) : null,
+        ),
+      )
+    }
+
+    function UsageTab({ usage, onRefresh, onPreferencesSaved }) {
+      const [busy, setBusy] = useState(null)
+      const [notice, setNotice] = useState(null)
+      const [query, setQuery] = useState('')
+      const [filter, setFilter] = useState('all')
+      const records = usage.records ?? []
+      const visible = records.filter((row) => (filter === 'all' || row.status === filter) && row.model.toLowerCase().includes(query.trim().toLowerCase()))
+      const today = records.filter((row) => new Date(row.at).toDateString() === new Date().toDateString())
+      const completed = today.filter((row) => row.status !== 'aborted')
+      const successRate = completed.length ? `${Math.round(completed.filter((row) => row.status === 'success').length / completed.length * 100)}%` : '—'
+      const action = async (kind) => {
+        if (busy) return
+        if (kind === 'clear' && !window.confirm(t('usage.clearConfirm'))) return
+        setBusy(kind); setNotice(null)
+        try {
+          if (kind === 'toggle') {
+            const result = await postRoute('/preferences/save', { usageEnabled: !usage.enabled })
+            if (!result.ok) throw new Error(result.error ?? t('common.retry'))
+            await onPreferencesSaved()
+          } else if (kind === 'clear') {
+            const result = await postRoute('/usage/clear', {})
+            if (!result.ok) throw new Error(result.error ?? t('common.retry'))
+          }
+          await onRefresh()
+          setNotice({ kind: 'success', text: t(kind === 'clear' ? 'usage.cleared' : 'features.saved') })
+        } catch (error) { setNotice({ kind: 'error', text: error.message }) } finally { setBusy(null) }
+      }
+      return h('div', { className: 'dca-page' },
+        h('div', { className: 'dca-pool-card-head' }, h('h2', { className: 'dca-title' }, t('usage.title')),
+          h('div', { className: 'dca-row' },
+            h('button', { type: 'button', className: 'dca-btn', disabled: busy !== null, onClick: () => action('refresh') }, t('features.refresh')),
+            h('button', { type: 'button', className: 'dca-btn dca-danger', disabled: busy !== null || !records.length, onClick: () => action('clear') }, t('usage.clear')),
+          ),
+        ),
+        h('label', { className: 'dca-row' }, h('input', { type: 'checkbox', checked: usage.enabled === true, disabled: busy !== null, onChange: () => action('toggle') }), t('usage.enabled')),
+        h('p', { className: 'dca-hint' }, t('usage.hint')),
+        h(FeatureNotice, { notice }),
+        h('div', { className: 'dca-diagnostic-summary' },
+          h('div', { className: 'dca-summary-item' }, h('strong', null, t('usage.today')), h('span', { className: 'dca-num' }, String(today.length))),
+          h('div', { className: 'dca-summary-item' }, h('strong', null, t('usage.successRate')), h('span', { className: 'dca-num' }, successRate)),
+          h('div', { className: 'dca-summary-item' }, h('strong', null, t('usage.tokens')), h('span', { className: 'dca-num' }, `${today.reduce((sum, row) => sum + (row.inputTokens ?? 0) + (row.outputTokens ?? 0), 0)}`)),
+        ),
+        h('div', { className: 'dca-toolbar' },
+          h('input', { className: 'dca-input dca-search', type: 'search', value: query, 'aria-label': t('usage.search'), placeholder: t('usage.search'), onChange: (event) => setQuery(event.target.value) }),
+          h('select', { className: 'dca-input', value: filter, 'aria-label': t('usage.result'), onChange: (event) => setFilter(event.target.value) }, ...['all', 'success', 'error', 'aborted'].map((key) => h('option', { key, value: key }, t(`usage.${key}`)))),
+        ),
+        h('div', { className: 'dca-usage-table', role: 'region', tabIndex: 0, 'aria-label': t('usage.title') },
+          h('table', null,
+            h('thead', null, h('tr', null, ...['time', 'model', 'duration', 'input', 'output', 'result'].map((key) => h('th', { key, scope: 'col' }, t(`usage.${key}`))))),
+            h('tbody', null, ...visible.map((row) => h('tr', { key: row.id },
+              h('td', null, formatTime(row.at)), h('td', null, row.model), h('td', { className: 'dca-num' }, `${(row.durationMs / 1000).toFixed(1)}s`),
+              h('td', { className: 'dca-num' }, row.inputTokens ?? '—'), h('td', { className: 'dca-num' }, row.outputTokens ?? '—'),
+              h('td', null, t(`usage.${row.status}`)),
+            ))),
+          ),
+        ),
+        !visible.length ? h('p', { className: 'dca-hint', role: 'status' }, t('usage.empty')) : null,
       )
     }
 
@@ -1724,8 +2151,18 @@ window.__ModuleLoader__.load({
      * rather than behind an edit dialog. Edits are local until saved; the
      * reference uses the same save/discard posture for this panel.
      */
-    function ModelsTab({ models, status, onRefresh, onSaved }) {
-      const [busy, setBusy] = useState(false)
+    function ModelsTab({ models, onRefresh, onSaved }) {
+      const [busy, setBusy] = useState(null)
+      const [query, setQuery] = useState('')
+      const [filter, setFilter] = useState('all')
+      const [sort, setSort] = useState('default')
+      const [imagesOnly, setImagesOnly] = useState(false)
+      const [reasoningOnly, setReasoningOnly] = useState(false)
+      const [presetId, setPresetId] = useState('')
+      const [presetName, setPresetName] = useState('')
+      const [presetPreview, setPresetPreview] = useState(null)
+      const [savedPresets, setSavedPresets] = useState(null)
+      useEffect(() => { setSavedPresets(null) }, [models.presets])
       const [notice, setNotice] = useState(null)
       /** Local draft: null means "no unsaved edits". */
       const [enabledIds, setEnabledIds] = useState(null)
@@ -1744,9 +2181,34 @@ window.__ModuleLoader__.load({
         if (Array.isArray(saved)) return saved.includes(id)
         return true
       }
-      const dirty = enabledIds !== null || Object.keys(overrides).length > 0
+      const dirty = (enabledIds !== null && list.some((model) =>
+        enabledIds.includes(model.id) !== (selectionIsDefault || models.enabledIds.includes(model.id)))) ||
+        Object.entries(overrides).some(([id, patch]) => {
+          const model = list.find((entry) => entry.id === id)
+          if (!model) return false
+          const saved = { images: model.supportsImages, allowOff: model.allowOff !== false, defaultStrength: model.defaultStrength, ...model.overrides }
+          return Object.entries(patch).some(([key, value]) => value !== saved[key])
+        })
+      const selectedIds = list.filter((model) => isEnabled(model.id)).map((model) => model.id)
+      const selectedCount = selectedIds.length
+      const normalizedQuery = query.trim().toLowerCase()
+      const visibleModels = list.filter((model) =>
+        (filter !== 'enabled' || isEnabled(model.id)) &&
+        (!imagesOnly || (overrides[model.id]?.images ?? model.supportsImages) === true) &&
+        (!reasoningOnly || model.strengths?.length > 0) &&
+        (!normalizedQuery || `${model.name} ${model.id}`.toLowerCase().includes(normalizedQuery)))
+      if (sort === 'ratio') {
+        const ratioOf = (model) => {
+          const value = Number.parseFloat(String(model.ratio ?? '').trim().replace(/^x/i, ''))
+          return Number.isFinite(value) ? value : Infinity
+        }
+        visibleModels.sort((left, right) => ratioOf(left) - ratioOf(right))
+      } else if (sort === 'name') {
+        visibleModels.sort((left, right) => left.name.localeCompare(right.name))
+      }
 
       const toggle = useCallback((id, next) => {
+        setNotice(null)
         setEnabledIds((current) => {
           const base = current ?? (selectionIsDefault ? list.map((m) => m.id) : (models?.enabledIds ?? []))
           return next ? [...new Set([...base, id])] : base.filter((entry) => entry !== id)
@@ -1754,6 +2216,7 @@ window.__ModuleLoader__.load({
       }, [list, models, selectionIsDefault])
 
       const setOverride = useCallback((id, patch) => {
+        setNotice(null)
         setOverrides((current) => ({
           ...current,
           [id]: { ...(current[id] ?? {}), ...patch },
@@ -1761,7 +2224,7 @@ window.__ModuleLoader__.load({
       }, [])
 
       const save = useCallback(async () => {
-        setBusy(true)
+        setBusy('save')
         try {
           const payload = {
             // A draft that matches the whole roster is the same thing as "all",
@@ -1770,29 +2233,33 @@ window.__ModuleLoader__.load({
             enabledIds:
               enabledIds === null
                 ? (selectionIsDefault ? null : (models?.enabledIds ?? []))
-                : enabledIds.length === list.length
+                : selectedIds.length === list.length
                   ? null
-                  : enabledIds,
-            overrides,
+                  : selectedIds,
+            overrides: Object.fromEntries(list.map((model) => [model.id, { ...model.overrides, ...overrides[model.id] }])),
           }
           const result = await postRoute('/models/select', payload)
           // NOT just `result.ok`: a mis-routed request can land on a read route
           // that also answers `ok: true`, which makes a save look successful
           // while nothing was written. The acknowledgement carries the counts.
           if (result.ok && typeof result.enabled === 'number') {
-            setEnabledIds(null)
-            setOverrides({})
-            setNotice({ kind: 'success', text: t('models.saved') })
-            await onSaved()
+            const reloaded = await onSaved()
+            if (reloaded) {
+              setEnabledIds(null)
+              setOverrides({})
+            }
+            setNotice(reloaded
+              ? { kind: 'success', text: t('models.saved') }
+              : { kind: 'error', text: t('models.savedReloadFailed') })
           } else {
             setNotice({ kind: 'error', text: result.error ?? t('models.saveFailed') })
           }
         } catch (error) {
           setNotice({ kind: 'error', text: `${t('models.saveFailed')}：${error.message}` })
         } finally {
-          setBusy(false)
+          setBusy(null)
         }
-      }, [enabledIds, overrides, list, models, onSaved, selectionIsDefault])
+      }, [enabledIds, overrides, list, models, onSaved, selectedIds, selectionIsDefault])
 
       const discard = useCallback(() => {
         setEnabledIds(null)
@@ -1801,28 +2268,86 @@ window.__ModuleLoader__.load({
       }, [])
 
       const refresh = useCallback(async () => {
-        setBusy(true)
+        setBusy('refresh')
         try {
           const result = await getRoute('/refresh')
-          setNotice(
-            result.ok
-              ? { kind: 'success', text: t('models.refreshed') }
-              : { kind: 'warn', text: result.error ?? t('models.refreshFailed') },
-          )
-          await onRefresh()
+          const reloaded = await onRefresh()
+          setNotice(result.ok && reloaded
+            ? { kind: 'success', text: t('models.refreshed') }
+            : { kind: 'error', text: result.error ?? t('models.refreshFailed') })
         } catch (error) {
           setNotice({ kind: 'error', text: `${t('models.refreshFailed')}：${error.message}` })
         } finally {
-          setBusy(false)
+          setBusy(null)
         }
       }, [onRefresh])
 
-      const source =
-        models?.source === 'gateway' ? t('models.sourceGateway') : t('models.sourceFallback')
+      const ratioOf = (model) => {
+        const value = Number.parseFloat(String(model.ratio ?? '').trim().replace(/^x/i, ''))
+        return Number.isFinite(value) ? value : Infinity
+      }
+      const makeBuiltin = (id, name, targets, deep = false) => ({
+        id, name, enabledModelIds: targets.map((model) => model.id),
+        modelOverrides: Object.fromEntries(list.map((model) => {
+          const base = model.defaults ?? model
+          const strengths = model.strengths ?? []
+          const strength = deep && targets.some((entry) => entry.id === model.id)
+            ? (strengths.includes('max') ? 'max' : strengths.at(-1))
+            : base.defaultStrength
+          return [model.id, { images: base.supportsImages === true, allowOff: base.allowOff !== false,
+            ...(strengths.includes(strength) ? { defaultStrength: strength } : strengths.length ? { defaultStrength: strengths[0] } : {}),
+          }]
+        })),
+      })
+      const presets = [
+        makeBuiltin('builtin:daily', t('presets.daily'), [...list].sort((a, b) => ratioOf(a) - ratioOf(b)).slice(0, 3)),
+        makeBuiltin('builtin:deep', t('presets.deep'), list.filter((model) => model.strengths?.length), true),
+        makeBuiltin('builtin:images', t('presets.images'), list.filter((model) => (model.defaults ?? model).supportsImages)),
+        ...(savedPresets ?? models.presets ?? []),
+      ]
+      const selectedPreset = presets.find((entry) => entry.id === presetId)
+      const previewIds = presetPreview ? (presetPreview.enabledModelIds ?? list.map((entry) => entry.id)).filter((id) => list.some((entry) => entry.id === id)) : []
+      const snapshotOverrides = () => Object.fromEntries(list.map((model) => {
+        const patch = { ...model.overrides, ...overrides[model.id] }
+        const strengths = model.strengths ?? []
+        const strength = patch.defaultStrength ?? model.defaultStrength
+        return [model.id, { images: patch.images ?? model.supportsImages, allowOff: patch.allowOff ?? model.allowOff ?? true,
+          ...(strengths.length ? { defaultStrength: strengths.includes(strength) ? strength : strengths[0] } : {}),
+        }]
+      }))
+      const savePreset = async () => {
+        if (!presetName.trim() || !selectedCount || busy) return
+        setBusy('preset')
+        try {
+          const result = await postRoute('/presets', { action: 'save', name: presetName.trim(), enabledModelIds: selectedCount === list.length ? null : selectedIds, modelOverrides: snapshotOverrides() })
+          if (!result.ok) throw new Error(result.error ?? t('common.retry'))
+          setSavedPresets(result.presets); setPresetName('')
+          setNotice({ kind: 'success', text: t('features.saved') })
+        } catch (error) { setNotice({ kind: 'error', text: error.message }) } finally { setBusy(null) }
+      }
+      const deletePreset = async () => {
+        if (!selectedPreset || selectedPreset.id.startsWith('builtin:') || busy || !window.confirm(t('presets.deleteConfirm'))) return
+        setBusy('preset')
+        try {
+          const result = await postRoute('/presets', { action: 'delete', id: selectedPreset.id })
+          if (!result.ok) throw new Error(result.error ?? t('common.retry'))
+          setSavedPresets(result.presets); setPresetId(''); setPresetPreview(null)
+          setNotice({ kind: 'success', text: t('features.saved') })
+        } catch (error) { setNotice({ kind: 'error', text: error.message }) } finally { setBusy(null) }
+      }
+      const applyPreset = () => {
+        if (!previewIds.length || busy) return
+        setEnabledIds(previewIds)
+        setOverrides(Object.fromEntries(Object.entries(presetPreview.modelOverrides ?? {}).filter(([id]) => list.some((model) => model.id === id))))
+        setPresetPreview(null)
+        setNotice({ kind: 'success', text: t('presets.applied') })
+      }
+
+      const source = catalogSourceLabel(models.source)
 
       return h(
         'div',
-        { className: 'dca-page' },
+        { className: 'dca-page dca-model-page' },
         h(
           'div',
           { className: 'dca-pool-card-head' },
@@ -1842,39 +2367,91 @@ window.__ModuleLoader__.load({
             h('span', { className: 'dca-pool-tag' }, source),
             h(
               'button',
-              { type: 'button', className: 'dca-btn', onClick: refresh, disabled: busy },
-              busy ? t('account.refreshing') : t('models.refresh'),
+              { type: 'button', className: 'dca-btn', onClick: refresh, disabled: busy !== null },
+              busy === 'refresh' ? t('account.refreshing') : t('models.refresh'),
             ),
           ),
         ),
-        h('p', { className: 'dca-hint' }, t('models.hint')),
-        h('p', { className: 'dca-hint' }, t('models.pickerHint')),
+        h('div', { className: 'dca-catalog-meta' },
+          h('span', null, t('models.selectedCount').replace('{enabled}', selectedCount).replace('{total}', list.length)),
+          h('span', null, `${t('models.refreshedAt')}：${formatTime(models?.refreshedAt)}`),
+        ),
+        h('div', { className: 'dca-toolbar' },
+          h('input', {
+            type: 'search', className: 'dca-input dca-search', value: query,
+            placeholder: t('models.search'), 'aria-label': t('models.search'),
+            onChange: (event) => setQuery(event.target.value),
+          }),
+          h('div', { className: 'dca-filter-group', role: 'group', 'aria-label': t('models.title') },
+            ...[['all', 'models.all'], ['enabled', 'models.enabledOnly']].map(([value, key]) =>
+              h('button', { type: 'button', key: value, className: 'dca-filter',
+                'aria-pressed': filter === value, onClick: () => setFilter(value),
+              }, t(key))),
+          ),
+          h('select', { className: 'dca-input dca-sort', value: sort, 'aria-label': t('models.sort'),
+            onChange: (event) => setSort(event.target.value),
+          }, ...[['default', 'models.sortDefault'], ['ratio', 'models.sortRatio'], ['name', 'models.sortName']].map(([value, key]) =>
+            h('option', { key: value, value }, t(key)))),
+        ),
+        h('div', { className: 'dca-row' },
+          h('label', { className: 'dca-row' }, h('input', { type: 'checkbox', checked: imagesOnly, onChange: (event) => setImagesOnly(event.target.checked) }), t('models.imagesOnly')),
+          h('label', { className: 'dca-row' }, h('input', { type: 'checkbox', checked: reasoningOnly, onChange: (event) => setReasoningOnly(event.target.checked) }), t('models.reasoningOnly')),
+        ),
+        h('details', { className: 'dca-card dca-details' },
+          h('summary', null, t('presets.title')),
+          h('div', { className: 'dca-feature-stack' },
+            h('div', { className: 'dca-preset-row' },
+              h('select', { className: 'dca-input', value: presetId, disabled: busy !== null, 'aria-label': t('presets.title'), onChange: (event) => { setPresetId(event.target.value); setPresetPreview(null) } },
+                h('option', { value: '' }, t('presets.choose')), ...presets.map((preset) => h('option', { key: preset.id, value: preset.id }, preset.name)),
+              ),
+              h('button', { type: 'button', className: 'dca-btn', disabled: busy !== null || !selectedPreset, onClick: () => setPresetPreview(selectedPreset) }, t('presets.preview')),
+              selectedPreset && !selectedPreset.id.startsWith('builtin:') ? h('button', { type: 'button', className: 'dca-btn dca-danger', disabled: busy !== null, onClick: deletePreset }, t('presets.delete')) : null,
+            ),
+            presetPreview ? h('div', { className: 'dca-preview-box dca-feature-stack' },
+              h('p', { className: 'dca-hint' }, t('presets.previewHint').replace('{count}', previewIds.length)),
+              !previewIds.length ? h('p', { className: 'dca-hint' }, t('presets.noModels')) : null,
+              presetPreview.enabledModelIds && previewIds.length < presetPreview.enabledModelIds.length ? h('p', { className: 'dca-hint' }, t('presets.missing')) : null,
+              h('ul', { className: 'dca-preset-preview' }, ...previewIds.map((id) => h('li', { key: id }, list.find((model) => model.id === id).name))),
+              h('details', { className: 'dca-details' }, h('summary', null, t('backup.changes')), h('pre', { className: 'dca-pre', tabIndex: 0 }, JSON.stringify(presetPreview.modelOverrides, null, 2))),
+              h('div', { className: 'dca-row' },
+                h('button', { type: 'button', className: 'dca-btn', disabled: busy !== null || !previewIds.length, onClick: applyPreset }, t('presets.apply')),
+                h('button', { type: 'button', className: 'dca-btn', disabled: busy !== null, onClick: () => setPresetPreview(null) }, t('pool.cancel')),
+              ),
+            ) : null,
+            h('div', { className: 'dca-preset-row' },
+              h('input', { className: 'dca-input', value: presetName, maxLength: 48, placeholder: t('presets.name'), 'aria-label': t('presets.name'), disabled: busy !== null, onChange: (event) => setPresetName(event.target.value) }),
+              h('button', { type: 'button', className: 'dca-btn', disabled: busy !== null || !presetName.trim() || !selectedCount, onClick: savePreset }, t('presets.save')),
+            ),
+          ),
+        ),
+        h('details', { className: 'dca-details' },
+          h('summary', null, t('models.about')),
+          h('div', { className: 'dca-details-body' },
+            h('p', { className: 'dca-hint' }, t('models.hint')),
+            h('p', { className: 'dca-hint' }, t('models.pickerHint')),
+          ),
+        ),
         models?.error ? h('p', { className: 'dca-msg dca-msg-warn' }, models.error) : null,
-        notice
-          ? h(
-              'p',
-              {
-                className: `dca-msg dca-msg-${
-                  notice.kind === 'error' ? 'error' : notice.kind === 'success' ? 'ok' : 'warn'
-                }`,
-                role: 'status',
-                'aria-live': 'polite',
-              },
-              notice.text,
-            )
-          : null,
         h(
           'div',
           { className: 'dca-models' },
           list.length === 0
             ? h('p', { className: 'dca-hint' }, t('models.empty'))
-            : h(
+            : visibleModels.length === 0
+              ? h('div', { className: 'dca-empty', role: 'status' },
+                  h('p', { className: 'dca-hint' }, t('models.noMatches')),
+                  h('button', { type: 'button', className: 'dca-btn', onClick: () => { setQuery(''); setFilter('all'); setImagesOnly(false); setReasoningOnly(false) } }, t('models.clearFilters')),
+                )
+              : h(
                 React.Fragment,
                 null,
-                ...list.map((model) => {
+                ...visibleModels.map((model) => {
                   const on = isEnabled(model.id)
-                  const override = overrides[model.id] ?? model.overrides ?? {}
+                  const override = { ...model.overrides, ...overrides[model.id] }
                   const images = typeof override.images === 'boolean' ? override.images : model.supportsImages
+                  const strengths = model.strengths ?? []
+                  const preferredStrength = override.defaultStrength ?? model.defaultStrength
+                  const defaultStrength = strengths.includes(preferredStrength) ? preferredStrength : strengths[0]
                   return h(
                     'div',
                     { key: model.id, className: `dca-model${on ? '' : ' dca-model-off'}` },
@@ -1889,6 +2466,7 @@ window.__ModuleLoader__.load({
                           checked: on,
                           'aria-label': model.name,
                           className: 'dca-model-check',
+                          disabled: busy !== null,
                           onChange: (event) => toggle(model.id, event.target.checked),
                         }),
                         h('b', null, model.name),
@@ -1909,20 +2487,20 @@ window.__ModuleLoader__.load({
                           h('input', {
                             type: 'checkbox',
                             checked: images === true,
-                            disabled: !on,
+                            disabled: !on || busy !== null,
                             onChange: (event) =>
                               setOverride(model.id, { images: event.target.checked }),
                           }),
                           t('models.images'),
                         ),
-                        model.strengths?.length
+                        strengths.length
                           ? h(
                               'label',
                               { className: 'dca-model-flag' },
                               h('input', {
                                 type: 'checkbox',
-                                checked: override.allowOff !== false,
-                                disabled: !on,
+                                checked: (override.allowOff ?? model.allowOff) !== false,
+                                disabled: !on || busy !== null,
                                 onChange: (event) =>
                                   setOverride(model.id, { allowOff: event.target.checked }),
                               }),
@@ -1951,7 +2529,7 @@ window.__ModuleLoader__.load({
                         // a user running a reasoning model wants to decide how
                         // much it thinks before each request, and the picker
                         // cannot express a per-model default on its own.
-                        model.strengths?.length
+                        strengths.length
                           ? h(
                               'label',
                               { className: 'dca-effort' },
@@ -1960,16 +2538,13 @@ window.__ModuleLoader__.load({
                                 'select',
                                 {
                                   className: 'dca-effort-select',
-                                  value: override.defaultStrength ?? model.defaultStrength ?? model.strengths[0],
-                                  disabled: !on,
+                                  value: defaultStrength,
+                                  disabled: !on || busy !== null,
                                   'aria-label': `${t('models.effort')} — ${model.name}`,
                                   onChange: (event) =>
                                     setOverride(model.id, { defaultStrength: event.target.value }),
                                 },
-                                ...(model.allowOff !== false ? ['off'] : []).map((level) =>
-                                  h('option', { key: level, value: level }, effortLabel(level)),
-                                ),
-                                ...model.strengths.map((level) =>
+                                ...strengths.map((level) =>
                                   h('option', { key: level, value: level }, effortLabel(level)),
                                 ),
                               ),
@@ -1990,20 +2565,10 @@ window.__ModuleLoader__.load({
         h(
           'div',
           { className: 'dca-model-actions' },
-          h(
-            'a',
-            {
-              className: 'dca-cheer',
-              href: 'https://github.com/Jensen0925/dsh-connect-codearts',
-              target: '_blank',
-              rel: 'noopener noreferrer',
-            },
-            t('models.cheer'),
-            h('span', { className: 'dca-cheer-star', 'aria-hidden': true }, '★'),
-          ),
-          notice?.kind === 'error'
-            ? h('span', { className: 'dca-model-save-error' }, notice.text)
-            : null,
+          h('span', {
+            className: `dca-save-status${notice?.kind === 'error' ? ' dca-save-status-error' : ''}`,
+            role: notice?.kind === 'error' ? 'alert' : 'status', 'aria-live': 'polite',
+          }, busy === 'save' ? t('account.saving') : (notice?.text ?? (selectedCount === 0 ? t('models.needOne') : t(dirty ? 'models.unsaved' : 'models.clean')))),
           h(
             'div',
             { className: 'dca-model-actions-buttons' },
@@ -2012,7 +2577,7 @@ window.__ModuleLoader__.load({
               {
                 type: 'button',
                 className: 'dca-btn',
-                disabled: !dirty || busy,
+                disabled: !dirty || busy !== null,
                 onClick: discard,
               },
               t('models.discard'),
@@ -2024,10 +2589,10 @@ window.__ModuleLoader__.load({
                 className: 'dca-btn dca-btn-primary',
                 // Never let the last enabled model be removed: an empty picker
                 // has no model to select and no way back from inside the picker.
-                disabled: !dirty || busy || (enabledIds !== null && enabledIds.length === 0),
+                disabled: !dirty || busy !== null || selectedCount === 0,
                 onClick: save,
               },
-              busy ? t('account.saving') : t('models.save'),
+              busy === 'save' ? t('account.saving') : t('models.save'),
             ),
           ),
         ),
@@ -2036,7 +2601,26 @@ window.__ModuleLoader__.load({
 
     // ── diagnostics tab ────────────────────────────────────────────────────
 
-    function DiagnosticsTab({ status, account }) {
+    function DiagnosticsTab({ status, account, accountError }) {
+      const [copyNotice, setCopyNotice] = useState(null)
+      const [reportOpen, setReportOpen] = useState(false)
+      const reportText = JSON.stringify(diagnosticReport(status, account), null, 2)
+      const catalogSummary = status.catalog?.source === 'fallback' ? 'diag.catalogFallback'
+        : status.catalog?.source === 'cache' ? 'diag.catalogCached'
+          : status.catalog?.source === 'gateway' && !status.catalog.error ? 'diag.catalogSynced'
+            : 'diag.catalogIssue'
+
+      const errors = [status?.credential?.error, status?.catalog?.error, account?.error, accountError].filter(Boolean)
+      const copyReport = async () => {
+        try {
+          if (!navigator.clipboard?.writeText) throw new Error('clipboard unavailable')
+          await navigator.clipboard.writeText(reportText)
+          setCopyNotice({ kind: 'success', text: t('diag.copied') })
+        } catch {
+          setReportOpen(true)
+          setCopyNotice({ kind: 'error', text: t('diag.copyFailed') })
+        }
+      }
       // `mono` marks a machine value a user copies verbatim; `bad` marks a field
       // that is reporting a failure, so a wall of same-coloured rows still shows
       // where the problem is. Both are the reference's own conventions.
@@ -2044,7 +2628,7 @@ window.__ModuleLoader__.load({
         { label: t('diag.provider'), value: status?.provider ?? '—' },
         { label: t('diag.gateway'), value: status?.settings?.gateway ?? t('diag.gatewayDefault'), mono: true },
         { label: t('diag.credentialPath'), value: status?.credential?.pathInUse ?? status?.credential?.path ?? '—', mono: true },
-        { label: t('models.source'), value: status?.catalog?.source ?? '—' },
+        { label: t('models.source'), value: catalogSourceLabel(status?.catalog?.source) },
         { label: t('models.count'), value: String(status?.catalog?.models ?? 0) },
         { label: t('models.refreshedAt'), value: formatTime(status?.catalog?.refreshedAt) },
         {
@@ -2071,40 +2655,40 @@ window.__ModuleLoader__.load({
       ]
 
       return h(
-        'div',
-        { className: 'dca-page' },
-        h(
-          'div',
-          { className: 'dca-pool-card-head' },
+        'div', { className: 'dca-page' },
+        h('div', { className: 'dca-pool-card-head' },
           h('h2', { className: 'dca-title' }, t('diag.title')),
-          h('p', { className: 'dca-hint dca-pool-tagline' }, t('diag.hint')),
+          h('button', { type: 'button', className: 'dca-btn', onClick: copyReport }, t('diag.copy')),
         ),
-        h(
-          'div',
-          { className: 'dca-diag' },
-          ...rows.map((row) =>
-            h(
-              'div',
-              { key: row.label, className: 'dca-diag-row' },
-              h('span', { className: 'dca-diag-label' }, row.label),
-              h(
-                'span',
-                {
-                  className: `dca-diag-value${row.mono ? ' dca-diag-mono' : ''}${
-                    row.bad ? ' dca-diag-bad' : ''
-                  }`,
-                },
-                row.value,
-              ),
-            ),
+        copyNotice ? h('p', { className: `dca-msg dca-msg-${copyNotice.kind === 'error' ? 'error' : 'ok'}`, role: 'status' }, copyNotice.text) : null,
+        h('div', { className: 'dca-diagnostic-summary' },
+          h('div', { className: 'dca-summary-item' },
+            h('strong', null, t(status?.credential?.error ? 'diag.credentialIssue' : status?.credential?.configured ? 'diag.configured' : 'diag.notConfigured')),
+            h('p', { className: 'dca-hint' }, status?.credential?.sourceLabel ?? t('account.sourceNone')),
+          ),
+          h('div', { className: 'dca-summary-item' },
+            h('strong', null, t(catalogSummary)),
+            h('p', { className: 'dca-hint' }, `${t('models.count')}：${status?.catalog?.models ?? 0}`),
+            h('p', { className: 'dca-hint' }, `${t('models.refreshedAt')}：${formatTime(status?.catalog?.refreshedAt)}`),
+          ),
+          h('div', { className: 'dca-summary-item' },
+            h('strong', null, t('diag.errors')),
+            h('p', { className: errors.length ? 'dca-hint dca-danger' : 'dca-hint' }, errors.join('；') || t(account || accountError ? 'diag.noErrors' : 'common.loading')),
           ),
         ),
-        h(
-          'div',
-          { className: 'dca-card' },
-          h('h3', { className: 'dca-card-title' }, t('diag.rawTitle')),
-          h('p', { className: 'dca-hint' }, t('diag.rawHint')),
-          h('pre', { className: 'dca-pre' }, JSON.stringify(redactForReport(status, account), null, 2)),
+        h('details', { className: 'dca-card dca-details' },
+          h('summary', null, t('diag.details')),
+          h('div', { className: 'dca-diag' }, ...rows.map((row) =>
+            h('div', { key: row.label, className: 'dca-diag-row' },
+              h('span', { className: 'dca-diag-label' }, row.label),
+              h('span', { className: `dca-diag-value${row.mono ? ' dca-diag-mono' : ''}${row.bad ? ' dca-diag-bad' : ''}` }, row.value),
+            ),
+          )),
+        ),
+        h('details', { className: 'dca-card dca-details', open: reportOpen, onToggle: (event) => setReportOpen(event.currentTarget.open) },
+          h('summary', null, t('diag.reportTitle')),
+          h('p', { className: 'dca-hint' }, t('diag.reportHint')),
+          h('pre', { className: 'dca-pre', tabIndex: 0 }, reportText),
         ),
       )
     }
@@ -2141,49 +2725,75 @@ window.__ModuleLoader__.load({
 
     function SettingsPage() {
       const [tab, setTab] = useState('account')
-      const [status, setStatus] = useState(null)
-      const [models, setModels] = useState(null)
-      const [account, setAccount] = useState(null)
-      const [pool, setPool] = useState(null)
-      const [error, setError] = useState(null)
+      const [data, setData] = useState({})
+      const [errors, setErrors] = useState({})
+      const requests = useRef(new Map())
+      const tabButtons = useRef({})
+      const panelId = React.useId()
 
-      const load = useCallback(async () => {
-        // Three independent reads. Settled rather than all: no single route may
-        // blank the whole page, and each surface decides for itself what it can
-        // show.
-        const [statusR, modelsR, accountR, poolR] = await Promise.allSettled([
-          getRoute('/status'),
-          getRoute('/models'),
-          getRoute('/account'),
-          getRoute('/accounts'),
-        ])
-        if (statusR.status === 'fulfilled') setStatus(statusR.value)
-        if (modelsR.status === 'fulfilled') setModels(modelsR.value)
-        if (accountR.status === 'fulfilled') setAccount(accountR.value)
-        if (poolR.status === 'fulfilled') setPool(poolR.value)
-
-        const failed = [
-          statusR.status === 'rejected' ? `/status：${statusR.reason.message}` : null,
-          modelsR.status === 'rejected' ? `/models：${modelsR.reason.message}` : null,
-        ].filter(Boolean)
-        // /account failing is expected before a credential exists, and the
-        // credentials tab already explains that state, so it is not an error.
-        setError(failed.length > 0 ? failed.join('；') : null)
+      const loadRoute = useCallback(async (path, background = false) => {
+        const previous = requests.current.get(path)
+        if (previous && background) return false
+        previous?.abort()
+        const controller = new AbortController()
+        requests.current.set(path, controller)
+        setErrors((current) => ({ ...current, [path]: null }))
+        try {
+          const value = await getRoute(path, { signal: controller.signal })
+          if (controller.signal.aborted) return false
+          if (!value || (path !== '/account' && value.ok !== true)) {
+            throw new Error(value?.error ?? t('common.retryHint'))
+          }
+          setData((current) => ({ ...current, [path]: value }))
+          return true
+        } catch (error) {
+          if (!controller.signal.aborted) {
+            setErrors((current) => ({ ...current, [path]: `${path}：${error.message}` }))
+          }
+          return false
+        } finally {
+          if (requests.current.get(path) === controller) requests.current.delete(path)
+        }
       }, [])
 
-      useEffect(() => {
-        void load()
-        // The page is only on screen while Settings is open; re-reading it on
-        // the same five-minute cadence as the Host keeps the balance and the
-        // catalog from going stale under a user who leaves the panel open.
-        const timer = setInterval(() => void load(), 5 * 60 * 1000)
-        return () => clearInterval(timer)
-      }, [load])
+      const loadAll = useCallback((background = false) => Promise.all(
+        ['/status', '/models', '/account', '/accounts', '/preferences', '/usage'].map((path) => loadRoute(path, background)),
+      ), [loadRoute])
+      const loadPreferences = useCallback(async () => {
+        const result = await loadRoute('/preferences')
+        void loadRoute('/status', true)
+        void loadRoute('/accounts', true)
+        return result
+      }, [loadRoute])
+      const loadUsage = useCallback(() => loadRoute('/usage'), [loadRoute])
+      const loadModels = useCallback(() => loadRoute('/models'), [loadRoute])
+      const refreshModels = useCallback(() => {
+        void loadRoute('/status', true)
+        return loadModels()
+      }, [loadModels, loadRoute])
 
+      useEffect(() => {
+        void loadAll(true)
+        const timer = setInterval(() => void loadAll(true), 5 * 60 * 1000)
+        const activeRequests = requests.current
+        return () => {
+          clearInterval(timer)
+          for (const controller of activeRequests.values()) controller.abort()
+          activeRequests.clear()
+        }
+      }, [loadAll])
+
+      const status = data['/status']
+      const models = data['/models']
+      const account = data['/account']
+      const pool = data['/accounts']
+      const preferences = data['/preferences']?.preferences
+      const usage = data['/usage']
       const tabs = [
-        ['account', t('tab.account')],
-        ['models', t('tab.models')],
-        ['diagnostics', t('tab.diagnostics')],
+        { id: 'account', paths: ['/accounts', '/preferences'], content: pool && h(AccountTab, { status, pool, preferences, onChanged: loadAll, onPreferencesSaved: loadPreferences }) },
+        { id: 'models', paths: ['/models'], content: models && h(ModelsTab, { models, onRefresh: refreshModels, onSaved: loadModels }) },
+        { id: 'usage', paths: ['/usage', '/preferences'], content: usage && h(UsageTab, { usage, onRefresh: loadUsage, onPreferencesSaved: loadPreferences }) },
+        { id: 'diagnostics', paths: ['/status', '/account'], content: status && h(DiagnosticsTab, { status, account, accountError: errors['/account'] }) },
       ]
 
       return h(
@@ -2191,65 +2801,52 @@ window.__ModuleLoader__.load({
         { className: 'dca-page' },
         h(
           'div',
-          { role: 'tablist', className: 'dca-tabs' },
-          ...tabs.map(([id, label]) =>
-            h(
-                'button',
-                {
-                  key: id,
-                  type: 'button',
-                  role: 'tab',
-                  id: `dca-tab-${id}`,
-                  'aria-selected': tab === id,
-                  'aria-controls': 'dca-tabpanel',
-                  // Roving tabindex: the strip is one tab stop, arrows move
-                  // within it. Without this a keyboard user tabs three times
-                  // where they expect to arrow once.
-                  tabIndex: tab === id ? 0 : -1,
-                  className: `dca-tab${tab === id ? ' dca-tab-on' : ''}`,
-                  onClick: () => setTab(id),
-                  onKeyDown: (event) => {
-                    const order = tabs.map(([key]) => key)
-                    const at = order.indexOf(tab)
-                    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
-                      event.preventDefault()
-                      setTab(order[(at + 1) % order.length])
-                    } else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
-                      event.preventDefault()
-                      setTab(order[(at - 1 + order.length) % order.length])
-                    } else if (event.key === 'Home') {
-                      event.preventDefault()
-                      setTab(order[0])
-                    } else if (event.key === 'End') {
-                      event.preventDefault()
-                      setTab(order[order.length - 1])
-                    }
-                  },
-                },
-                label,
-            ),
-          ),
+          { role: 'tablist', className: 'dca-tabs', 'aria-label': t('nav.label') },
+          ...tabs.map(({ id }, index) => h(
+            'button',
+            {
+              key: id,
+              type: 'button',
+              role: 'tab',
+              id: `${panelId}-tab-${id}`,
+              ref: (button) => { tabButtons.current[id] = button },
+              'aria-selected': tab === id,
+              'aria-controls': `${panelId}-panel-${id}`,
+              tabIndex: tab === id ? 0 : -1,
+              className: `dca-tab${tab === id ? ' dca-tab-on' : ''}`,
+              onClick: () => setTab(id),
+              onKeyDown: (event) => {
+                let nextIndex
+                switch (event.key) {
+                  case 'ArrowRight': nextIndex = (index + 1) % tabs.length; break
+                  case 'ArrowLeft': nextIndex = (index - 1 + tabs.length) % tabs.length; break
+                  case 'Home': nextIndex = 0; break
+                  case 'End': nextIndex = tabs.length - 1; break
+                  default: return
+                }
+                event.preventDefault()
+                const next = tabs[nextIndex].id
+                setTab(next)
+                tabButtons.current[next]?.focus()
+              },
+            },
+            t(`tab.${id}`),
+          )),
         ),
-        h(
-          'div',
-          { role: 'tabpanel', id: 'dca-tabpanel', 'aria-labelledby': `dca-tab-${tab}` },
-          // Nothing has loaded yet: show one honest pending card instead of
-          // three tabs that each render a blank page.
-          status === null && models === null
-            ? h(Pending, { error, onRetry: load })
-            : tab === 'account'
-              ? h(AccountTab, { status, account, pool, onChanged: load })
-              : tab === 'models'
-                ? h(ModelsTab, { models, status, onRefresh: load, onSaved: load })
-                : h(DiagnosticsTab, { status, account }),
-        ),
-        // A later refresh failure keeps the loaded content on screen and only
-        // adds the error line, so the page does not flash back to empty.
-        status !== null || models !== null
-          ? error
-            ? h('p', { className: 'dca-msg dca-msg-error', role: 'alert' }, error)
-            : null
-          : null,
+        // Keep the panels mounted so navigation preserves edits and filters.
+        ...tabs.map(({ id, paths, content }) => {
+          const error = paths.map((path) => errors[path]).filter(Boolean).join('；')
+          const retry = () => Promise.all(paths.filter((path) => !data[path] || errors[path]).map((path) => loadRoute(path)))
+          return h(
+            'div',
+            { key: id, role: 'tabpanel', id: `${panelId}-panel-${id}`, 'aria-labelledby': `${panelId}-tab-${id}`, hidden: tab !== id, tabIndex: 0 },
+            content ?? h(Pending, { error, onRetry: retry }),
+            content && error ? h('div', { className: 'dca-section-error' },
+              h('p', { className: 'dca-msg dca-msg-error', role: 'alert' }, error),
+              h('button', { type: 'button', className: 'dca-btn', onClick: retry }, t('common.retry')),
+            ) : null,
+          )
+        }),
       )
     }
 
@@ -2307,6 +2904,7 @@ window.__ModuleLoader__.load({
     function ComposerChip(props) {
       const [usage, setUsage] = useState(null)
       const [open, setOpen] = useState(false)
+      const [, setDismissalVersion] = useState(0)
       const [busy, setBusy] = useState(false)
       const container = useRef(null)
       const openSettings = props?.openSettings
@@ -2389,11 +2987,27 @@ window.__ModuleLoader__.load({
       }, [load])
 
       const accounts = usage?.pool?.accounts ?? []
+      const alertKey = `dca-balance-alert:${usage?.accountId ?? usage?.source ?? 'current'}:${usage?.lowBalanceThreshold ?? 500}`
+      let dismissed = (balanceDismissals.get(alertKey) ?? 0) > Date.now()
+      try { dismissed ||= Number(window.localStorage.getItem(alertKey)) > Date.now() } catch {}
+      useEffect(() => {
+        if (usage && usage.lowBalance === false) {
+          balanceDismissals.delete(alertKey)
+          try { window.localStorage.removeItem(alertKey) } catch {}
+        }
+      }, [alertKey, usage?.lowBalance])
+      const dismissAlert = () => {
+        balanceDismissals.set(alertKey, Date.now() + 86400000)
+        try { window.localStorage.setItem(alertKey, String(Date.now() + 86400000)) } catch {}
+        setDismissalVersion((value) => value + 1)
+      }
+      const lowBalance = usage?.lowBalance === true
+      const backupCount = accounts.filter((account) => !account.active && account.health?.state === 'available' && account.credit?.remain >= (usage?.lowBalanceThreshold ?? 500)).length
 
       // Nothing to show until the Host answers, and nothing to show when no
       // credential is configured: an empty pill on every composer would be
       // noise for anyone not using this provider.
-      if (!usage) return null
+      if (!usage || usage.composerChip === false) return null
       if (!ownsSelection) return null
       // With a 码道 model selected but no usable credential, saying nothing was
       // the worst option: the user picked this provider and the readout simply
@@ -2443,7 +3057,7 @@ window.__ModuleLoader__.load({
             // compact controls, and a boxed pill among them reads as a form
             // field. Hover and focus come from the stylesheet, which inline
             // styles cannot express.
-            className: `dca-chip-trigger${open ? ' dca-chip-trigger-on' : ''}`,
+            className: `dca-chip-trigger${open ? ' dca-chip-trigger-on' : ''}${lowBalance ? ' dca-low-balance' : ''}`,
           },
           h('span', { 'aria-hidden': true, className: 'dca-chip-mark' }, '◈'),
           h('span', null, label),
@@ -2511,6 +3125,11 @@ window.__ModuleLoader__.load({
                   t('chip.settings'),
                 ),
               ),
+              lowBalance && !dismissed ? h('div', { className: 'dca-balance-alert', role: 'status' },
+                h('strong', null, t('reminder.low')),
+                h('span', null, t('reminder.backups').replace('{count}', backupCount)),
+                h('button', { type: 'button', className: 'dca-btn-xs', onClick: dismissAlert }, t('reminder.dismiss')),
+              ) : null,
               // One row per account, in a real table so the balances line up in a
               // single right-aligned column. The serving account is a row, not a
               // header: "which account" and "how many credits" are the same fact
@@ -2578,6 +3197,7 @@ window.__ModuleLoader__.load({
                                       account.active
                                         ? h('span', { className: 'dca-pop-mark-current' }, t('chip.current'))
                                         : null,
+                                      account.health ? h('span', { className: 'dca-pop-mark-reason' }, t(`health.${account.health.state}`)) : null,
                                       account.error
                                         ? h('span', { className: 'dca-pop-mark-reason' }, account.error)
                                         : null,
@@ -2588,7 +3208,7 @@ window.__ModuleLoader__.load({
                           ),
                           h(
                             'td',
-                            { className: 'dca-pop-num' },
+                            { className: `dca-pop-num${account.lowBalance ? ' dca-low-balance' : ''}` },
                             account.credit ? formatCredits(account.credit.remain) : '—',
                             account.credit?.expiring > 0
                               ? h(

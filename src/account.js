@@ -30,7 +30,7 @@ import { BENEFITS_PATH, BENEFIT_CLAIM_PATH, CREDIT_STATISTICS_PATH, ROLES_PATH }
  * @param {import('./gateway.js').MadaoClient} client an authenticated client.
  * @returns {Promise<CreditInfo|null>} the balance, or null when unreadable.
  */
-export async function readCredit(client) {
+export async function readCredit(client, { strict = false } = {}) {
   try {
     const reply = await client.getJson(CREDIT_STATISTICS_PATH)
     const metrics = reply?.metrics ?? reply?.data?.metrics ?? []
@@ -70,7 +70,8 @@ export async function readCredit(client) {
         ? { plan: plan.package_name_cn ?? plan.package_name_en }
         : {}),
     }
-  } catch {
+  } catch (error) {
+    if (strict) throw error
     return null
   }
 }

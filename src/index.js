@@ -14,9 +14,7 @@
  * restart and no port is occupied.
  */
 
-import { randomUUID } from 'node:crypto'
-import { mkdir, writeFile } from 'node:fs/promises'
-import { readFileSync } from 'node:fs'
+import { randomUUID, createHash } from 'node:crypto'
 import { join } from 'node:path'
 import { CredentialProvider, CredentialError } from './credentials.js'
 import { Catalog } from './catalog.js'
@@ -63,6 +61,10 @@ import {
 } from './checkin.js'
 import { getSts } from './sts.js'
 import { CONFIG_DIR } from './paths.js'
+import { FEATURE_DEFAULTS, InputError, readPreferences, persistPreferences, validatePreferences } from './preferences.js'
+import { registerFeatureRoutes, applyPreferences } from './features.js'
+import { createUsageStore } from './usage.js'
+import { accountHealth, isLowBalance } from './health.js'
 
 /** Plugin name; also the client module id. */
 export const name = 'dsh-connect-codearts'
@@ -92,6 +94,9 @@ export const Config = z.object({
   composerChip: z.boolean().default(true).description('在输入框旁显示积分'),
   registerProvider: z.boolean().default(true).description('是否注册码道这个 provider 路由'),
   autoCheckin: z.boolean().default(false).description('每天自动签到一次'),
+  lowBalanceEnabled: z.boolean().default(true).description('低余额提醒'),
+  lowBalanceThreshold: z.number().default(500).description('低余额提醒阈值'),
+  usageEnabled: z.boolean().default(true).description('在本机保留最近 200 条请求元数据'),
   enabledModelIds: z.array(z.string()).description('启用的模型；留空表示全部'),
   modelOverrides: z.dict(z.object({
     images: z.boolean(),
@@ -120,6 +125,7 @@ const DEFAULT_REFRESH_MS = 5 * 60 * 1000
  * configuration surface is this plugin's own settings page.
  */
 export const DEFAULTS = {
+  ...FEATURE_DEFAULTS,
   /** Turn the provider off without uninstalling the bundle. */
   enabled: true,
   /** Claim the daily bonus in the background, once a day. Off by default. */
@@ -169,6 +175,12 @@ export function apply(ctx, config = {}) {
       : name
 
   const settings = { ...DEFAULTS, ...config }
+  // Restore before timers and adapters start; preferences never include credentials.
+  try { Object.assign(settings, validatePreferences(readPreferences())) } catch {}
+  const usage = createUsageStore({ enabled: () => settings.usageEnabled !== false })
+  const healthChecks = new Map()
+  const healthCache = new Map()
+  let rescheduleCatalog = () => {}
   if (settings.enabled === false) return
 
   const logger = createLogger()
@@ -176,6 +188,7 @@ export function apply(ctx, config = {}) {
   const catalog = new Catalog({ log: logger })
   // A restart begins on the fallback table until the first refresh lands. A
   // persisted catalog means the picker is right the moment the plugin loads.
+  catalog.configure({ enabledIds: settings.enabledModelIds, overrides: settings.modelOverrides })
   const CATALOG_CACHE = join(CONFIG_DIR, 'catalog.json')
   if (catalog.loadPersisted(CATALOG_CACHE)) {
     logger(`已加载上次的模型清单（${catalog.models().length} 个），等待刷新确认`)
@@ -202,6 +215,7 @@ export function apply(ctx, config = {}) {
     const adapter = createCodeArtsAdapter({
       credentials,
       catalog,
+      usage,
       gateway: () => settings.gateway,
       attachments: () => ctx.get('attachments'),
       log: logger,
@@ -296,7 +310,11 @@ export function apply(ctx, config = {}) {
             // An account whose key cannot be exchanged is skipped.
           }
         }
-        if (targets.length > 0) await runAutoCheckin({ targets })
+        if (targets.length > 0) {
+          await runAutoCheckin({ targets })
+          healthCache.clear()
+          healthChecks.clear()
+        }
       } catch (error) {
         logger(`自动签到失败：${error?.message ?? error}`)
       }
@@ -309,29 +327,18 @@ export function apply(ctx, config = {}) {
     return () => clearInterval(timer)
   }, 'codearts: auto check-in')
 
-  // Restore the saved auto check-in switch so it survives a restart.
   ctx.effect(() => {
-    try {
-      const saved = JSON.parse(readFileSync(join(CONFIG_DIR, 'preferences.json'), 'utf8'))
-      if (typeof saved?.autoCheckin === 'boolean') settings.autoCheckin = saved.autoCheckin
-      if (Array.isArray(saved?.enabledModelIds) || saved?.enabledModelIds === null) {
-        settings.enabledModelIds = saved.enabledModelIds
-      }
-      if (saved?.modelOverrides !== null && typeof saved?.modelOverrides === 'object') {
-        settings.modelOverrides = saved.modelOverrides
-      }
-      catalog.configure({ enabledIds: settings.enabledModelIds, overrides: settings.modelOverrides })
-    } catch {
-      // No saved preferences: the default (off) stands.
+    let timer
+    let disposed = false
+    const schedule = () => {
+      clearTimeout(timer)
+      if (disposed) return
+      timer = setTimeout(async () => { await refresh(); schedule() }, Math.max(60000, Number(settings.refreshIntervalMs) || DEFAULT_REFRESH_MS))
+      timer.unref?.()
     }
-    return () => {}
-  }, 'codearts: saved preferences')
-
-  const interval = Math.max(60_000, Number(settings.refreshIntervalMs) || DEFAULT_REFRESH_MS)
-  ctx.effect(() => {
-    const timer = setInterval(() => void refresh(), interval)
-    timer.unref?.()
-    return () => clearInterval(timer)
+    rescheduleCatalog = schedule
+    schedule()
+    return () => { disposed = true; clearTimeout(timer); rescheduleCatalog = () => {} }
   }, 'codearts: catalog refresh timer')
 
   // ── HTTP surface for the settings page and the chip ──────────────────────
@@ -355,7 +362,9 @@ export function apply(ctx, config = {}) {
       )
     }
 
-    const deps = { credentials, catalog, client, refresh, logger, settings, ctx, settingsNs }
+    const deps = { credentials, catalog, client, refresh, logger, settings, ctx, settingsNs, usage, healthChecks, healthCache, rescheduleCatalog: () => rescheduleCatalog(), invalidateAccounts: () => { healthCache.clear(); healthChecks.clear(); tripleCache.clear() } }
+
+    registerFeatureRoutes(route, deps, readJsonBody)
 
     route('/status', () => buildStatus(deps))
     route('/models', () => buildModels(deps))
@@ -375,6 +384,7 @@ export function apply(ctx, config = {}) {
     route('/accounts/remove', (req) => handleAccountRemove(req, deps))
     route('/accounts/activate', (req) => handleAccountActivate(req, deps))
     route('/accounts/rename', (req) => handleAccountRename(req, deps))
+    route('/accounts/check', (req) => handleAccountCheck(req, deps))
     route('/accounts/export', () => handleAccountExport(deps))
 
     // Daily check-in.
@@ -443,6 +453,9 @@ async function buildStatus(deps) {
       settingsPath: [],
     },
     settings: {
+      lowBalanceEnabled: deps.settings.lowBalanceEnabled,
+      lowBalanceThreshold: deps.settings.lowBalanceThreshold,
+      usageEnabled: deps.settings.usageEnabled,
       composerChip: deps.settings.composerChip !== false,
       refreshIntervalMs: deps.settings.refreshIntervalMs ?? DEFAULT_REFRESH_MS,
       gateway: deps.settings.gateway ?? null,
@@ -465,15 +478,21 @@ async function buildModels(deps) {
     // The selection, so the card can render the ticks and the "changed" marker.
     enabledIds: selectionIsDefault ? null : deps.catalog.visible().map((model) => model.id),
     total: all.length,
+    presets: deps.settings.modelPresets,
     models: all.map((model) => ({
       enabled: deps.catalog.isEnabled(model.id),
       overrides: overrides[model.id] ?? null,
+      defaults: (() => {
+        const base = deps.catalog.find(model.id)
+        return { supportsImages: base?.supportsImages === true, allowOff: base?.allowOff !== false, defaultStrength: base?.defaultStrength ?? null }
+      })(),
       id: model.id,
       name: model.name,
       context: model.context,
       maxOutput: model.maxOutput,
       ratio: model.ratio ?? null,
       supportsImages: model.supportsImages,
+      allowOff: model.allowOff !== false,
       strengths: model.strengths,
       defaultStrength: model.defaultStrength ?? null,
       description: model.description ?? null,
@@ -489,6 +508,7 @@ async function buildAccount(deps) {
     return {
       ok: true,
       account: identity.accountName ?? null,
+      accountId: deps.credentials.accountId ?? resolved.source,
       userId: identity.userId ?? null,
       source: resolved.source,
       sourceLabel: resolved.label,
@@ -496,10 +516,15 @@ async function buildAccount(deps) {
       expiresAt: resolved.expiresAtMs ?? null,
       credit,
       roles,
+      lowBalance: isLowBalance(credit, deps.settings),
+      lowBalanceThreshold: deps.settings.lowBalanceThreshold,
+      composerChip: deps.settings.composerChip !== false,
+      health: accountHealth({ credit }),
     }
   } catch (error) {
     return {
       ok: false,
+      composerChip: deps.settings.composerChip !== false,
       stage: error instanceof CredentialError ? 'credentials' : 'gateway',
       error: error?.message ?? String(error),
     }
@@ -520,6 +545,7 @@ async function handleSave(req, deps) {
 
 async function handleClear(deps) {
   await clearCredentials()
+  deps.invalidateAccounts()
   deps.credentials.invalidate()
   return { ok: true }
 }
@@ -533,56 +559,61 @@ async function handleClear(deps) {
  * each — so they are read only when this route is called (the settings page is
  * open), never on a timer.
  */
-async function handleAccounts(deps) {
-  const store = readStore()
-  const now = new Date()
-  const checkinState = readCheckinState()
-
-  const accounts = []
-  for (const account of store.accounts) {
-    const view = publicAccount(account, store)
-    const entry = { ...view, credit: null, checkin: null, error: null }
+async function inspectAccount(account, deps, force = false) {
+  const signature = createHash('sha256').update(`${account.ak}:${account.sk}`).digest('hex')
+  const existing = deps.healthChecks.get(account.id)
+  if (existing?.signature === signature) return existing.promise
+  const operation = (async () => {
+    if (force) tripleCache.delete(account.id)
+    const entry = { ...publicAccount(account, readStore()), credit: null, checkin: null, error: null }
+    let failure
     try {
       const client = new MadaoClient({ credentials: await tripleOf(account), gateway: deps.settings.gateway })
-      const credit = await readCredit(client)
-      if (credit) {
-        entry.credit = {
-          remain: credit.remain,
-          total: credit.total,
-          plan: credit.plan ?? null,
-          // How many credits lapse soon. The gateway reports the AMOUNT but
-          // never a date, so nothing here claims a deadline it cannot know.
-          expiring: credit.expiringTotal ?? 0,
-        }
-      }
-      const state = await readCheckin(client, { now, state: checkinState, accountId: account.id })
-      entry.checkin = {
-        available: state.available,
-        claimable: state.claimable,
-        claimedToday: state.claimedToday,
-        amount: state.amount,
-        title: state.title,
-        reason: state.reason ?? null,
-      }
+      const credit = await readCredit(client, { strict: true })
+      if (credit) entry.credit = { remain: credit.remain, total: credit.total, plan: credit.plan ?? null, expiring: credit.expiringTotal ?? 0 }
+      const checkin = await readCheckin(client, { now: new Date(), state: readCheckinState(), accountId: account.id })
+      entry.checkin = { available: checkin.available, claimable: checkin.claimable, claimedToday: checkin.claimedToday, amount: checkin.amount, title: checkin.title, reason: checkin.reason ?? null }
       const identity = parseIdentity(tripleCache.get(account.id)?.securityToken)
       if (!account.accountName && identity.accountName) {
         entry.accountName = identity.accountName
         await rememberAccountName(account.id, identity.accountName)
       }
     } catch (error) {
-      entry.error = error instanceof CredentialError ? error.message : (error?.message ?? String(error))
+      failure = error
+      entry.error = message(error)
     }
-    accounts.push(entry)
+    entry.health = accountHealth({ error: failure, credit: entry.credit })
+    entry.lowBalance = isLowBalance(entry.credit, deps.settings)
+    const current = readStore().accounts.find((item) => item.id === account.id)
+    if (current?.sk === account.sk && deps.healthChecks.get(account.id)?.promise === operation) deps.healthCache.set(account.id, entry)
+    return entry
+  })()
+  deps.healthChecks.set(account.id, { signature, promise: operation })
+  try { return await operation } finally {
+    if (deps.healthChecks.get(account.id)?.promise === operation) deps.healthChecks.delete(account.id)
   }
-
+}
+async function handleAccounts(deps) {
+  const store = readStore()
+  const accounts = []
+  for (const account of store.accounts) {
+    const cached = deps.healthCache.get(account.id)
+    const entry = cached && Date.now() - cached.health.checkedAt < 60000 ? { ...cached, ...publicAccount(account, store) } : await inspectAccount(account, deps)
+    accounts.push({ ...entry, lowBalance: isLowBalance(entry.credit, deps.settings) })
+  }
   return {
-    ok: true,
-    version: STORE_VERSION,
-    activeId: store.activeId,
-    accounts,
-    today: todaySummary(accounts.map((account) => ({ id: account.id, label: account.label })), now),
+    ok: true, version: STORE_VERSION, activeId: store.activeId, accounts,
+    today: todaySummary(accounts.map(({ id, label }) => ({ id, label })), new Date()),
     autoCheckin: deps.settings.autoCheckin === true,
+    lowBalanceEnabled: deps.settings.lowBalanceEnabled !== false,
+    lowBalanceThreshold: deps.settings.lowBalanceThreshold,
   }
+}
+async function handleAccountCheck(req, deps) {
+  const { id } = await readJsonBody(req)
+  const account = readStore().accounts.find((entry) => entry.id === id)
+  if (!account) throw new HttpError(404, '账号不存在')
+  return { ok: true, account: await inspectAccount(account, deps, true) }
 }
 
 /**
@@ -597,10 +628,12 @@ const tripleCache = new Map()
 
 /** Resolve a signed triple for one account, reusing it while it is fresh. */
 async function tripleOf(account) {
+  const signature = createHash('sha256').update(`${account.ak}:${account.sk}`).digest('hex')
   const cached = tripleCache.get(account.id)
-  if (cached && Date.now() < cached.expiresAt - 300_000) return cached
+  if (cached && cached.sourceSignature === signature && Date.now() < cached.expiresAt - 300_000) return cached
   const sts = await getSts(account.ak, account.sk)
   const triple = {
+    sourceSignature: signature,
     ak: sts.ak,
     sk: sts.sk,
     securityToken: sts.securityToken,
@@ -617,6 +650,9 @@ async function handleAccountAdd(req, deps) {
     sk: typeof body.sk === 'string' ? body.sk : '',
     label: typeof body.label === 'string' ? body.label : undefined,
   })
+  deps.healthCache.delete(result.account.id)
+  deps.healthChecks.delete(result.account.id)
+  tripleCache.delete(result.account.id)
   deps.credentials.invalidate()
   void deps.refresh()
   return { ok: true, added: result.added, id: result.account.id }
@@ -666,6 +702,7 @@ async function handleAccountImport(req, deps) {
     throw new HttpError(400, '没有从这段内容里认出任何 AK/SK 对。支持华为云 credentials.csv、每行 AK,SK、或导出过的 JSON。')
   }
   const result = await addAccounts(parsed.accounts)
+  deps.invalidateAccounts()
   deps.credentials.invalidate()
   void deps.refresh()
   return {
@@ -682,6 +719,8 @@ async function handleAccountRemove(req, deps) {
   if (typeof body.id !== 'string') throw new HttpError(400, '缺少账号 id')
   await removeAccount(body.id)
   tripleCache.delete(body.id)
+  deps.healthCache.delete(body.id)
+  deps.healthChecks.delete(body.id)
   deps.credentials.invalidate()
   void deps.refresh()
   return { ok: true }
@@ -745,10 +784,7 @@ async function handleModelSelection(req, deps) {
     }
   }
 
-  deps.settings.enabledModelIds = enabledIds
-  deps.settings.modelOverrides = overrides
-  deps.catalog.configure({ enabledIds, overrides })
-  await persistPreferences({ enabledModelIds: enabledIds, modelOverrides: overrides })
+  await applyPreferences(deps, { enabledModelIds: enabledIds, modelOverrides: overrides })
   // Announce the new catalog so the picker reloads without a restart.
   deps.ctx.emit('llm/models-updated', PROVIDER_ID)
   return { ok: true, enabled: deps.catalog.visible().length, total: deps.catalog.models().length }
@@ -787,6 +823,8 @@ async function handleCheckinClaim(req, deps) {
   try {
     const client = new MadaoClient({ credentials: await tripleOf(account), gateway: deps.settings.gateway })
     const result = await claimDaily(client, { accountId: account.id })
+    deps.healthCache.delete(account.id)
+    deps.healthChecks.delete(account.id)
     return { ok: true, ...result, label: account.label ?? defaultLabel(account.ak) }
   } catch (error) {
     return { ok: false, claimed: false, reason: error?.message ?? String(error) }
@@ -802,6 +840,8 @@ async function handleCheckinClaim(req, deps) {
  */
 async function handleAutoCheckin(req, deps) {
   const body = await readJsonBody(req)
+  deps.healthCache.clear()
+  deps.healthChecks.clear()
   // `enabled` changes the standing preference. The one-off button sends
   // `now: true` instead, so pressing it never opts a user into daily
   // automation — an action and a preference are different things.
@@ -826,6 +866,8 @@ async function handleAutoCheckin(req, deps) {
     }
   }
   const summary = await runAutoCheckin({ targets })
+  deps.healthCache.clear()
+  deps.healthChecks.clear()
   return { ok: true, enabled: deps.settings.autoCheckin === true, summary }
 }
 
@@ -835,21 +877,6 @@ async function handleAutoCheckin(req, deps) {
  * One writer for every switch: the preferences file is small and shared, and a
  * second writer would eventually read-modify-write over the first's key.
  */
-async function persistPreferences(patch) {
-  const path = join(CONFIG_DIR, 'preferences.json')
-  await mkdir(CONFIG_DIR, { recursive: true })
-  let current = {}
-  try {
-    current = JSON.parse(readFileSync(path, 'utf8'))
-  } catch {
-    current = {}
-  }
-  await writeFile(path, `${JSON.stringify({ ...current, ...patch }, null, 2)}\n`, {
-    encoding: 'utf8',
-    mode: 0o600,
-  })
-}
-
 /** Persist the auto check-in switch. */
 async function persistAutoCheckin(enabled) {
   await persistPreferences({ autoCheckin: enabled })
@@ -978,13 +1005,15 @@ async function handleRoute(req, res, handler) {
     if (mutating) res.setHeader('Allow', 'POST')
     return json(res, 405, { ok: false, error: 'method not allowed' })
   } catch (error) {
-    const status = error instanceof HttpError ? error.status : 500
+    const status = error instanceof HttpError ? error.status : error instanceof InputError ? 400 : 500
     return json(res, status, { ok: false, error: message(error) })
   }
 }
 
 /** Routes that change state and therefore accept POST only. */
 const MUTATING_PATHS = new Set([
+  '/preferences/save', '/presets', '/usage/clear', '/accounts/check',
+  '/backup/export', '/backup/preview', '/backup/restore',
   '/models/select',
   '/save',
   '/clear',
@@ -1023,15 +1052,18 @@ async function readJsonBody(req) {
   for await (const chunk of req) {
     size += chunk.length
     // A credential blob is tiny; anything larger is not this route's input.
-    if (size > 64 * 1024) throw new HttpError(413, '请求体过大')
+    if (size > ((req.url ?? '').includes('/backup/') ? 1024 * 1024 : 64 * 1024)) throw new HttpError(413, '请求体过大')
     chunks.push(chunk)
   }
   if (chunks.length === 0) return {}
+  let body
   try {
-    return JSON.parse(Buffer.concat(chunks).toString('utf8'))
+    body = JSON.parse(Buffer.concat(chunks).toString('utf8'))
   } catch {
     throw new HttpError(400, '请求体不是合法 JSON')
   }
+  if (!body || typeof body !== 'object' || Array.isArray(body)) throw new HttpError(400, '请求体必须为 JSON 对象')
+  return body
 }
 
 /** Answer with JSON. */

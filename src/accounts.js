@@ -187,6 +187,20 @@ async function writeStore(document) {
   return document
 }
 
+// Account checks and imports can overlap; serialize the complete read-modify-write.
+let accountMutation = Promise.resolve()
+function mutateAccounts(operation) {
+  const result = accountMutation.then(operation)
+  accountMutation = result.catch(() => {})
+  return result
+}
+export const addAccount = (...args) => mutateAccounts(() => addAccountUnlocked(...args))
+export const addAccounts = (...args) => mutateAccounts(() => addAccountsUnlocked(...args))
+export const removeAccount = (...args) => mutateAccounts(() => removeAccountUnlocked(...args))
+export const setActiveAccount = (...args) => mutateAccounts(() => setActiveAccountUnlocked(...args))
+export const renameAccount = (...args) => mutateAccounts(() => renameAccountUnlocked(...args))
+export const rememberAccountName = (...args) => mutateAccounts(() => rememberAccountNameUnlocked(...args))
+
 /**
  * Add one account, or update it when the AK is already present.
  * @param {object} input the pair plus optional label.
@@ -195,7 +209,7 @@ async function writeStore(document) {
  * @param {string} [input.label] display name.
  * @returns {Promise<{account: Account, added: boolean, store: StoreDocument}>} the outcome.
  */
-export async function addAccount({ ak, sk, label }) {
+async function addAccountUnlocked({ ak, sk, label }) {
   const candidate = accountFrom({ ak, sk, label, addedAt: Date.now() })
   if (!candidate) throw new Error('Access Key ID 和 Secret Access Key 都要填。')
 
@@ -224,7 +238,7 @@ export async function addAccount({ ak, sk, label }) {
  * @param {Array<object>} entries raw pairs, in the order supplied.
  * @returns {Promise<{added: number, updated: number, skipped: number, store: StoreDocument}>} the outcome.
  */
-export async function addAccounts(entries) {
+async function addAccountsUnlocked(entries) {
   const store = readStore()
   let added = 0
   let updated = 0
@@ -260,7 +274,7 @@ export async function addAccounts(entries) {
  * @param {string} id account id.
  * @returns {Promise<StoreDocument>} the store after removal.
  */
-export async function removeAccount(id) {
+async function removeAccountUnlocked(id) {
   const store = readStore()
   store.accounts = store.accounts.filter((account) => account.id !== id)
   // Removing the active account promotes whatever is left, so the plugin never
@@ -277,7 +291,7 @@ export async function removeAccount(id) {
  * @param {string} id account id.
  * @returns {Promise<StoreDocument>} the updated store.
  */
-export async function setActiveAccount(id) {
+async function setActiveAccountUnlocked(id) {
   const store = readStore()
   if (!store.accounts.some((account) => account.id === id)) {
     throw new Error(`没有这个账号：${id}`)
@@ -293,7 +307,7 @@ export async function setActiveAccount(id) {
  * @param {string} label the new name; an empty string clears it.
  * @returns {Promise<StoreDocument>} the updated store.
  */
-export async function renameAccount(id, label) {
+async function renameAccountUnlocked(id, label) {
   const store = readStore()
   const account = store.accounts.find((entry) => entry.id === id)
   if (!account) throw new Error(`没有这个账号：${id}`)
@@ -311,7 +325,7 @@ export async function renameAccount(id, label) {
  * @param {string} accountName the name from the STS token.
  * @returns {Promise<void>} resolves when written.
  */
-export async function rememberAccountName(id, accountName) {
+async function rememberAccountNameUnlocked(id, accountName) {
   if (!accountName) return
   const store = readStore()
   const account = store.accounts.find((entry) => entry.id === id)

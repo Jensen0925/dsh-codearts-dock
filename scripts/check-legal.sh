@@ -1,10 +1,10 @@
 #!/bin/bash
-# 合规自检：每次发布前跑一遍
+# 发布文档一致性检查，不构成法律审查
 cd "$(dirname "$0")/.." 2>/dev/null || cd .
 fail=0
 chk(){ if eval "$2" >/dev/null 2>&1; then echo "✓ $1"; else echo "✗ $1"; fail=1; fi; }
 
-echo '=== 法律与合规自检 ==='
+echo '=== 发布文档与安全说明检查 ==='
 chk 'LICENSE 存在且为 MIT'            'head -2 LICENSE | grep -q MIT'
 chk 'DISCLAIMER.md 存在'              'test -f DISCLAIMER.md'
 chk 'DISCLAIMER 声明无关联'           'grep -q "没有任何关联" DISCLAIMER.md'
@@ -23,8 +23,8 @@ chk '凭证文件权限 0600'               'grep -q "0o600" src/accounts.js'
 chk '无第三方遥测域名'                '! grep -rqE "google-analytics\\.com|sentry\\.io|api\\.segment\\.io|mixpanel\\.com|posthog|amplitude" src/ client.js'
 chk 'package.json 有 license 字段'    'grep -q "\"license\": \"MIT\"" package.json'
 chk 'package.json 无死链接'           '! grep -qE "\"(repository|bugs|homepage)\"[^}]*github\\.com/Jensen0925/dsh-connect-codearts" package.json'
-chk 'README 声明个人自用'             'head -14 README.md | grep -q "个人自用"'
-chk 'README 声明未公开发布'           'head -14 README.md | grep -q "未公开发布"'
+chk 'README 使用公开发行名称'         'head -10 README.md | grep -q "CodeArts Dock"'
+chk '无旧版仅限自用的发行声明'         '! grep -qE "仓库已删除|未公开发布|不通过 npm" README.md DISCLAIMER.md'
 chk '新文档已列入 files'              'grep -q "DISCLAIMER.md" package.json && grep -q "SECURITY.md" package.json'
 chk '.gitignore 排除凭证文件'         'grep -q "credentials.json" .gitignore'
 

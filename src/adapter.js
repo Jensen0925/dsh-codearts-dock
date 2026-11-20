@@ -209,6 +209,33 @@ class CodeArtsAdapter extends LlmAdapter {
    * @returns {AsyncGenerator<any>} Host stream chunks.
    */
   async *stream(options) {
+    const startedAt = Date.now()
+    const generation = this.deps.usage?.generation()
+    let status = 'aborted'
+    let inputTokens = null, outputTokens = null
+    try {
+      for await (const chunk of this.#stream(options)) {
+        if (chunk.type === 'usage') {
+          inputTokens = chunk.usage?.inputTokens ?? inputTokens
+          outputTokens = chunk.usage?.outputTokens ?? outputTokens
+        }
+        if (chunk.type === 'finish') status = chunk.reason?.kind === 'error' ? 'error' : chunk.reason?.kind === 'aborted' ? 'aborted' : 'success'
+        yield chunk
+      }
+    } catch (error) {
+      status = error?.name === 'AbortError' ? 'aborted' : 'error'
+      throw error
+    } finally {
+      try {
+        await this.deps.usage?.record({
+          at: startedAt, model: this.deps.catalog.resolveId?.(options.model) ?? options.model,
+          durationMs: Date.now() - startedAt, inputTokens, outputTokens, status,
+        }, generation)
+      } catch { /* A local history write must never fail a model request. */ }
+    }
+  }
+
+  async *#stream(options) {
     const model = this.#effective(this.deps.catalog.find(options.model))
     const client = await this.#client()
 

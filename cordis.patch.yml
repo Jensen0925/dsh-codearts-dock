@@ -4,7 +4,7 @@
 # refresh, and a model selection therefore never needs a restart.
 - insert:
     - id: dsh-connect-codearts
-      name: dsh-connect-codearts
+      name: dsh-codearts-dock
       config:
         enabled: true
         composerChip: true

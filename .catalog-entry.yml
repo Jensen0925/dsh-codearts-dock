@@ -1,5 +1,5 @@
-url: https://github.com/Jensen0925/dsh-connect-codearts
-name: Jensen0925/dsh-connect-codearts
+url: https://github.com/Jensen0925/dsh-codearts-dock
+name: Jensen0925/dsh-codearts-dock
 category: model
 description:
   en: >-
@@ -10,11 +10,10 @@ description:
     Holds several accounts at once with one-click switching, imports the AK/SK
     pairs from a Huawei Cloud credentials.csv or pasted text and exports them
     again, refreshes the model catalog from upstream every five minutes, and
-    offers a daily check-in that re-reads state before claiming so a day is never
-    claimed twice.
+    offers a daily check-in that re-reads state before claiming to reduce duplicate attempts; upstream state remains authoritative.
   zh: >-
     让华为云码道（CodeArts Agent）的模型可被 DeepSeek Harness 使用（第三方非官方，与华为无关联）：用原生 LLM 适配器直连网关
     （SDK-HMAC-SHA256 签名 + P-256 密钥协商 + SM4-GCM 载荷加密），不启本地桥接进程、不占端口，
     因此换模型不需要重启。支持同时保存多个账号并一键切换，可从华为云 credentials.csv 或粘贴文本
     导入 AK/SK、也能再导出，模型目录每 5 分钟从上游重读，并提供每日签到——领取前先重读状态，
-    同一天绝不会重复领取。
+    尽量减少重复请求，结果以上游为准。

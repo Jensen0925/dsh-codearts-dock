@@ -42,6 +42,7 @@ guards, and this plugin's Host half are this project's own work.
 MIT License
 
 Copyright (c) 2026 LaoDing
+Copyright (c) 2026 XLNC-L
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

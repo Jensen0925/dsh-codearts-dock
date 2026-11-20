@@ -79,11 +79,12 @@ check('one bulk claim button sits beside the daily switch', () => {
   )
   // Disabled when there is nothing to claim, so a press that cannot act never
   // looks like a broken button.
-  assert.ok(source.includes('disabled: busy || !anyClaimable'), 'disabled with nothing to claim')
+  assert.ok(source.includes('disabled: anyBusy || busyId !== null || !anyClaimable'), 'disabled with nothing to claim')
+  assert.ok(source.includes("allSigned ? t('pool.allSigned')"), 'explains when the whole pool is already done')
 })
 
 check('import lives inside the add-account card, revealed on demand', () => {
-  assert.ok(source.includes('pool.importShow'), 'the bulk paste box is a disclosure in the same card')
+  assert.ok(source.includes("className: 'dca-card dca-details dca-add-tools'"), 'the add form is a disclosure when accounts already exist')
   // One card component owns both, so the user never picks a method up front.
   const tools = source.slice(source.indexOf('function AccountTools('))
   const body = tools.slice(0, tools.indexOf('\n    /**', 10))
@@ -93,6 +94,8 @@ check('import lives inside the add-account card, revealed on demand', () => {
 
 check('models render as cards on bg-layer-2, not nowrap table columns', () => {
   has('padding:10px 12px;background:var(--dsw-alias-bg-layer-2', 'model row surface')
+  assert.ok(source.includes('.dca-model-off{background:'), 'disabled models keep readable text rather than fading the whole row')
+  assert.ok(!source.includes('.dca-model-off{opacity:'), 'the whole model row is not dimmed')
   has('.dca-model-meta{', 'facts collapse onto one meta line')
   assert.ok(!source.includes('dca-table'), 'the six-column table is gone')
 })
@@ -260,8 +263,9 @@ check('save and discard live in a persistent action bar', () => {
   // for.
   assert.ok(source.includes('dca-model-actions'), 'the bar exists')
   assert.ok(source.includes('dca-model-actions-buttons'), 'buttons sit together at the end')
-  assert.ok(source.includes('disabled: !dirty || busy'), 'disabled when there is nothing to save')
-  assert.ok(source.includes('dca-cheer'), 'the reference also carries a star-the-project link')
+  assert.ok(source.includes('disabled: !dirty || busy !== null'), 'disabled when there is nothing to save')
+  assert.ok(source.includes('position:sticky;bottom:0;z-index:3'), 'the save bar remains at the viewport edge')
+  assert.ok(source.includes('dca-save-status'), 'the persistent bar explains saved and unsaved state')
 })
 
 check('the composer panel lists every account, not just the serving one', () => {
@@ -302,13 +306,14 @@ check('reasoning levels are shown in the reader\'s language, not their ids', () 
 })
 
 check('the add-account fields are one row, named by their placeholders', () => {
-  // The reference does not put a label line above each field: three inputs
-  // across, placeholders doing the naming. A tall stack of labelled fields made
-  // a small card look like a form to fill in before reaching the table.
+  // Form labels remain visible after input. The drawer is compact when closed,
+  // while helper text is revealed only when a user asks for it.
   assert.ok(source.includes("className: 'dca-fields'"), 'the fields share a row')
-  assert.ok(!source.includes("className: 'dca-field'"), 'no per-field label column')
-  assert.ok(source.includes("placeholder: t('account.ak')"), 'the AK field names itself')
-  assert.ok(source.includes("placeholder: t('account.sk')"), 'so does the SK field')
+  assert.ok(source.includes("className: 'dca-form-field'"), 'visible labels remain after typing')
+  assert.ok(source.includes("placeholder: t('account.placeholderAk')"), 'the AK field has a useful hint')
+  assert.ok(source.includes("htmlFor: 'dca-ak2'"), 'the visible label remains after typing')
+  assert.ok(source.includes("type: showSecret ? 'text' : 'password'"), 'the secret can be revealed on demand')
+  assert.ok(source.includes("placeholder: t('account.placeholderSk')"), 'so does the SK field')
 })
 
 check('the panel has one refresh, in its header, and no instruction label', () => {
@@ -399,6 +404,33 @@ check('the model page reports the EFFECTIVE default, not upstream\'s', () => {
   // trap this plugin keeps guarding against.
   const host = readFileSync(new URL('../src/index.js', import.meta.url), 'utf8')
   assert.ok(host.includes('deps.catalog.effective(model)'), 'the row is the effective model')
+})
+
+check('the model catalog has search, active filter, and useful sorting', () => {
+  assert.ok(source.includes("type: 'search', className: 'dca-input dca-search'"), 'searches name and id')
+  assert.ok(source.includes("'aria-pressed': filter === value"), 'filter state is accessible')
+  assert.ok(source.includes("['ratio', 'models.sortRatio']"), 'can compare models by multiplier')
+  assert.ok(source.includes('visibleModels.map'), 'only filtered models render')
+})
+
+check('diagnostics lead with health and offer redacted copy', () => {
+  assert.ok(source.includes('dca-diagnostic-summary'), 'health summary is above machine details')
+  assert.ok(source.includes('navigator.clipboard.writeText(reportText)'), 'one action copies the redacted report')
+  assert.ok(source.includes("h('details', { className: 'dca-card dca-details' }"), 'technical internals are collapsed')
+})
+
+check('settings tab panels stay mounted and have matching controls', () => {
+  assert.ok(source.includes('hidden: tab !== id'), 'switching tabs keeps component state')
+  assert.ok(source.includes("'aria-controls': `${panelId}-panel-${id}`"), 'each tab points to its own panel')
+  assert.ok(source.includes('tabButtons.current[next]?.focus()'), 'keyboard navigation moves focus as well as selection')
+})
+
+check('settings routes populate independently and can be retried', () => {
+  assert.ok(source.includes('getRoute(path, { signal: controller.signal })'), 'the four reads are cancellable')
+  assert.ok(source.includes('if (controller.signal.aborted) return false'), 'a superseded response cannot replace fresh data')
+  assert.ok(source.includes('setData((current) => ({ ...current, [path]: value }))'), 'fast status does not wait for account probes')
+  assert.ok(source.includes('onSaved: loadModels'), 'model saves reload only the model catalog')
+  assert.ok(source.includes("t('common.retry')"), 'a failed read can be retried in place')
 })
 
 console.log(results.join('\n'))

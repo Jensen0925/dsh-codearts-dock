@@ -1,7 +1,7 @@
 {
   "meta": {
-    "title": "dsh-connect-codearts",
-    "description": "让华为云码道（CodeArts Agent）的模型可被 DSH 使用（第三方非官方插件，与华为无关联）：原生适配器直连网关（自签 SDK-HMAC-SHA256、P-256 密钥协商、SM4-GCM 载荷加密），无需本地桥接进程、也不占用端口。设置页在「设置 → 码道」：填一次永久 AK/SK 即自动换 STS 并续期，或直接借用本机码道客户端的登录态；模型目录每 5 分钟从上游重读，倍率、上下文与图片能力都以上游为准；输入框旁的胶囊显示只读积分余额。",
+    "title": "CodeArts Dock · 码道驿站",
+    "description": "为 DeepSeek Harness 接入华为云码道模型的第三方非官方插件。支持多账号、积分与余额提醒、账号健康检查、模型搜索与配置预设、本机用量记录及加密配置备份。需要自己的有效账号与权限，调用可能产生费用。",
     "detail": "docs/DETAIL.zh.md"
   }
 }
