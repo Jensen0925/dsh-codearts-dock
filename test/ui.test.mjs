@@ -93,7 +93,7 @@ function harness(surface = 'settings', rootProps = {}) {
         const body = JSON.parse(options.body)
         writes.push({ path, body })
         const reply = postResponses.get(path)
-        const result = typeof reply === 'function' ? reply(body) : reply ?? { ok: true, enabled: 1 }
+        const result = await (typeof reply === 'function' ? reply(body) : reply ?? { ok: true, enabled: 1 })
         return { ok: true, text: async () => JSON.stringify(result) }
       }
       return new Promise((resolve, reject) => {
@@ -204,7 +204,7 @@ assert.equal(reasoner().props.checked, false)
 assert.match(app.text(panel('models')), /未保存/)
 console.log('✓ switching panels preserves the model draft')
 
-const savePromise = button('保存').props.onClick()
+const savePromise = button('保存模型配置').props.onClick()
 await new Promise(setImmediate)
 assert.equal(app.writes[0].path, '/models/select')
 assert.deepEqual(app.writes[0].body.enabledIds, ['coder'])
@@ -214,7 +214,7 @@ assert.equal(app.pending.filter((entry) => entry.path === '/account').length, 1)
 await app.settle('/models', { ...initialModels, enabledIds: ['coder'] })
 await savePromise
 app.render()
-assert.equal(button('保存').props.disabled, true)
+assert.equal(button('保存模型配置').props.disabled, true)
 assert.match(app.text(panel('models')), /已保存/)
 console.log('✓ save preserves existing overrides and completes without waiting for account probes')
 
@@ -461,9 +461,24 @@ assert.doesNotMatch(chip.text(dialog()), /RAW_NETWORK_ERROR/)
 chipRow('Backup').props.onClick()
 await new Promise(setImmediate)
 assert.deepEqual(chip.writes.at(-1), { path: '/accounts/activate', body: { id: 'backup' } })
+chip.render()
+assert.match(chip.text(chipRow('Backup')), /正在切换/)
+assert.doesNotMatch(chip.text(chipRow('Primary')), /正在切换/)
+assert.equal(chipRow('Backup').props['aria-busy'], true)
+assert.equal(chipRow('Network').props.disabled, true)
+assert.equal(chip.findAll((node) => node.type === 'svg' && node.props.className?.includes('dca-pop-refresh-icon-spin')).length, 0, 'switching must not look like a refresh')
 await chip.settle('/account', { ok: true, credit: { remain: 13.25 } })
 await chip.settle('/accounts', { ok: true, accounts: chipPool.accounts.map((account) => ({ ...account, active: account.id === 'backup' })) })
 assert.equal(chip.text(chipRow('Backup')), 'Backup当前选用')
+assert.equal(chipRow('Backup').props['aria-busy'], false)
+assert.match(chip.text(dialog()), /已切换到「Backup」/)
+chip.postResponses.set('/accounts/activate', { ok: false, error: 'Switch refused' })
+chipRow('Primary').props.onClick()
+await new Promise(setImmediate); chip.render()
+assert.equal(chipRow('Primary').props.disabled, false, 'failed account switches can be retried')
+assert.equal(chip.text(chipRow('Backup')), 'Backup当前选用', 'failed switches keep the current account')
+assert.match(chip.text(dialog()), /切换到「Primary」失败：Switch refused/)
+assert.doesNotMatch(chip.text(dialog()), /已切换到「Backup」/)
 chip.one((node) => node.props.className === 'dca-pop-settings').props.onClick()
 chip.render()
 assert.equal(openedSettings, 1)
@@ -503,6 +518,11 @@ assert.deepEqual(pins.writes.at(-1), { path: '/preferences/save', body: { favori
 assert.deepEqual(modelOrder(), ['coder', 'expensive', 'reasoner', 'free'])
 assert.equal(pins.one((node) => node.type === 'input' && node.props['aria-label'] === 'Reasoner').props.checked, false)
 assert.ok(!pins.writes.some((entry) => entry.path === '/models/select'), 'pinning must not save the live selection')
+const modelSaveStatus = () => pins.one((node) => node.props.className === 'dca-save-status')
+assert.equal(pins.text(modelSaveStatus()), '有未保存的模型配置', 'pin success must not hide the unsaved settings status')
+assert.match(pins.text(pins.render()), /常用置顶已保存/)
+assert.match(pins.text(pins.render()), /置顶即时保存/)
+assert.equal(pins.one((node) => node.type === 'button' && pins.text(node) === '保存模型配置').props.disabled, false)
 pins.one((node) => node.type === 'select' && node.props['aria-label'] === '模型排序').props.onChange({ target: { value: 'ratio' } }); pins.render()
 assert.deepEqual(modelOrder(), ['coder', 'expensive', 'free', 'reasoner'])
 pins.one((node) => node.type === 'input' && node.props.type === 'search').props.onChange({ target: { value: 'Reasoner' } }); pins.render()
@@ -516,7 +536,101 @@ star('置顶 Free').props.onClick()
 await flushSettings(pins, pinResponses)
 assert.equal(star('置顶 Free').props['aria-pressed'], false, 'failed writes must not appear persisted')
 assert.match(pins.text(pins.render()), /Cannot save pinned models/)
+assert.equal(pins.text(modelSaveStatus()), '有未保存的模型配置', 'pin errors must remain separate from the model draft status')
+pins.one((node) => node.type === 'input' && node.props['aria-label'] === 'Coder').props.onChange({ target: { checked: false } })
+pins.one((node) => node.type === 'input' && node.props['aria-label'] === 'Expensive').props.onChange({ target: { checked: false } })
+pins.one((node) => node.type === 'input' && node.props['aria-label'] === 'Free').props.onChange({ target: { checked: false } })
+pins.render()
+star('置顶 Free').props.onClick()
+await flushSettings(pins, pinResponses)
+assert.equal(pins.text(modelSaveStatus()), '请至少启用一个模型后保存', 'favorite errors must not hide the empty-selection guidance')
+assert.equal(pins.one((node) => node.type === 'button' && pins.text(node) === '保存模型配置').props.disabled, true)
 console.log('✓ pinned models lead each sort, obey filters, persist separately, and preserve unsaved drafts on success and failure')
+
+// Deferred writes expose progress before acknowledgement and before the subsequent reload.
+const switching = harness()
+const switchResponses = { ...fixtures, '/accounts': { ok: true, accounts: [
+  { id: 'personal', label: '个人', active: true, health: { state: 'available' } },
+  { id: 'work', label: '工作', active: false, health: { state: 'available' } },
+] } }
+await flushSettings(switching, switchResponses)
+const accountRow = (id) => switching.one((node) => node.type === 'div' && node.props.key === id && node.props.className?.startsWith('dca-pool-row'))
+const accountButton = (id, label) => {
+  const matches = switching.findAll((node) => node.type === 'button' && switching.text(node) === label, accountRow(id))
+  assert.equal(matches.length, 1)
+  return matches[0]
+}
+let finishSwitch
+switching.postResponses.set('/accounts/activate', () => new Promise((resolve) => { finishSwitch = resolve }))
+const pendingSwitch = accountButton('work', '切换').props.onClick()
+switching.render()
+assert.equal(accountButton('work', '正在切换…').props.disabled, true)
+assert.equal(accountButton('work', '正在切换…').props['aria-busy'], true)
+assert.equal(accountButton('work', '重新检查').props.disabled, true)
+assert.equal(accountButton('personal', '重新检查').props.disabled, true)
+assert.doesNotMatch(switching.text(accountRow('personal')), /正在切换/)
+assert.equal(switching.findAll((node) => node.type === 'button' && switching.text(node) === '加载中…').length, 0)
+assert.equal(switching.pending.length, 0, 'reload waits for activation acknowledgement')
+finishSwitch({ ok: true })
+await new Promise(setImmediate); switching.render()
+assert.match(switching.text(accountRow('work')), /正在切换/)
+switchResponses['/accounts'] = { ok: true, accounts: switchResponses['/accounts'].accounts.map((account) => ({ ...account, active: account.id === 'work' })) }
+await flushSettings(switching, switchResponses)
+await pendingSwitch; switching.render()
+assert.match(switching.text(accountRow('work')), /已切换到「工作」/)
+assert.doesNotMatch(switching.text(accountRow('personal')), /已切换到/)
+assert.equal(accountRow('work').props['aria-busy'], false)
+assert.equal(accountButton('personal', '切换').props.disabled, false)
+switching.postResponses.set('/accounts/activate', { ok: false, error: 'Switch refused' })
+await accountButton('personal', '切换').props.onClick(); switching.render()
+assert.match(switching.text(accountRow('personal')), /切换到「个人」失败：Switch refused/)
+assert.equal(switching.findAll((node) => node.props.role === 'alert', accountRow('personal')).length, 1)
+assert.equal(accountButton('personal', '切换').props.disabled, false)
+assert.match(accountRow('work').props.className, /dca-pool-row-current/)
+assert.doesNotMatch(switching.text(accountRow('work')), /Switch refused|已切换到/)
+switching.postResponses.set('/accounts/activate', () => { throw new Error('Offline switch') })
+await accountButton('personal', '切换').props.onClick(); switching.render()
+assert.match(switching.text(accountRow('personal')), /切换到「个人」失败：Offline switch/)
+assert.equal(accountButton('personal', '切换').props.disabled, false)
+console.log('✓ account switches show progress and outcomes on the target row, preserve current state on failure, and allow retry')
+
+// Account import is a read-only preview of the entire confirmed batch.
+const imports = harness()
+await flushSettings(imports, fixtures)
+const importFile = () => imports.one((node) => node.type === 'input' && node.props.type === 'file' && node.props.accept.includes('.csv'))
+const importDialog = () => imports.one((node) => node.props.role === 'dialog' && node.props.className === 'dca-transfer-dialog')
+const importButton = (label) => {
+  const matches = imports.findAll((node) => node.type === 'button' && imports.text(node) === label, importDialog())
+  assert.equal(matches.length, 1)
+  return matches[0]
+}
+const importText = 'OFFLINE_AK_1,OFFLINE_SK_1\nOFFLINE_AK_2,OFFLINE_SK_2'
+imports.postResponses.set('/accounts/preview', { ok: true, total: 2, accounts: [
+  { index: 0, label: '个人', akMasked: 'OFF…ONE' },
+  { index: 1, akMasked: 'OFF…TWO' },
+] })
+const chooseImport = async () => {
+  importFile().props.onChange({ target: { value: 'credentials.csv', files: [{ text: async () => importText }] } })
+  await flushSettings(imports, fixtures)
+}
+await chooseImport()
+assert.match(imports.text(importDialog()), /将导入以下 2 个账号/)
+assert.equal(imports.findAll((node) => node.type === 'li', importDialog()).length, 2)
+assert.equal(imports.findAll((node) => node.type === 'input' || node.type === 'label', importDialog()).length, 0, 'the preview must not imply per-account selection')
+assert.match(imports.text(importDialog()), /个人OFF…TWO/)
+assert.doesNotMatch(imports.text(importDialog()), /OFFLINE_SK|OFFLINE_AK/)
+assert.ok(!imports.writes.some((write) => write.path === '/accounts/import'))
+importButton('取消').props.onClick(); imports.render()
+assert.equal(imports.findAll((node) => node.props.className === 'dca-transfer-dialog').length, 0)
+assert.ok(!imports.writes.some((write) => write.path === '/accounts/import'), 'cancel does not write any accounts')
+await chooseImport()
+imports.postResponses.set('/accounts/import', { ok: true, added: 2, updated: 0, skipped: 0 })
+const importing = importButton('导入 2 个').props.onClick()
+await flushSettings(imports, fixtures)
+await importing; imports.render()
+assert.deepEqual(imports.writes.at(-1), { path: '/accounts/import', body: { text: importText } })
+assert.equal(imports.findAll((node) => node.props.className === 'dca-transfer-dialog').length, 0)
+console.log('✓ account import previews a plain list with the confirmed batch count and only writes after confirmation')
 
 const balances = harness()
 const checkedAt = balances.controls.now - 300000

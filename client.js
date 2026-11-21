@@ -137,7 +137,8 @@ window.__ModuleLoader__.load({
       'models.noMatches': ['没有符合条件的模型', 'No matching models'],
       'models.clearFilters': ['清除筛选', 'Clear filters'],
       'models.about': ['目录说明与使用帮助', 'About the catalog'],
-      'models.clean': ['所有修改已保存', 'All changes saved'],
+      'models.clean': ['模型配置已保存', 'Model settings saved'],
+      'models.saveHint': ['置顶即时保存；启用、能力开关和推理强度需点击「保存模型配置」。', 'Pins save immediately. Save model settings to apply selection, capability and reasoning changes.'],
       'credit.lastResult': ['上次结果', 'Last result'],
       'credit.updated': ['积分更新时间', 'Credits updated'],
       'credit.refreshFailed': ['积分刷新失败，显示上次结果', 'Credits refresh failed; showing the last result'],
@@ -145,8 +146,8 @@ window.__ModuleLoader__.load({
       'chip.lastCredits': ['上次积分', 'Last credits'],
       'models.pin': ['置顶 {model}', 'Pin {model}'],
       'models.unpin': ['取消置顶 {model}', 'Unpin {model}'],
-      'models.favoriteSaved': ['已更新常用置顶', 'Pinned models updated'],
-      'models.unsaved': ['有未保存的修改', 'Unsaved changes'],
+      'models.favoriteSaved': ['常用置顶已保存', 'Pinned models saved'],
+      'models.unsaved': ['有未保存的模型配置', 'Unsaved model settings'],
       'models.needOne': ['请至少启用一个模型后保存', 'Enable at least one model to save'],
       'diag.details': ['技术详情', 'Technical details'],
       'diag.copy': ['复制脱敏诊断信息', 'Copy redacted diagnostics'],
@@ -227,7 +228,7 @@ window.__ModuleLoader__.load({
       'models.refreshed': ['已从上游重读模型目录', 'Catalog re-read from upstream'],
       'models.saved': ['已保存，模型选择器已更新', 'Saved; the model picker has been updated'],
       'models.savedReloadFailed': ['已保存，暂时无法重读模型目录。', 'Saved, but the catalog could not be reloaded.'],
-      'models.save': ['保存', 'Save'],
+      'models.save': ['保存模型配置', 'Save model settings'],
       'models.discard': ['放弃修改', 'Discard'],
       'models.saveFailed': ['保存失败', 'Save failed'],
       'models.dirty': ['未保存', 'unsaved'],
@@ -289,6 +290,9 @@ window.__ModuleLoader__.load({
       'pool.renamePlaceholder': ['例如：个人 / 公司', 'e.g. personal / work'],
       'pool.renameFailed': ['改备注失败', 'Rename failed'],
       'pool.use': ['切换', 'Use'],
+      'pool.switching': ['正在切换…', 'Switching…'],
+      'pool.switched': ['已切换到「{account}」', 'Switched to {account}'],
+      'pool.switchFailed': ['切换到「{account}」失败：{error}', 'Could not switch to {account}: {error}'],
       'pool.remove': ['移除', 'Remove'],
       'pool.removeConfirm': [
         '移除这个账号？它保存的 AK/SK 会从本机删除。',
@@ -328,7 +332,7 @@ window.__ModuleLoader__.load({
       'pool.added': ['已添加账号', 'Account added'],
       'pool.updated': ['已更新该账号的密钥', 'That account was updated'],
       'pool.importing': ['导入中…', 'Importing…'],
-      'pool.previewTotal': ['这个文件里有 {total} 个账号，确认后写入：', 'This file holds {total} accounts; confirm to write them:'],
+      'pool.previewTotal': ['将导入以下 {count} 个账号，确认后写入：', 'The following {count} accounts will be imported after confirmation:'],
       'pool.importConfirm': ['导入 {count} 个', 'Import {count}'],
       'pool.cancel': ['取消', 'Cancel'],
       'pool.exportFailed': ['导出失败', 'Export failed'],
@@ -615,12 +619,10 @@ window.__ModuleLoader__.load({
   list-style:none;margin:0 0 8px;padding:0;
   max-height:180px;overflow-y:auto;
 }
-.dca-transfer-list label{
-  display:flex;align-items:center;gap:6px;
+.dca-transfer-list li{
   font-size:12px;color:var(--dsw-alias-label-primary,#e8e9ed);
-  cursor:pointer;padding:2px 0;
+  padding:2px 0;overflow-wrap:anywhere;
 }
-.dca-transfer-list input[type="checkbox"]{flex:none;accent-color:var(--dsw-alias-brand-primary,#5686fe)}
 .dca-transfer-actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
 /* ---- model rows -------------------------------------------------------
    Line one: enable box, name, ratio, flags on the left; the row's own switches
@@ -933,8 +935,9 @@ window.__ModuleLoader__.load({
 .dca-model-meta{color:var(--dsw-alias-label-secondary,#b6b8be)}
 .dca-model-off .dca-model-controls,.dca-model-off .dca-effort{color:var(--dsw-alias-label-secondary,#b6b8be)}
 .dca-model-controls input:disabled,.dca-effort-select:disabled{opacity:.75}
-.dca-save-status{flex:1 1 180px;min-width:0;font-size:12px;color:var(--dsw-alias-label-secondary,#c6c9d0)}
-.dca-save-status-error{color:var(--dsw-alias-state-error-primary,#ef4444)}
+.dca-save-feedback{display:flex;flex-direction:column;gap:4px;flex:1 1 180px;min-width:0;overflow-wrap:anywhere}
+.dca-save-status{font-size:12px;color:var(--dsw-alias-label-secondary,#c6c9d0)}
+.dca-pool-feedback{grid-column:1 / -1;min-width:0;overflow-wrap:anywhere}
 .dca-empty{padding:24px 16px;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center}
 .dca-details > summary{cursor:pointer;font-size:12px;color:var(--dsw-alias-label-secondary,#c6c9d0);border-radius:4px}
 .dca-details[open] > summary{margin-bottom:12px}
@@ -1400,7 +1403,7 @@ window.__ModuleLoader__.load({
               h(
                 'p',
                 { className: 'dca-hint' },
-                t('pool.previewTotal').replace('{total}', preview.total),
+                t('pool.previewTotal').replace('{count}', preview.accounts.length),
               ),
               h(
                 'ul',
@@ -1409,13 +1412,7 @@ window.__ModuleLoader__.load({
                   h(
                     'li',
                     { key: entry.index },
-                    h(
-                      'label',
-                      null,
-                      h('input', { type: 'checkbox', checked: true, readOnly: true }),
-                      ' ',
-                      entry.label ?? entry.akMasked ?? `#${entry.index}`,
-                    ),
+                    entry.label ?? entry.akMasked ?? `#${entry.index}`,
                   ),
                 ),
               ),
@@ -1456,7 +1453,8 @@ window.__ModuleLoader__.load({
      */
     function AccountPool({
       pool,
-      busyId,
+      rowAction,
+      rowNotice,
       busy,
       onActivate,
       onRemove,
@@ -1498,6 +1496,7 @@ window.__ModuleLoader__.load({
         await onRename(id, next)
       }, [draftLabel, onRename])
       const accounts = pool?.accounts ?? []
+      const busyId = rowAction?.id ?? null
       // `busy` is the KIND ('checkin' | 'test' | null); most checks only care
       // whether anything is running.
       const anyBusy = busy !== null && busy !== undefined && busy !== false
@@ -1563,6 +1562,7 @@ window.__ModuleLoader__.load({
                   {
                     key: account.id,
                     className: `dca-pool-row${account.active ? ' dca-pool-row-current' : ''}`,
+                    'aria-busy': rowBusy,
                   },
                   h(
                     'div',
@@ -1659,7 +1659,7 @@ window.__ModuleLoader__.load({
                     h(
                       'div',
                       { className: 'dca-pool-actions' },
-                      h('button', { type: 'button', className: 'dca-btn-xs', disabled: rowBusy || anyBusy || busyId !== null, onClick: () => onCheck(account.id) }, rowBusy ? t('common.loading') : t('health.recheck')),
+                      h('button', { type: 'button', className: 'dca-btn-xs', disabled: rowBusy || anyBusy || busyId !== null, onClick: () => onCheck(account.id) }, rowBusy && rowAction.kind === 'check' ? t('common.loading') : t('health.recheck')),
                       account.health?.state === 'credentials' ? h('button', { type: 'button', className: 'dca-btn-xs', disabled: rowBusy || anyBusy || busyId !== null, onClick: () => onUpdateCredentials(account) }, t('health.update')) : null,
                       account.health?.state === 'insufficient' ? h('span', { className: 'dca-hint' }, t('health.switch')) : null,
                       account.active
@@ -1670,9 +1670,10 @@ window.__ModuleLoader__.load({
                               type: 'button',
                               className: 'dca-btn-xs',
                               disabled: rowBusy || anyBusy || busyId !== null,
-                              onClick: () => onActivate(account.id),
+                              onClick: () => onActivate(account),
+                              'aria-busy': rowBusy && rowAction.kind === 'activate',
                             },
-                            t('pool.use'),
+                            rowBusy && rowAction.kind === 'activate' ? t('pool.switching') : t('pool.use'),
                           ),
                       h('details', { className: 'dca-account-menu' },
                         h('summary', {
@@ -1694,6 +1695,9 @@ window.__ModuleLoader__.load({
                       ),
                     ),
                   ),
+                  rowNotice?.id === account.id
+                    ? h('div', { className: 'dca-pool-feedback' }, h(FeatureNotice, { notice: rowNotice }))
+                    : null,
                 )
               }),
             ),
@@ -1705,7 +1709,8 @@ window.__ModuleLoader__.load({
 
     function AccountTab({ status, pool, onChanged }) {
       const [busy, setBusy] = useState(null)
-      const [busyId, setBusyId] = useState(null)
+      const [rowAction, setRowAction] = useState(null)
+      const [rowNotice, setRowNotice] = useState(null)
       const [notice, setNotice] = useState(null)
       const [updateTarget, setUpdateTarget] = useState(null)
 
@@ -1747,28 +1752,30 @@ window.__ModuleLoader__.load({
       }, [report])
 
 
-      const activate = useCallback(async (id) => {
-        setBusyId(id)
+      const activate = useCallback(async (account) => {
+        setRowAction({ id: account.id, kind: 'activate' })
+        setRowNotice(null); setNotice(null)
         try {
-          const result = await postRoute('/accounts/activate', { id })
-          if (!result.ok) report({ kind: 'error', text: result.error ?? t('common.retry') })
+          const result = await postRoute('/accounts/activate', { id: account.id })
+          if (!result.ok) throw new Error(result.error ?? t('common.retryHint'))
           await reload()
+          setRowNotice({ id: account.id, kind: 'success', text: t('pool.switched').replace('{account}', account.label) })
         } catch (error) {
-          report({ kind: 'error', text: error.message })
-        } finally { setBusyId(null) }
-      }, [reload, report])
+          setRowNotice({ id: account.id, kind: 'error', text: t('pool.switchFailed').replace('{account}', account.label).replace('{error}', error.message) })
+        } finally { setRowAction(null) }
+      }, [reload])
 
       const remove = useCallback(async (account) => {
         const ask = t('pool.removeConfirm')
         if (typeof window !== 'undefined' && typeof window.confirm === 'function' && !window.confirm(ask)) return
-        setBusyId(account.id)
+        setRowAction({ id: account.id, kind: 'remove' }); setRowNotice(null)
         try {
           await postRoute('/accounts/remove', { id: account.id })
           report({ kind: 'success', text: t('pool.remove') })
           await reload()
         } catch (error) {
           report({ kind: 'error', text: error.message })
-        } finally { setBusyId(null) }
+        } finally { setRowAction(null) }
       }, [reload, report])
 
       /** Claim once for the pool after an explicit click. */
@@ -1841,13 +1848,13 @@ window.__ModuleLoader__.load({
       }, [onChanged])
 
       const checkAccount = async (id) => {
-        setBusyId(id)
+        setRowAction({ id, kind: 'check' }); setRowNotice(null)
         try {
           const result = await postRoute('/accounts/check', { id })
           if (!result.ok) throw new Error(result.error ?? t('common.retry'))
           report({ kind: result.account.health.state === 'available' ? 'success' : 'warn', text: `${result.account.label}：${t(`health.${result.account.health.state}`)}` })
           await reload()
-        } catch (error) { report({ kind: 'error', text: error.message }) } finally { setBusyId(null) }
+        } catch (error) { report({ kind: 'error', text: error.message }) } finally { setRowAction(null) }
       }
       const accounts = pool?.accounts ?? []
       return h(
@@ -1879,7 +1886,8 @@ window.__ModuleLoader__.load({
         // table where the reference puts it.
         h(AccountPool, {
           pool,
-          busyId,
+          rowAction,
+          rowNotice,
           // The pool takes the raw kind, not a collapsed boolean: the check-in
           // button must know whether IT is the one running so it can show
           // 「签到中…」 — a boolean cannot express that.
@@ -2179,7 +2187,7 @@ window.__ModuleLoader__.load({
       }, [])
 
       const save = useCallback(async () => {
-        setBusy('save')
+        setBusy('save'); setNotice(null)
         try {
           const payload = {
             // A draft that matches the whole roster is the same thing as "all",
@@ -2331,6 +2339,7 @@ window.__ModuleLoader__.load({
           h('span', null, t('models.selectedCount').replace('{enabled}', selectedCount).replace('{total}', list.length)),
           h('span', null, `${t('models.refreshedAt')}：${formatTime(models?.refreshedAt)}`),
         ),
+        h('p', { className: 'dca-hint' }, t('models.saveHint')),
         h('div', { className: 'dca-toolbar' },
           h('input', {
             type: 'search', className: 'dca-input dca-search', value: query,
@@ -2535,10 +2544,11 @@ window.__ModuleLoader__.load({
         h(
           'div',
           { className: 'dca-model-actions' },
-          h('span', {
-            className: `dca-save-status${notice?.kind === 'error' ? ' dca-save-status-error' : ''}`,
-            role: notice?.kind === 'error' ? 'alert' : 'status', 'aria-live': 'polite',
-          }, busy === 'save' ? t('account.saving') : (notice?.text ?? (selectedCount === 0 ? t('models.needOne') : t(dirty ? 'models.unsaved' : 'models.clean')))),
+          h('div', { className: 'dca-save-feedback' },
+            h('span', { className: 'dca-save-status', role: 'status', 'aria-live': 'polite' },
+              busy === 'save' ? t('account.saving') : selectedCount === 0 ? t('models.needOne') : t(dirty ? 'models.unsaved' : 'models.clean')),
+            h(FeatureNotice, { notice }),
+          ),
           h(
             'div',
             { className: 'dca-model-actions-buttons' },
@@ -2869,7 +2879,8 @@ window.__ModuleLoader__.load({
       const container = useRef(null)
       const loadSequence = useRef(0)
       const [now, setNow] = useState(Date.now())
-      const [actionError, setActionError] = useState(null)
+      const [actionNotice, setActionNotice] = useState(null)
+      const [switchingId, setSwitchingId] = useState(null)
       const openSettings = props?.openSettings
 
       // Only speak up when this session is actually pointed at a 码道 model.
@@ -2943,7 +2954,7 @@ window.__ModuleLoader__.load({
       }, [open])
 
       const refresh = useCallback(async () => {
-        setBusy(true); setActionError(null)
+        setBusy(true); setActionNotice(null)
         try {
           await load()
         } finally {
@@ -2953,7 +2964,7 @@ window.__ModuleLoader__.load({
 
       /** Move the pool to another account; the panel's rows call this. */
       const activateAccount = useCallback(async (account) => {
-        setBusy(true); setActionError(null)
+        setBusy(true); setActionNotice(null); setSwitchingId(account.id)
         loadSequence.current += 1
         try {
           const result = await postRoute('/accounts/activate', { id: account.id })
@@ -2963,10 +2974,14 @@ window.__ModuleLoader__.load({
             pool: previous.pool ? { ...previous.pool, accounts: previous.pool.accounts.map((entry) => ({ ...entry, active: entry.id === account.id })) } : null,
           } : previous)
           await load()
-        } catch (error) { setActionError(error.message) } finally { setBusy(false) }
+          setActionNotice({ kind: 'success', text: t('pool.switched').replace('{account}', account.label) })
+        } catch (error) {
+          setActionNotice({ kind: 'error', text: t('pool.switchFailed').replace('{account}', account.label).replace('{error}', error.message) })
+        } finally { setBusy(false); setSwitchingId(null) }
       }, [load])
 
       const accounts = accountInfo?.pool?.accounts ?? []
+      const refreshing = busy && switchingId === null
       const refreshFailed = accountInfo?.accountReadFailed || accountInfo?.poolReadFailed || accountInfo?.creditStale || accounts.some((account) => account.creditStale)
       // Nothing to show until the Host answers, and nothing to show when no
       // credential is configured: an empty pill on every composer would be
@@ -3051,7 +3066,7 @@ window.__ModuleLoader__.load({
                   h(
                     'svg',
                     {
-                      className: `dca-pop-refresh-icon${busy ? ' dca-pop-refresh-icon-spin' : ''}`,
+                      className: `dca-pop-refresh-icon${refreshing ? ' dca-pop-refresh-icon-spin' : ''}`,
                       viewBox: '0 0 16 16',
                       width: 12,
                       height: 12,
@@ -3089,7 +3104,7 @@ window.__ModuleLoader__.load({
                   t('chip.settings'),
                 ),
               ),
-              actionError ? h('p', { className: 'dca-pop-notice', role: 'alert' }, actionError) : null,
+              h(FeatureNotice, { notice: actionNotice }),
               refreshFailed ? h('p', { className: 'dca-pop-notice', role: 'status' }, accountInfo.credit || accounts.some((account) => account.credit) ? t('credit.refreshFailed') : t('credit.unavailable')) : null,
               h(CreditStatus, { account: accountInfo, now }),
               // One row per account, in a real table so the balances line up in a
@@ -3137,6 +3152,7 @@ window.__ModuleLoader__.load({
                                 type: 'button',
                                 className: 'dca-pop-switch',
                                 disabled: busy || account.active,
+                                'aria-busy': switchingId === account.id,
                                 title: t('chip.switchTo').replace('{account}', account.label),
                                 'aria-label': t('chip.switchTo').replace('{account}', account.label),
                                 onClick: () => void activateAccount(account),
@@ -3149,8 +3165,9 @@ window.__ModuleLoader__.load({
                                 'span',
                                 { className: 'dca-pop-who' },
                                 h('span', { className: 'dca-pop-name' }, account.label),
-                                account.active || account.error || (account.health?.state && account.health.state !== 'available')
+                                switchingId === account.id || account.active || account.error || (account.health?.state && account.health.state !== 'available')
                                   ? h('span', { className: 'dca-pop-mark' },
+                                      switchingId === account.id ? h('span', { role: 'status' }, t('pool.switching')) : null,
                                       account.active ? h('span', { className: 'dca-pop-mark-current' }, t('chip.current')) : null,
                                       account.error || (account.health?.state && account.health.state !== 'available')
                                         ? h('span', { className: 'dca-pop-mark-reason', title: account.error || undefined }, t(`health.${account.health?.state && account.health.state !== 'available' ? account.health.state : 'unknown'}`))
