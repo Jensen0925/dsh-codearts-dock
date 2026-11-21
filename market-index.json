@@ -26,7 +26,7 @@
         "en": "CodeArts Dock"
       },
       "description": {
-        "zh": "为 DeepSeek Harness 接入华为云码道模型的非官方插件，提供多账号、积分提醒、模型预设、本机用量与加密配置备份。",
+        "zh": "为 DeepSeek Harness 接入华为云码道模型的非官方插件，提供多账号、积分概览、模型预设与加密配置备份。",
         "en": "Unofficial CodeArts model connector with accounts, credits, presets and encrypted backups."
       },
       "author": "Jensen0925",
@@ -34,7 +34,7 @@
       "repository": {
         "url": "https://github.com/Jensen0925/dsh-codearts-dock"
       },
-      "icon": "https://raw.githubusercontent.com/Jensen0925/dsh-codearts-dock/d13780fef1bea8b5eb9592d08fc889764de6a4d0/icons/dsh-connect-codearts-128.png",
+      "icon": "https://raw.githubusercontent.com/Jensen0925/dsh-codearts-dock/6abb946711b14e17bbb6c450777b2d070c0a4dc8/icons/dsh-connect-codearts-128.png",
       "metadata": {
         "category": "models",
         "keywords": [
@@ -52,12 +52,12 @@
       },
       "versions": [
         {
-          "version": "1.0.0",
-          "publishTimestamp": 1795164379,
+          "version": "1.0.1",
+          "publishTimestamp": 1795249827,
           "source": {
             "type": "git",
             "url": "https://github.com/Jensen0925/dsh-codearts-dock",
-            "commit": "d13780fef1bea8b5eb9592d08fc889764de6a4d0"
+            "commit": "6abb946711b14e17bbb6c450777b2d070c0a4dc8"
           }
         }
       ]
