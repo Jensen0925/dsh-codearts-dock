@@ -25,8 +25,6 @@ export function registerFeatureRoutes(route, deps, readBody) {
     const body = await readBody(req)
     return serial(() => applyPreferences(deps, body))
   })
-  route('/usage', () => deps.usage.list())
-  route('/usage/clear', async () => { await deps.usage.clear(); return deps.usage.list() })
   route('/presets', async (req) => {
     const body = await readBody(req)
     return serial(async () => {

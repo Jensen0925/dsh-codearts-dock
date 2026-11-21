@@ -7,7 +7,7 @@
  * (`POST /v1/ops/claim`) that spends the day's one entitlement, so everything
  * here is built around never doing it twice and never doing it unasked.
  *
- * Auto check-in is therefore opt-in, off by default, and guarded three ways:
+ * Manual check-in is guarded three ways:
  *
  *   1. it re-reads campaign state immediately before claiming, so an account
  *      already claimed today by any client is skipped, not retried;
@@ -154,7 +154,7 @@ export async function readCheckin(client, options = {}) {
  * @param {object} options claim options.
  * @param {string} options.accountId whose record to update.
  * @param {Date} [options.now] clock, for tests.
- * @param {boolean} [options.force] claim even when the local record says it was attempted today (never used by auto mode).
+ * @param {boolean} [options.force] claim even when the local record says it was attempted today (never used by the batch action).
  * @returns {Promise<{claimed: boolean, amount?: number, reason?: string}>} the outcome.
  */
 export async function claimDaily(client, options) {
@@ -205,7 +205,7 @@ async function recordAttempt(state, accountId, now, claimed, amount, error) {
 }
 
 /**
- * Run auto check-in across the accounts that should be checked.
+ * Claim once across the selected accounts after an explicit user action.
  *
  * Sequential on purpose: the gateway counts concurrent sessions with a small
  * ceiling, and a burst of parallel claims on one account is the fastest way to
@@ -216,7 +216,7 @@ async function recordAttempt(state, accountId, now, claimed, amount, error) {
  * @param {Date} [options.now] clock, for tests.
  * @returns {Promise<{attempted: number, claimed: number, skipped: number, failures: Array<{id: string, reason: string}>}>} the summary.
  */
-export async function runAutoCheckin({ targets, now = new Date() }) {
+export async function claimAllDaily({ targets, now = new Date() }) {
   const summary = { attempted: 0, claimed: 0, skipped: 0, failures: [] }
   const state = readCheckinState()
 
@@ -244,7 +244,7 @@ export async function runAutoCheckin({ targets, now = new Date() }) {
 }
 
 /**
- * What auto check-in has done today, for the settings page.
+ * What check-in has done today, for the settings page.
  * @param {Array<{id: string, label: string}>} accounts the pool, in display order.
  * @param {Date} [now] clock, for tests.
  * @returns {{total: number, done: number, pending: number, lastError?: string}} today's progress.

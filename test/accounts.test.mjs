@@ -244,6 +244,28 @@ await check('the today summary counts only claimed accounts', async () => {
   assert.equal(summary.pending, 1)
 })
 
+await check('manual batch claims each eligible account once and continues after a failure', async () => {
+  const first = fakeGateway()
+  const second = fakeGateway()
+  const now = new Date('2026-11-18T10:00:00+08:00')
+  const targets = [
+    { id: 'batch-first', client: first.client },
+    { id: 'batch-error', client: { getJson: async () => { throw new Error('offline mock error') } } },
+    { id: 'batch-second', client: second.client },
+  ]
+  const result = await checkin.claimAllDaily({ targets, now })
+  assert.equal(result.claimed, 2)
+  assert.equal(result.failures.length, 1)
+  assert.equal(result.failures[0].id, 'batch-error')
+  assert.equal(first.state.claims, 1)
+  assert.equal(second.state.claims, 1)
+  const retry = await checkin.claimAllDaily({ targets: [targets[0], targets[2]], now })
+  assert.equal(retry.skipped, 2)
+  assert.equal(retry.claimed, 0)
+  assert.equal(first.state.claims, 1)
+  assert.equal(second.state.claims, 1)
+})
+
 await check('the day key follows the local calendar, not UTC', () => {
   // 23:30 in +08:00 is still the 18th locally even though UTC has rolled over.
   assert.equal(checkin.todayKey(new Date('2026-11-18T23:30:00+08:00')), '2026-11-18')

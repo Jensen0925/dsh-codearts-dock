@@ -234,8 +234,10 @@ await check('Config satisfies the two gates Settings → Models applies', async 
   const json = schema.toJSON()
   assert.equal(typeof json, 'object', 'gate 1: toJSON must produce a schema document')
   // Gate 2 needs the schema to resolve the values the card reads.
+  assert.ok(!('autoCheckin' in plugin.DEFAULTS), 'removed automatic preference has no default')
   const values = schema({})
-  for (const field of ['enabled', 'composerChip', 'registerProvider', 'autoCheckin']) {
+  assert.ok(!('autoCheckin' in values), 'removed automatic preference is not offered by settings')
+  for (const field of ['enabled', 'composerChip', 'registerProvider']) {
     assert.ok(field in values, `gate 2: ${field} must resolve from the schema`)
   }
 })

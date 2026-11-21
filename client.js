@@ -46,19 +46,25 @@ window.__ModuleLoader__.load({
     const NAV_ICON = 'data:image/png;base64,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'
 
     /** Localisation text, with an English fallback per key. */
-    const balanceDismissals = new Map()
-
     const STRINGS = {
+      'time.justNow': ['刚刚', 'Just now'],
+      'time.minutesAgo': ['{count} 分钟前', '{count} min ago'],
+      'time.hoursAgo': ['{count} 小时前', '{count} hr ago'],
+      'time.daysAgo': ['{count} 天前', '{count} days ago'],
+      'health.details': ['查看异常详情', 'View error details'],
+      'presets.saveAs': ['保存为预设', 'Save as preset'],
+      'presets.details': ['配置详情', 'Configuration details'],
+      'backup.mode': ['备份操作', 'Backup action'],
+      'backup.encrypt': ['加密备份', 'Encrypt backup'],
+      'backup.encryptionRequired': ['含账号凭证，必须加密。', 'Credentials require encryption.'],
+      'backup.paste': ['粘贴 JSON（高级）', 'Paste JSON (advanced)'],
+      'backup.selected': ['已选择：{name}', 'Selected: {name}'],
+      'backup.encrypted': ['加密备份', 'Encrypted backup'],
+      'backup.plain': ['未加密备份', 'Unencrypted backup'],
+      'backup.importHint': ['选择备份文件，再预览将恢复的配置。', 'Choose a backup file, then preview the changes.'],
+      'backup.pasted': ['已粘贴备份内容', 'Backup contents pasted'],
       'health.updateHint': ['更新「{name}」：填写同一个 AK 和新的 SK，将更新已有账号。', 'Update {name}: enter the same AK and the new SK to update the existing account.'],
       "features.saved": ["已保存", "Saved"],
-      "features.refresh": ["刷新", "Refresh"],
-      "reminder.title": ["余额提醒", "Balance alerts"],
-      "reminder.enabled": ["启用低余额提醒", "Enable low-balance alerts"],
-      "reminder.threshold": ["提醒阈值（积分）", "Alert threshold (credits)"],
-      "reminder.hint": ["低于阈值时积分胶囊变色。可用备用账号会在面板中列出，提醒可暂时忽略。", "The credit chip changes color below this threshold. Available backup accounts appear in the panel; alerts can be dismissed."],
-      "reminder.low": ["当前账号余额偏低", "The current account has a low balance"],
-      "reminder.backups": ["可用备用账号：{count} 个", "Available backup accounts: {count}"],
-      "reminder.dismiss": ["暂时忽略", "Dismiss for now"],
       "health.available": ["可用", "Available"],
       "health.insufficient": ["余额不足", "Insufficient credits"],
       "health.credentials": ["凭证失效或权限不足", "Invalid credentials or permissions"],
@@ -88,10 +94,10 @@ window.__ModuleLoader__.load({
       "presets.noModels": ["这套预设没有可用模型", "No available models for this preset"],
       "presets.missing": ["部分模型已不在当前目录中，应用时只保留可用模型。", "Some models are no longer in the catalog; only available models will be applied."],
       "backup.title": ["配置备份与迁移", "Configuration backup and migration"],
-      "backup.hint": ["包含模型选择、能力开关、推理强度、预设和提醒偏好。账号凭证可选，勾选后必须设置密码加密。", "Includes model selection, capabilities, reasoning, presets and alert preferences. Credentials are optional and require password encryption."],
+      "backup.hint": ["包含模型选择、能力开关、推理强度、预设和其他偏好。账号凭证可选，勾选后必须设置密码加密。", "Includes model selection, capabilities, reasoning, presets and other preferences. Credentials are optional and require password encryption."],
       "backup.export": ["导出配置", "Export configuration"],
       "backup.include": ["包含账号凭证（AK/SK）", "Include account credentials (AK/SK)"],
-      "backup.exportPassword": ["加密密码（不含凭证时可留空）", "Encryption password (optional without credentials)"],
+      "backup.exportPassword": ["加密密码", "Encryption password"],
       "backup.confirmPassword": ["确认加密密码", "Confirm encryption password"],
       "backup.passwordHint": ["密码至少 8 位，两次输入需一致。请妥善保存密码。", "Use at least 8 characters and matching passwords. Keep the password safe."],
       "backup.download": ["下载备份", "Download backup"],
@@ -99,37 +105,15 @@ window.__ModuleLoader__.load({
       "backup.restore": ["恢复配置", "Restore configuration"],
       "backup.choose": ["选择备份文件", "Choose backup file"],
       "backup.content": ["备份内容（也可粘贴 JSON）", "Backup contents (or paste JSON)"],
-      "backup.importPassword": ["解密密码（未加密文件可留空）", "Decryption password (blank for unencrypted files)"],
+      "backup.importPassword": ["解密密码", "Decryption password"],
       "backup.preview": ["读取并预览", "Read and preview"],
       "backup.summary": ["将更新 {settings} 项配置，新增 {added} 个账号，更新 {updated} 个账号。", "Updates {settings} settings, adds {added} accounts and updates {updated} accounts."],
-      "backup.mergeHint": ["配置将以备份为准；账号按 AK 合并，不移除现有账号。自动签到开关也会随配置恢复。", "Settings follow the backup; accounts merge by AK without removing existing accounts. The auto-check-in preference is restored too."],
+      "backup.mergeHint": ["配置将以备份为准；账号按 AK 合并，不移除现有账号。", "Settings follow the backup; accounts merge by AK without removing existing accounts."],
       "backup.changes": ["查看将恢复的配置", "View settings to restore"],
       "backup.confirm": ["确认恢复", "Confirm restore"],
       "backup.restored": ["配置已恢复，新增 {added} 个账号，更新 {updated} 个账号。", "Restored; {added} accounts added and {updated} updated."],
       "backup.failed": ["备份操作失败", "Backup operation failed"],
       "backup.tooLarge": ["备份文件过大（最大 768 KB）", "Backup is too large (maximum 768 KB)"],
-      "tab.usage": ["用量", "Usage"],
-      "usage.title": ["本机用量记录", "Local usage history"],
-      "usage.enabled": ["记录最近 200 次请求", "Record the latest 200 requests"],
-      "usage.hint": ["仅保存在本机：模型、时间、耗时、Token 和结果。不记录对话、工具参数或凭证；关闭后停止记录，历史可清空。每次重试单独计数；不估算积分账单。", "Stored locally: model, time, duration, tokens and result. No conversations, tool arguments or credentials. Disable to stop recording or clear history. Retries count separately; credit charges are not estimated."],
-      "usage.clear": ["清空记录", "Clear history"],
-      "usage.clearConfirm": ["清空本机用量记录？此操作无法撤销。", "Clear local usage history? This cannot be undone."],
-      "usage.cleared": ["用量记录已清空", "Usage history cleared"],
-      "usage.today": ["今日请求（已保留记录）", "Today (retained records)"],
-      "usage.successRate": ["今日成功率（不含取消）", "Today’s success rate (excluding cancellations)"],
-      "usage.tokens": ["今日已上报 Token", "Today’s reported tokens"],
-      "usage.search": ["按模型搜索记录", "Search records by model"],
-      "usage.result": ["结果", "Result"],
-      "usage.all": ["全部结果", "All results"],
-      "usage.success": ["成功", "Success"],
-      "usage.error": ["失败", "Failed"],
-      "usage.aborted": ["已取消", "Cancelled"],
-      "usage.time": ["时间", "Time"],
-      "usage.model": ["模型", "Model"],
-      "usage.duration": ["耗时", "Duration"],
-      "usage.input": ["输入 Token", "Input tokens"],
-      "usage.output": ["输出 Token", "Output tokens"],
-      "usage.empty": ["暂无符合条件的记录", "No matching records"],
 
       'meta.title': ['码道连接器', 'CodeArts connector'],
       'meta.description': [
@@ -346,18 +330,12 @@ window.__ModuleLoader__.load({
       'pool.checkinDone': ['今日已签', 'Checked in'],
       'pool.checkinUnavailable': ['不可领取', 'Unavailable'],
       'pool.checkinNone': ['无活动', 'No campaign'],
-      'pool.autoTitle': ['每日自动签到', 'Daily auto check-in'],
       'pool.checkinAll': ['一键签到', 'Check in now'],
-      'pool.checkinAllHint': ['立刻为所有可签到的账号领取一次（不改变上面的每日开关）', 'Claim once for every account that can right now (the daily switch above is left as it is)'],
+      'pool.checkinAllHint': ['立刻为所有可签到的账号领取一次', 'Claim once for every eligible account'],
       'pool.checkinClaiming': ['签到中…', 'Claiming…'],
       'pool.checkinNoneToday': ['今天已没有可领取的签到', 'Nothing left to claim today'],
       'pool.checkinResult': ['{claimed} 个账号已签到，{failed} 个失败', '{claimed} claimed, {failed} failed'],
       'pool.checkinFailed': ['签到失败', 'Check-in failed'],
-      'pool.autoToday': ['今天 {done}/{total}', '{done}/{total} today'],
-      'pool.autoRun': ['立刻签到一次', 'Check in now'],
-      'pool.autoRunning': ['签到中…', 'Checking in…'],
-      'pool.autoOff': ['已关闭', 'Off'],
-      'pool.result': ['{claimed} 个账号签到了，{failed} 个失败', '{claimed} checked in, {failed} failed'],
       'chip.loading': ['读取中…', 'Reading…'],
       'chip.credits': ['积分', 'credits'],
       'chip.panelTitle': ['码道账号与积分', 'CodeArts accounts and credits'],
@@ -439,6 +417,16 @@ window.__ModuleLoader__.load({
       }
     }
 
+    /** Relative labels stay short; the full local timestamp remains in the title. */
+    function relativeTime(ms, now = Date.now()) {
+      if (!Number.isFinite(ms) || ms <= 0) return '—'
+      const minutes = Math.floor(Math.max(0, now - ms) / 60000)
+      if (minutes < 1) return t('time.justNow')
+      if (minutes < 60) return t('time.minutesAgo').replace('{count}', minutes)
+      if (minutes < 1440) return t('time.hoursAgo').replace('{count}', Math.floor(minutes / 60))
+      return t('time.daysAgo').replace('{count}', Math.floor(minutes / 1440))
+    }
+
     /**
      * Render a credit balance.
      *
@@ -489,7 +477,8 @@ window.__ModuleLoader__.load({
 .dca-page,.dca-page *{box-sizing:border-box}
 
 /* ---- shared shell ------------------------------------------------------ */
-.dca-page{display:flex;flex-direction:column;gap:18px;color:var(--dsw-alias-label-primary,#e6e6e6);font-size:13px;line-height:1.6}
+.dca-settings{container:dca-settings / inline-size;width:100%;min-width:0;max-width:100%}
+.dca-page{min-width:0;max-width:100%;display:flex;flex-direction:column;gap:18px;color:var(--dsw-alias-label-primary,#e6e6e6);font-size:13px;line-height:1.6}
 .dca-head{display:flex;flex-direction:column;gap:4px}
 .dca-title{margin:0;font-size:16px;font-weight:500;line-height:24px}
 .dca-hint{margin:0;color:var(--dsw-alias-label-tertiary,#999);font-size:12px;line-height:18px}
@@ -498,9 +487,7 @@ window.__ModuleLoader__.load({
   border:1px solid var(--dsw-alias-border-l2,#36373b);
   border-radius:12px;background:var(--dsw-alias-bg-layer-3,#202126);
   padding:14px 16px;display:flex;flex-direction:column;gap:12px;
-  transition:border-color .16s;
 }
-.dca-card:hover{border-color:var(--dsw-alias-label-dimmed,#777)}
 
 /* ---- account pool rows ------------------------------------------------
    One row per account, two lines each: identity on the first, what the account
@@ -543,6 +530,7 @@ window.__ModuleLoader__.load({
   min-width:0;overflow-wrap:anywhere;
 }
 .dca-pool-credits-row{
+  grid-area:credits;
   display:flex;flex-direction:row;flex-wrap:wrap;align-items:baseline;
   justify-content:flex-end;gap:0 6px;min-width:0;
   justify-self:end;text-align:right;font-variant-numeric:tabular-nums;
@@ -588,39 +576,6 @@ window.__ModuleLoader__.load({
 }
 .dca-transfer-list input[type="checkbox"]{flex:none;accent-color:var(--dsw-alias-brand-primary,#5686fe)}
 .dca-transfer-actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
-/* The pool switches: a 38x22 track with a 16px knob that slides 16px. The input
-   itself is present but invisible — it keeps the accessible role, the keyboard
-   handling and the checked state, while the track and knob are drawn here. */
-.dca-sw{position:relative;display:inline-block;width:38px;height:22px;flex:none;cursor:pointer}
-.dca-sw input{position:absolute;opacity:0;width:0;height:0}
-.dca-sw-track{position:absolute;inset:0;border-radius:999px;background:var(--dsw-alias-border-l2,#3a3d45);transition:background .18s}
-.dca-sw-track::after{
-  content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;
-  background:#fff;transition:transform .18s;box-shadow:0 1px 3px rgba(0,0,0,.3);
-}
-.dca-sw input:checked + .dca-sw-track{background:var(--dsw-alias-brand-primary,#5686fe)}
-.dca-sw input:checked + .dca-sw-track::after{transform:translateX(16px)}
-.dca-sw input:disabled + .dca-sw-track{opacity:.4}
-.dca-sw input:focus-visible + .dca-sw-track{outline:2px solid var(--dsw-alias-brand-primary,#5686fe);outline-offset:2px}
-
-.dca-modebar-label{font-size:13px;font-weight:600;line-height:20px}
-
-/* A plain row: no card, no border, no inset padding. It used to carry the
-   padding and hairline of the card that wrapped it, and with the card gone those
-   would leave a control floating under a stray rule. */
-.dca-switchrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-/* The one-off claim is pushed to the row's end: the switch and its label are the
-   preference on the left, the action on the right. */
-.dca-checkin-now{margin-inline-start:auto}
-.dca-switchrow input[type="checkbox"]{
-  margin:0;flex:none;width:16px;height:16px;
-  accent-color:var(--dsw-alias-brand-primary,#5686fe);
-  cursor:pointer;
-}
-.dca-switchrow label{font-weight:600;font-size:13px;line-height:20px;cursor:pointer}
-
-/* A dashed strip for secondary tools: "these are utilities, not the table". */
-
 /* ---- model rows -------------------------------------------------------
    Line one: enable box, name, ratio, flags on the left; the row's own switches
    on the right. Line two: facts, indented to the name (22px = the box plus its
@@ -737,7 +692,7 @@ window.__ModuleLoader__.load({
    bg-layer-2, its facts on one 11px meta line, exactly like the reference. */
 /* One bordered box; its first and last rows receive their own corner radii so
    contextual row menus can extend beyond the table without being clipped. */
-.dca-model-page{min-height:100%;padding-bottom:60px}
+.dca-model-page{min-height:100%;padding-bottom:60px;gap:12px}
 .dca-models{
   display:flex;flex-direction:column;
   border:1px solid var(--dsw-alias-border-l2,#36373b);
@@ -850,17 +805,17 @@ window.__ModuleLoader__.load({
    Not a <table> — the columns reflow to two lines on a narrow panel, which a
    table cannot do. */
 .dca-pool-table{
-  box-sizing:border-box;container-type:inline-size;
+  box-sizing:border-box;
   border:1px solid var(--dsw-alias-border-l2,#3a3d45);
   border-radius:12px;
   background:var(--dsw-alias-bg-layer-2,#24262c);
 }
 .dca-pool-row{
   display:grid;
-  grid-template-columns:minmax(0,1fr) minmax(0,auto) 160px;
+  grid-template-columns:minmax(0,1fr) minmax(140px,auto);
   grid-template-areas:
-    "account account credits"
-    "probe   probe   actions";
+    "account credits"
+    "probe actions";
   column-gap:12px;row-gap:4px;align-items:center;
   padding:10px 14px;
   border-top:1px solid var(--dsw-alias-border-l1,#2c2d31);
@@ -896,7 +851,7 @@ window.__ModuleLoader__.load({
 .dca-pool-card-title{margin:0;font-size:13px;font-weight:600;line-height:20px}
 
 .dca-pool-sub{display:block;font-size:11px;line-height:16px;color:var(--dsw-alias-label-tertiary,#999)}
-.dca-pool-actions{display:flex;gap:6px;justify-content:flex-end;align-items:center}
+.dca-pool-actions{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end;align-items:center}
 .dca-btn-xs{
   box-sizing:border-box;appearance:none;font:inherit;font-size:12px;line-height:20px;font-weight:500;
   padding:3px 10px;border-radius:8px;cursor:pointer;white-space:nowrap;
@@ -960,8 +915,11 @@ window.__ModuleLoader__.load({
 .dca-summary-item p{overflow-wrap:anywhere}
 .dca-section-error{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .dca-section-error .dca-msg{flex:1;min-width:0}
-@media(max-width:640px){
+@container dca-settings (max-width:640px){
   .dca-model-head{align-items:flex-start;gap:10px}
+  .dca-model-controls{flex:1 1 100%}
+  .dca-toolbar .dca-search{flex-basis:100%}
+  .dca-pool-col-actions{max-width:100%}
   .dca-model-controls{justify-content:flex-start;padding-inline-start:24px}
   .dca-model-actions{gap:8px}
   .dca-model-actions-buttons{margin-inline-start:auto}
@@ -969,19 +927,36 @@ window.__ModuleLoader__.load({
   .dca-pool-row{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"account credits" "probe actions";padding:10px}
 }
 
+@container dca-settings (max-width:420px){
+  .dca-pool-row{grid-template-columns:minmax(0,1fr) minmax(60px,auto);grid-template-areas:"account credits" "probe probe" "actions actions";row-gap:8px}
+  .dca-pool-col-actions{justify-self:stretch}
+  .dca-pool-actions{justify-content:flex-start}
+  .dca-pool-row-head .dca-pool-col-actions{display:none}
+  .dca-pool-account-row{gap:4px 8px}
+  .dca-model-name{white-space:normal;flex-wrap:wrap;overflow-wrap:anywhere}
+  .dca-model-actions-buttons{width:100%}
+  .dca-form-field{max-width:100%}
+  .dca-preset-tools .dca-preset-row > .dca-input{flex-basis:100%}
+}
+.dca-account-credits{font-size:16px;font-weight:600;line-height:22px}
+.dca-account-error{max-width:100%;font-size:12px}
+.dca-account-error > summary{color:var(--dsw-alias-state-error-primary,#ef4444)}
+.dca-account-error p{margin:6px 0 0;padding:8px 10px;border-inline-start:2px solid currentColor;overflow-wrap:anywhere;color:var(--dsw-alias-label-secondary,#b6b8be)}
+.dca-capability-filters{display:flex;align-items:center;gap:8px 14px;flex-wrap:wrap;font-size:12px}
+.dca-capability-filters label{cursor:pointer;min-height:28px}
+.dca-mode-switch{display:flex;flex-wrap:wrap;gap:4px;padding:4px;border-radius:9px;background:var(--dsw-alias-bg-layer-1,#17181b)}
+.dca-mode-switch .dca-filter{flex:1;min-height:32px}
+.dca-file-state{display:flex;flex-direction:column;gap:4px;font-size:12px;overflow-wrap:anywhere}
+.dca-feature-stack.dca-backup-form{padding-top:0}
+.dca-preset-tools{display:flex;flex-direction:column;gap:10px;min-width:0}
+.dca-pop-dot-warn{background:var(--dsw-alias-state-warn-primary,#d49937)}
+
 .dca-feature-stack{display:flex;flex-direction:column;gap:12px;min-width:0;padding-top:12px}
 .dca-feature-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(210px,100%),1fr));gap:12px}
 .dca-subtitle{font-size:13px;font-weight:600;margin:0}
 .dca-preview-box{border:1px solid var(--dsw-alias-border-l2,#36373b);border-radius:8px;padding:12px;max-width:100%;overflow-wrap:anywhere}
 .dca-health{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:11px;color:var(--dsw-alias-label-secondary,#b6b8be)}
 .dca-health-bad{color:var(--dsw-alias-state-warn-primary,#d49937)}
-.dca-low-balance{color:var(--dsw-alias-state-warn-primary,#d49937)!important}
-.dca-balance-alert{padding:10px 12px;border:1px solid var(--dsw-alias-state-warn-primary,#d49937);border-radius:8px;font-size:12px;display:flex;flex-direction:column;gap:6px;overflow-wrap:anywhere}
-.dca-usage-table{overflow-x:auto;border:1px solid var(--dsw-alias-border-l2,#36373b);border-radius:8px}
-.dca-usage-table table{width:100%;border-collapse:collapse;font-size:12px;text-align:left}
-.dca-usage-table th,.dca-usage-table td{padding:9px 10px;border-bottom:1px solid var(--dsw-alias-border-l2,#36373b);vertical-align:top;min-width:76px;overflow-wrap:anywhere}
-.dca-usage-table th{font-weight:500;color:var(--dsw-alias-label-secondary,#b6b8be)}
-.dca-usage-table tr:last-child td{border-bottom:0}
 .dca-preset-preview{max-height:180px;overflow:auto;margin:0;padding-inline-start:20px}
 .dca-preset-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .dca-preset-row .dca-input{flex:1;min-width:min(180px,100%)}
@@ -1423,11 +1398,8 @@ window.__ModuleLoader__.load({
     /**
      * The account pool.
      *
-     * Layout follows the reference card: a title row naming the account in use,
-     * the switch block above the table, then a two-line row per account, then
-     * the batch action. Check-in is ONE button for the whole table — never one
-     * control per account, which would make one daily bonus cost one click per
-     * account and report one outcome per account.
+     * The header shows the account in use and one manual check-in action for
+     * the whole pool. Two-line rows keep identity, balances and health aligned.
      */
     function AccountPool({
       pool,
@@ -1435,8 +1407,6 @@ window.__ModuleLoader__.load({
       busy,
       onActivate,
       onRemove,
-      autoOn,
-      onToggleAuto,
       onCheckinAll,
       onRename,
       onExport,
@@ -1446,6 +1416,12 @@ window.__ModuleLoader__.load({
       /** Which row is being renamed, and its draft text. */
       const [editingId, setEditingId] = useState(null)
       const [draftLabel, setDraftLabel] = useState('')
+      const [now, setNow] = useState(Date.now)
+      useEffect(() => {
+        const timer = setInterval(() => setNow(Date.now()), 30000)
+        return () => clearInterval(timer)
+      }, [])
+
 
       const beginRename = useCallback((account) => {
         setEditingId(account.id)
@@ -1469,7 +1445,7 @@ window.__ModuleLoader__.load({
         await onRename(id, next)
       }, [draftLabel, onRename])
       const accounts = pool?.accounts ?? []
-      // `busy` is the KIND ('checkin' | 'auto' | null); most checks only care
+      // `busy` is the KIND ('checkin' | 'test' | null); most checks only care
       // whether anything is running.
       const anyBusy = busy !== null && busy !== undefined && busy !== false
       // Something to claim right now? The button is disabled otherwise, so a
@@ -1493,38 +1469,13 @@ window.__ModuleLoader__.load({
               title: t('pool.exportHint'),
             }, t('pool.export')) : null,
           ),
-        ),
-
-        // One switch, no card around it and no explanatory paragraph under it:
-        // the label says what it does, and the paragraph restated the same thing
-        // in a box that made a single control look like a section.
-        h(
-          'div',
-          { className: 'dca-switchrow' },
-          h(
-            'label',
-            { className: 'dca-sw' },
-            h('input', {
-              type: 'checkbox',
-              checked: autoOn === true,
-              disabled: anyBusy || busyId !== null,
-              'aria-label': t('pool.autoTitle'),
-              onChange: () => onToggleAuto(autoOn !== true),
-            }),
-            h('span', { className: 'dca-sw-track' }),
-          ),
-          h('b', { className: 'dca-modebar-label' }, t('pool.autoTitle')),
-          // A one-off claim beside the standing switch, pushed to the row's end.
-          // The switch is a PREFERENCE and this is an ACTION: pressing it must
-          // claim now without opting anyone into daily automation, which is why
-          // it sends `now: true` rather than flipping `enabled`.
           accounts.length === 0
             ? null
             : h(
                 'button',
                 {
                   type: 'button',
-                  className: 'dca-btn dca-btn-xs dca-checkin-now',
+                  className: 'dca-btn dca-btn-xs',
                   disabled: anyBusy || busyId !== null || !anyClaimable,
                   title: anyClaimable
                     ? t('pool.checkinAllHint')
@@ -1601,17 +1552,22 @@ window.__ModuleLoader__.load({
                       { className: 'dca-pool-probe' },
                       h('div', { className: `dca-health${account.health?.state && account.health.state !== 'available' ? ' dca-health-bad' : ''}` },
                         h('span', null, t(`health.${account.health?.state ?? 'unknown'}`)),
-                        account.health?.checkedAt ? h('span', null, `${t('health.checked')} ${formatTime(account.health.checkedAt)}`) : null,
+                        account.health?.checkedAt ? h('time', {
+                          dateTime: new Date(account.health.checkedAt).toISOString(),
+                          title: `${t('health.checked')} ${formatTime(account.health.checkedAt)}`,
+                        }, relativeTime(account.health.checkedAt, now)) : null,
                       ),
-                      account.error
-                        ? h('span', { className: 'dca-msg-error' }, account.error)
-                        : h('span', null, account.accountName ?? account.akMasked),
+                      h('span', null, account.accountName ?? account.akMasked),
+                      account.error ? h('details', { className: 'dca-details dca-account-error' },
+                        h('summary', null, t('health.details')),
+                        h('p', null, account.error),
+                      ) : null,
                     ),
                   ),
                   h(
                     'div',
                     { className: 'dca-pool-credits-row' },
-                    h('span', { className: account.lowBalance ? 'dca-low-balance' : undefined }, account.credit ? Number(account.credit.remain).toLocaleString() : '—'),
+                    h('span', { className: 'dca-account-credits' }, account.credit ? formatCredits(account.credit.remain) : '—'),
                     account.credit?.plan ? h('span', { className: 'dca-pool-sub' }, account.credit.plan) : null,
                     // Warn about credits that lapse. The amount is real; the
                     // deadline is not knowable from this gateway, so the chip
@@ -1693,7 +1649,7 @@ window.__ModuleLoader__.load({
 
     // ── credentials tab ────────────────────────────────────────────────────
 
-    function AccountTab({ status, pool, preferences, onChanged, onPreferencesSaved }) {
+    function AccountTab({ status, pool, onChanged }) {
       const [busy, setBusy] = useState(null)
       const [busyId, setBusyId] = useState(null)
       const [notice, setNotice] = useState(null)
@@ -1761,18 +1717,11 @@ window.__ModuleLoader__.load({
         } finally { setBusyId(null) }
       }, [reload, report])
 
-      /**
-       * Claim the daily bonus once, for every account that can.
-       *
-       * `now: true` is what makes this an ACTION rather than a preference: the
-       * host runs one sweep and leaves the standing daily switch exactly as the
-       * user set it. Sending `enabled: true` here would silently opt someone into
-       * daily automation from a button labelled "check in now".
-       */
+      /** Claim once for the pool after an explicit click. */
       const checkinAll = useCallback(async () => {
         setBusy('checkin')
         try {
-          const result = await postRoute('/checkin/auto', { now: true })
+          const result = await postRoute('/checkin/claim-all', {})
           const summary = result.summary
           if (summary) {
             report({
@@ -1801,24 +1750,6 @@ window.__ModuleLoader__.load({
         } catch (error) {
           report({ kind: 'error', text: `${t('pool.renameFailed')}：${error.message}` })
         }
-      }, [reload, report])
-
-      const toggleAuto = useCallback(async (enabled) => {
-        setBusy('auto')
-        try {
-          const result = await postRoute('/checkin/auto', { enabled })
-          if (result.summary) {
-            report({
-              kind: result.summary.failures.length === 0 ? 'success' : 'warn',
-              text: t('pool.result')
-                .replace('{claimed}', result.summary.claimed)
-                .replace('{failed}', result.summary.failures.length),
-            })
-          }
-          await reload()
-        } catch (error) {
-          report({ kind: 'error', text: error.message })
-        } finally { setBusy(null) }
       }, [reload, report])
 
       const test = useCallback(async () => {
@@ -1901,8 +1832,6 @@ window.__ModuleLoader__.load({
           busy,
           onActivate: activate,
           onRemove: remove,
-          autoOn: pool?.autoCheckin === true,
-          onToggleAuto: toggleAuto,
           onCheckinAll: checkinAll,
           onRename: rename,
           onExport: doExport,
@@ -1911,7 +1840,6 @@ window.__ModuleLoader__.load({
         }),
 
         h(AccountTools, { onChanged, onResult: report, hasAccounts: pool ? accounts.length > 0 : null, updateTarget }),
-        preferences ? h(ReminderSettings, { preferences, onSaved: onPreferencesSaved }) : null,
         h(BackupTools, { onRestored: onChanged }),
 
         accounts.length === 0 || credential?.error
@@ -1950,57 +1878,50 @@ window.__ModuleLoader__.load({
       window.setTimeout(() => URL.revokeObjectURL(url), 1000)
     }
 
-    function ReminderSettings({ preferences, onSaved }) {
-      const [draft, setDraft] = useState(null)
-      const [busy, setBusy] = useState(false)
-      const [notice, setNotice] = useState(null)
-      const enabled = draft?.enabled ?? preferences.lowBalanceEnabled
-      const threshold = draft?.threshold ?? String(preferences.lowBalanceThreshold)
-      const dirty = enabled !== preferences.lowBalanceEnabled || threshold !== String(preferences.lowBalanceThreshold)
-      const valid = threshold.trim() !== '' && Number.isFinite(Number(threshold)) && Number(threshold) >= 0 && Number(threshold) <= 1e9
-      const update = (patch) => { setDraft({ enabled, threshold, ...patch }); setNotice(null) }
-      const save = async (event) => {
-        event.preventDefault()
-        if (!valid || busy) return
-        setBusy(true)
-        try {
-          const result = await postRoute('/preferences/save', { lowBalanceEnabled: enabled, lowBalanceThreshold: Number(threshold) })
-          if (!result.ok) throw new Error(result.error ?? t('common.retry'))
-          await onSaved()
-          setDraft(null)
-          setNotice({ kind: 'success', text: t('features.saved') })
-        } catch (error) { setNotice({ kind: 'error', text: error.message }) } finally { setBusy(false) }
-      }
-      return h('details', { className: 'dca-card dca-details' },
-        h('summary', null, t('reminder.title')),
-        h('form', { className: 'dca-feature-stack', onSubmit: save },
-          h('label', { className: 'dca-row' }, h('input', { type: 'checkbox', checked: enabled, disabled: busy, onChange: (event) => update({ enabled: event.target.checked }) }), t('reminder.enabled')),
-          h('label', { className: 'dca-form-field' }, t('reminder.threshold'), h('input', { className: 'dca-input', type: 'number', min: 0, max: 1e9, step: 'any', value: threshold, disabled: busy, onChange: (event) => update({ threshold: event.target.value }) })),
-          h('p', { className: 'dca-hint' }, t('reminder.hint')),
-          h(FeatureNotice, { notice }),
-          h('div', { className: 'dca-row' }, h('button', { type: 'submit', className: 'dca-btn', disabled: busy || !dirty || !valid }, busy ? t('account.saving') : t('models.save'))),
-        ),
-      )
-    }
-
     function BackupTools({ onRestored }) {
+      const [mode, setMode] = useState('export')
       const [includeCredentials, setIncludeCredentials] = useState(false)
+      const [encryptExport, setEncryptExport] = useState(false)
       const [exportPassword, setExportPassword] = useState('')
       const [confirmation, setConfirmation] = useState('')
       const [text, setText] = useState('')
+      const [fileName, setFileName] = useState('')
       const [password, setPassword] = useState('')
       const [preview, setPreview] = useState(null)
       const [busy, setBusy] = useState(null)
       const [notice, setNotice] = useState(null)
       const fileInput = useRef(null)
+      const needsEncryption = includeCredentials || encryptExport
       const validPassword = exportPassword.length >= 8 && exportPassword.length <= 256 && exportPassword === confirmation
+      let importFormat
+      try { importFormat = JSON.parse(text)?.format } catch {}
+      const encryptedImport = importFormat === 'dsh-connect-codearts-encrypted'
+      const importLabel = encryptedImport ? 'backup.encrypted' : importFormat === 'dsh-connect-codearts-backup' ? 'backup.plain' : null
+      const canInspect = text.trim() && (!encryptedImport || (password.length >= 8 && password.length <= 256))
+      const changeMode = (next) => {
+        if (busy || next === mode) return
+        setMode(next); setNotice(null); setPreview(null)
+        setExportPassword(''); setConfirmation(''); setPassword('')
+      }
+      const updateImport = (next, name = '') => {
+        setText(next); setFileName(name); setPassword(''); setPreview(null); setNotice(null)
+      }
+      const selectFile = async (event) => {
+        const file = event.target.files?.[0]; event.target.value = ''
+        if (!file || busy) return
+        setBusy('file'); setPreview(null); setNotice(null)
+        updateImport('')
+        try {
+          if (file.size > 768 * 1024) throw new Error(t('backup.tooLarge'))
+          updateImport(await file.text(), file.name)
+        } catch (error) { setNotice({ kind: 'error', text: error.message }) } finally { setBusy(null) }
+      }
       const exportBackup = async (event) => {
         event.preventDefault()
-        if (busy || ((includeCredentials || exportPassword) && !validPassword)) return
-        setBusy('export')
-        setNotice(null)
+        if (busy || (needsEncryption && !validPassword)) return
+        setBusy('export'); setNotice(null)
         try {
-          const result = await postRoute('/backup/export', { includeCredentials, password: exportPassword })
+          const result = await postRoute('/backup/export', { includeCredentials, password: needsEncryption ? exportPassword : '' })
           if (!result.ok) throw new Error(result.error ?? t('backup.failed'))
           downloadJson(result.backup, `codearts-backup-${new Date().toISOString().slice(0, 10)}.json`)
           setExportPassword(''); setConfirmation('')
@@ -2008,10 +1929,10 @@ window.__ModuleLoader__.load({
         } catch (error) { setNotice({ kind: 'error', text: error.message }) } finally { setBusy(null) }
       }
       const inspect = async () => {
-        if (busy || !text.trim()) return
+        if (busy || !canInspect) return
         setBusy('preview'); setNotice(null); setPreview(null)
         try {
-          const result = await postRoute('/backup/preview', { text, password })
+          const result = await postRoute('/backup/preview', { text, password: encryptedImport ? password : '' })
           if (!result.ok) throw new Error(result.error ?? t('backup.failed'))
           setPreview(result)
         } catch (error) { setNotice({ kind: 'error', text: error.message }) } finally { setBusy(null) }
@@ -2020,9 +1941,9 @@ window.__ModuleLoader__.load({
         if (!preview || busy) return
         setBusy('restore'); setNotice(null)
         try {
-          const result = await postRoute('/backup/restore', { text, password })
+          const result = await postRoute('/backup/restore', { text, password: encryptedImport ? password : '' })
           if (!result.ok) throw new Error(result.error ?? t('backup.failed'))
-          setText(''); setPassword(''); setPreview(null)
+          updateImport('')
           await onRestored()
           setNotice({ kind: 'success', text: t('backup.restored').replace('{added}', result.added).replace('{updated}', result.updated) })
         } catch (error) { setNotice({ kind: 'error', text: error.message }) } finally { setBusy(null) }
@@ -2030,104 +1951,64 @@ window.__ModuleLoader__.load({
       return h('details', { className: 'dca-card dca-details' },
         h('summary', null, t('backup.title')),
         h('div', { className: 'dca-feature-stack' },
-          h('p', { className: 'dca-hint' }, t('backup.hint')),
+          h('div', { className: 'dca-mode-switch', role: 'group', 'aria-label': t('backup.mode') },
+            ...['export', 'restore'].map((value) => h('button', {
+              key: value, type: 'button', className: 'dca-filter', 'aria-pressed': mode === value,
+              disabled: busy !== null, onClick: () => changeMode(value),
+            }, t(`backup.${value}`))),
+          ),
           h(FeatureNotice, { notice }),
-          h('form', { className: 'dca-feature-stack', onSubmit: exportBackup },
-            h('h3', { className: 'dca-subtitle' }, t('backup.export')),
-            h('label', { className: 'dca-row' }, h('input', { type: 'checkbox', checked: includeCredentials, disabled: busy !== null, onChange: (event) => setIncludeCredentials(event.target.checked) }), t('backup.include')),
-            h('div', { className: 'dca-feature-grid' },
-              h('label', { className: 'dca-form-field' }, t('backup.exportPassword'), h('input', { className: 'dca-input', type: 'password', autoComplete: 'new-password', maxLength: 256, value: exportPassword, disabled: busy !== null, onChange: (event) => setExportPassword(event.target.value) })),
-              h('label', { className: 'dca-form-field' }, t('backup.confirmPassword'), h('input', { className: 'dca-input', type: 'password', autoComplete: 'new-password', maxLength: 256, value: confirmation, disabled: busy !== null, onChange: (event) => setConfirmation(event.target.value) })),
-            ),
-            (includeCredentials || exportPassword) && !validPassword ? h('p', { className: 'dca-hint' }, t('backup.passwordHint')) : null,
-            h('div', { className: 'dca-row' }, h('button', { className: 'dca-btn', type: 'submit', disabled: busy !== null || ((includeCredentials || Boolean(exportPassword)) && !validPassword) }, busy === 'export' ? t('common.loading') : t('backup.download'))),
-          ),
-          h('h3', { className: 'dca-subtitle' }, t('backup.restore')),
-          h('div', { className: 'dca-row' },
-            h('button', { type: 'button', className: 'dca-btn', disabled: busy !== null, onClick: () => fileInput.current?.click() }, t('backup.choose')),
-            h('input', { ref: fileInput, type: 'file', accept: '.json,application/json', className: 'dca-file-input', disabled: busy !== null, onChange: async (event) => {
-              const file = event.target.files?.[0]; event.target.value = ''
-              if (!file) return
-              setPreview(null); setNotice(null)
-              try {
-                if (file.size > 768 * 1024) throw new Error(t('backup.tooLarge'))
-                setText(await file.text())
-              } catch (error) { setNotice({ kind: 'error', text: error.message }) }
-            } }),
-          ),
-          h('label', { className: 'dca-form-field' }, t('backup.content'), h('textarea', { className: 'dca-input', rows: 4, maxLength: 786432, value: text, disabled: busy !== null, onChange: (event) => { setText(event.target.value); setPreview(null) } })),
-          h('label', { className: 'dca-form-field' }, t('backup.importPassword'), h('input', { className: 'dca-input', type: 'password', autoComplete: 'off', maxLength: 256, value: password, disabled: busy !== null, onChange: (event) => { setPassword(event.target.value); setPreview(null) } })),
-          h('div', { className: 'dca-row' }, h('button', { type: 'button', className: 'dca-btn', disabled: busy !== null || !text.trim(), onClick: inspect }, busy === 'preview' ? t('common.loading') : t('backup.preview'))),
-          preview ? h('div', { className: 'dca-feature-stack dca-preview-box', role: 'region', 'aria-label': t('backup.preview') },
-            h('p', null, t('backup.summary').replace('{settings}', preview.changes.length).replace('{added}', preview.accounts.added).replace('{updated}', preview.accounts.updated)),
-            h('p', { className: 'dca-hint' }, t('backup.mergeHint')),
-            h('details', { className: 'dca-details' }, h('summary', null, t('backup.changes')), h('pre', { className: 'dca-pre', tabIndex: 0 }, JSON.stringify(preview.preferences, null, 2))),
+          mode === 'export' ? h('form', { className: 'dca-feature-stack dca-backup-form', onSubmit: exportBackup },
+            h('p', { className: 'dca-hint' }, t('backup.hint')),
+            h('label', { className: 'dca-row' }, h('input', {
+              type: 'checkbox', checked: includeCredentials, disabled: busy !== null,
+              onChange: (event) => {
+                setIncludeCredentials(event.target.checked)
+                if (!event.target.checked && !encryptExport) { setExportPassword(''); setConfirmation('') }
+              },
+            }), t('backup.include')),
+            includeCredentials ? h('p', { className: 'dca-hint' }, t('backup.encryptionRequired'))
+              : h('label', { className: 'dca-row' }, h('input', {
+                  type: 'checkbox', checked: encryptExport, disabled: busy !== null,
+                  onChange: (event) => { setEncryptExport(event.target.checked); setExportPassword(''); setConfirmation('') },
+                }), t('backup.encrypt')),
+            needsEncryption ? h(React.Fragment, null,
+              h('div', { className: 'dca-feature-grid' },
+                h('label', { className: 'dca-form-field' }, t('backup.exportPassword'), h('input', { className: 'dca-input', type: 'password', autoComplete: 'new-password', maxLength: 256, value: exportPassword, disabled: busy !== null, onChange: (event) => setExportPassword(event.target.value) })),
+                h('label', { className: 'dca-form-field' }, t('backup.confirmPassword'), h('input', { className: 'dca-input', type: 'password', autoComplete: 'new-password', maxLength: 256, value: confirmation, disabled: busy !== null, onChange: (event) => setConfirmation(event.target.value) })),
+              ),
+              !validPassword ? h('p', { className: 'dca-hint' }, t('backup.passwordHint')) : null,
+            ) : null,
+            h('div', { className: 'dca-row' }, h('button', { className: 'dca-btn', type: 'submit', disabled: busy !== null || (needsEncryption && !validPassword) }, busy === 'export' ? t('common.loading') : t('backup.download'))),
+          ) : h('div', { className: 'dca-feature-stack dca-backup-form' },
+            h('p', { className: 'dca-hint' }, t('backup.importHint')),
             h('div', { className: 'dca-row' },
-              h('button', { type: 'button', className: 'dca-btn dca-btn-primary', disabled: busy !== null, onClick: restore }, busy === 'restore' ? t('common.loading') : t('backup.confirm')),
-              h('button', { type: 'button', className: 'dca-btn', disabled: busy !== null, onClick: () => { setPreview(null); setText(''); setPassword('') } }, t('pool.cancel')),
+              h('button', { type: 'button', className: 'dca-btn', disabled: busy !== null, onClick: () => fileInput.current?.click() }, busy === 'file' ? t('common.loading') : t('backup.choose')),
+              h('input', { ref: fileInput, type: 'file', accept: '.json,application/json', className: 'dca-file-input', disabled: busy !== null, onChange: selectFile }),
             ),
-          ) : null,
-        ),
-      )
-    }
-
-    function UsageTab({ usage, onRefresh, onPreferencesSaved }) {
-      const [busy, setBusy] = useState(null)
-      const [notice, setNotice] = useState(null)
-      const [query, setQuery] = useState('')
-      const [filter, setFilter] = useState('all')
-      const records = usage.records ?? []
-      const visible = records.filter((row) => (filter === 'all' || row.status === filter) && row.model.toLowerCase().includes(query.trim().toLowerCase()))
-      const today = records.filter((row) => new Date(row.at).toDateString() === new Date().toDateString())
-      const completed = today.filter((row) => row.status !== 'aborted')
-      const successRate = completed.length ? `${Math.round(completed.filter((row) => row.status === 'success').length / completed.length * 100)}%` : '—'
-      const action = async (kind) => {
-        if (busy) return
-        if (kind === 'clear' && !window.confirm(t('usage.clearConfirm'))) return
-        setBusy(kind); setNotice(null)
-        try {
-          if (kind === 'toggle') {
-            const result = await postRoute('/preferences/save', { usageEnabled: !usage.enabled })
-            if (!result.ok) throw new Error(result.error ?? t('common.retry'))
-            await onPreferencesSaved()
-          } else if (kind === 'clear') {
-            const result = await postRoute('/usage/clear', {})
-            if (!result.ok) throw new Error(result.error ?? t('common.retry'))
-          }
-          await onRefresh()
-          setNotice({ kind: 'success', text: t(kind === 'clear' ? 'usage.cleared' : 'features.saved') })
-        } catch (error) { setNotice({ kind: 'error', text: error.message }) } finally { setBusy(null) }
-      }
-      return h('div', { className: 'dca-page' },
-        h('div', { className: 'dca-pool-card-head' }, h('h2', { className: 'dca-title' }, t('usage.title')),
-          h('div', { className: 'dca-row' },
-            h('button', { type: 'button', className: 'dca-btn', disabled: busy !== null, onClick: () => action('refresh') }, t('features.refresh')),
-            h('button', { type: 'button', className: 'dca-btn dca-danger', disabled: busy !== null || !records.length, onClick: () => action('clear') }, t('usage.clear')),
+            text.trim() ? h('div', { className: 'dca-file-state', role: 'status' },
+              h('span', null, fileName ? t('backup.selected').replace('{name}', fileName) : t('backup.pasted')),
+              importLabel ? h('span', { className: 'dca-hint' }, t(importLabel)) : null,
+            ) : null,
+            h('details', { className: 'dca-details' }, h('summary', null, t('backup.paste')),
+              h('label', { className: 'dca-form-field' }, t('backup.content'), h('textarea', {
+                className: 'dca-input', rows: 4, maxLength: 786432, value: text, disabled: busy !== null,
+                onChange: (event) => updateImport(event.target.value),
+              })),
+            ),
+            encryptedImport ? h('label', { className: 'dca-form-field' }, t('backup.importPassword'), h('input', { className: 'dca-input', type: 'password', autoComplete: 'off', maxLength: 256, value: password, disabled: busy !== null, onChange: (event) => { setPassword(event.target.value); setPreview(null) } })) : null,
+            h('div', { className: 'dca-row' }, h('button', { type: 'button', className: 'dca-btn', disabled: busy !== null || !canInspect, onClick: inspect }, busy === 'preview' ? t('common.loading') : t('backup.preview'))),
+            preview ? h('div', { className: 'dca-feature-stack dca-preview-box', role: 'region', 'aria-label': t('backup.preview') },
+              h('p', null, t('backup.summary').replace('{settings}', preview.changes.length).replace('{added}', preview.accounts.added).replace('{updated}', preview.accounts.updated)),
+              h('p', { className: 'dca-hint' }, t('backup.mergeHint')),
+              h('details', { className: 'dca-details' }, h('summary', null, t('backup.changes')), h('pre', { className: 'dca-pre', tabIndex: 0 }, JSON.stringify(preview.preferences, null, 2))),
+              h('div', { className: 'dca-row' },
+                h('button', { type: 'button', className: 'dca-btn dca-btn-primary', disabled: busy !== null, onClick: restore }, busy === 'restore' ? t('common.loading') : t('backup.confirm')),
+                h('button', { type: 'button', className: 'dca-btn', disabled: busy !== null, onClick: () => updateImport('') }, t('pool.cancel')),
+              ),
+            ) : null,
           ),
         ),
-        h('label', { className: 'dca-row' }, h('input', { type: 'checkbox', checked: usage.enabled === true, disabled: busy !== null, onChange: () => action('toggle') }), t('usage.enabled')),
-        h('p', { className: 'dca-hint' }, t('usage.hint')),
-        h(FeatureNotice, { notice }),
-        h('div', { className: 'dca-diagnostic-summary' },
-          h('div', { className: 'dca-summary-item' }, h('strong', null, t('usage.today')), h('span', { className: 'dca-num' }, String(today.length))),
-          h('div', { className: 'dca-summary-item' }, h('strong', null, t('usage.successRate')), h('span', { className: 'dca-num' }, successRate)),
-          h('div', { className: 'dca-summary-item' }, h('strong', null, t('usage.tokens')), h('span', { className: 'dca-num' }, `${today.reduce((sum, row) => sum + (row.inputTokens ?? 0) + (row.outputTokens ?? 0), 0)}`)),
-        ),
-        h('div', { className: 'dca-toolbar' },
-          h('input', { className: 'dca-input dca-search', type: 'search', value: query, 'aria-label': t('usage.search'), placeholder: t('usage.search'), onChange: (event) => setQuery(event.target.value) }),
-          h('select', { className: 'dca-input', value: filter, 'aria-label': t('usage.result'), onChange: (event) => setFilter(event.target.value) }, ...['all', 'success', 'error', 'aborted'].map((key) => h('option', { key, value: key }, t(`usage.${key}`)))),
-        ),
-        h('div', { className: 'dca-usage-table', role: 'region', tabIndex: 0, 'aria-label': t('usage.title') },
-          h('table', null,
-            h('thead', null, h('tr', null, ...['time', 'model', 'duration', 'input', 'output', 'result'].map((key) => h('th', { key, scope: 'col' }, t(`usage.${key}`))))),
-            h('tbody', null, ...visible.map((row) => h('tr', { key: row.id },
-              h('td', null, formatTime(row.at)), h('td', null, row.model), h('td', { className: 'dca-num' }, `${(row.durationMs / 1000).toFixed(1)}s`),
-              h('td', { className: 'dca-num' }, row.inputTokens ?? '—'), h('td', { className: 'dca-num' }, row.outputTokens ?? '—'),
-              h('td', null, t(`usage.${row.status}`)),
-            ))),
-          ),
-        ),
-        !visible.length ? h('p', { className: 'dca-hint', role: 'status' }, t('usage.empty')) : null,
       )
     }
 
@@ -2160,6 +2041,7 @@ window.__ModuleLoader__.load({
       const [reasoningOnly, setReasoningOnly] = useState(false)
       const [presetId, setPresetId] = useState('')
       const [presetName, setPresetName] = useState('')
+      const [presetEditorOpen, setPresetEditorOpen] = useState(false)
       const [presetPreview, setPresetPreview] = useState(null)
       const [savedPresets, setSavedPresets] = useState(null)
       useEffect(() => { setSavedPresets(null) }, [models.presets])
@@ -2321,7 +2203,7 @@ window.__ModuleLoader__.load({
         try {
           const result = await postRoute('/presets', { action: 'save', name: presetName.trim(), enabledModelIds: selectedCount === list.length ? null : selectedIds, modelOverrides: snapshotOverrides() })
           if (!result.ok) throw new Error(result.error ?? t('common.retry'))
-          setSavedPresets(result.presets); setPresetName('')
+          setSavedPresets(result.presets); setPresetName(''); setPresetEditorOpen(false)
           setNotice({ kind: 'success', text: t('features.saved') })
         } catch (error) { setNotice({ kind: 'error', text: error.message }) } finally { setBusy(null) }
       }
@@ -2339,7 +2221,7 @@ window.__ModuleLoader__.load({
         if (!previewIds.length || busy) return
         setEnabledIds(previewIds)
         setOverrides(Object.fromEntries(Object.entries(presetPreview.modelOverrides ?? {}).filter(([id]) => list.some((model) => model.id === id))))
-        setPresetPreview(null)
+        setPresetPreview(null); setPresetId('')
         setNotice({ kind: 'success', text: t('presets.applied') })
       }
 
@@ -2393,36 +2275,43 @@ window.__ModuleLoader__.load({
           }, ...[['default', 'models.sortDefault'], ['ratio', 'models.sortRatio'], ['name', 'models.sortName']].map(([value, key]) =>
             h('option', { key: value, value }, t(key)))),
         ),
-        h('div', { className: 'dca-row' },
+        h('div', { className: 'dca-capability-filters' },
           h('label', { className: 'dca-row' }, h('input', { type: 'checkbox', checked: imagesOnly, onChange: (event) => setImagesOnly(event.target.checked) }), t('models.imagesOnly')),
           h('label', { className: 'dca-row' }, h('input', { type: 'checkbox', checked: reasoningOnly, onChange: (event) => setReasoningOnly(event.target.checked) }), t('models.reasoningOnly')),
         ),
-        h('details', { className: 'dca-card dca-details' },
-          h('summary', null, t('presets.title')),
-          h('div', { className: 'dca-feature-stack' },
-            h('div', { className: 'dca-preset-row' },
-              h('select', { className: 'dca-input', value: presetId, disabled: busy !== null, 'aria-label': t('presets.title'), onChange: (event) => { setPresetId(event.target.value); setPresetPreview(null) } },
-                h('option', { value: '' }, t('presets.choose')), ...presets.map((preset) => h('option', { key: preset.id, value: preset.id }, preset.name)),
-              ),
-              h('button', { type: 'button', className: 'dca-btn', disabled: busy !== null || !selectedPreset, onClick: () => setPresetPreview(selectedPreset) }, t('presets.preview')),
+        h('div', { className: 'dca-preset-tools' },
+          h('div', { className: 'dca-preset-row' },
+            h('select', {
+              className: 'dca-input', value: presetId, disabled: busy !== null,
+              'aria-label': t('presets.title'), onChange: (event) => {
+                const next = event.target.value
+                setPresetId(next); setPresetPreview(presets.find((entry) => entry.id === next) ?? null)
+                setPresetEditorOpen(false)
+              },
+            }, h('option', { value: '' }, t('presets.choose')), ...presets.map((preset) => h('option', { key: preset.id, value: preset.id }, preset.name))),
+            h('button', { type: 'button', className: 'dca-btn', disabled: busy !== null || !selectedCount,
+              'aria-expanded': presetEditorOpen, onClick: () => { setPresetEditorOpen((value) => !value); setPresetPreview(null); setPresetId('') },
+            }, t('presets.saveAs')),
+          ),
+          presetEditorOpen ? h('form', { className: 'dca-preset-row', onSubmit: (event) => { event.preventDefault(); void savePreset() } },
+            h('input', { className: 'dca-input', value: presetName, maxLength: 48, autoFocus: true, placeholder: t('presets.name'), 'aria-label': t('presets.name'), disabled: busy !== null, onChange: (event) => setPresetName(event.target.value) }),
+            h('button', { type: 'submit', className: 'dca-btn', disabled: busy !== null || !presetName.trim() || !selectedCount }, t('presets.save')),
+            h('button', { type: 'button', className: 'dca-btn', disabled: busy !== null, onClick: () => setPresetEditorOpen(false) }, t('pool.cancel')),
+          ) : null,
+          presetPreview ? h('div', { className: 'dca-preview-box dca-feature-stack', role: 'region', 'aria-label': t('presets.preview') },
+            h('p', { className: 'dca-hint' }, t('presets.previewHint').replace('{count}', previewIds.length)),
+            !previewIds.length ? h('p', { className: 'dca-hint' }, t('presets.noModels')) : null,
+            presetPreview.enabledModelIds && previewIds.length < presetPreview.enabledModelIds.length ? h('p', { className: 'dca-hint' }, t('presets.missing')) : null,
+            h('ul', { className: 'dca-preset-preview' }, ...previewIds.map((id) => h('li', { key: id }, list.find((model) => model.id === id).name))),
+            h('details', { className: 'dca-details' }, h('summary', null, t('presets.details')),
+              h('pre', { className: 'dca-pre', tabIndex: 0 }, JSON.stringify(presetPreview.modelOverrides, null, 2)),
               selectedPreset && !selectedPreset.id.startsWith('builtin:') ? h('button', { type: 'button', className: 'dca-btn dca-danger', disabled: busy !== null, onClick: deletePreset }, t('presets.delete')) : null,
             ),
-            presetPreview ? h('div', { className: 'dca-preview-box dca-feature-stack' },
-              h('p', { className: 'dca-hint' }, t('presets.previewHint').replace('{count}', previewIds.length)),
-              !previewIds.length ? h('p', { className: 'dca-hint' }, t('presets.noModels')) : null,
-              presetPreview.enabledModelIds && previewIds.length < presetPreview.enabledModelIds.length ? h('p', { className: 'dca-hint' }, t('presets.missing')) : null,
-              h('ul', { className: 'dca-preset-preview' }, ...previewIds.map((id) => h('li', { key: id }, list.find((model) => model.id === id).name))),
-              h('details', { className: 'dca-details' }, h('summary', null, t('backup.changes')), h('pre', { className: 'dca-pre', tabIndex: 0 }, JSON.stringify(presetPreview.modelOverrides, null, 2))),
-              h('div', { className: 'dca-row' },
-                h('button', { type: 'button', className: 'dca-btn', disabled: busy !== null || !previewIds.length, onClick: applyPreset }, t('presets.apply')),
-                h('button', { type: 'button', className: 'dca-btn', disabled: busy !== null, onClick: () => setPresetPreview(null) }, t('pool.cancel')),
-              ),
-            ) : null,
-            h('div', { className: 'dca-preset-row' },
-              h('input', { className: 'dca-input', value: presetName, maxLength: 48, placeholder: t('presets.name'), 'aria-label': t('presets.name'), disabled: busy !== null, onChange: (event) => setPresetName(event.target.value) }),
-              h('button', { type: 'button', className: 'dca-btn', disabled: busy !== null || !presetName.trim() || !selectedCount, onClick: savePreset }, t('presets.save')),
+            h('div', { className: 'dca-row' },
+              h('button', { type: 'button', className: 'dca-btn', disabled: busy !== null || !previewIds.length, onClick: applyPreset }, t('presets.apply')),
+              h('button', { type: 'button', className: 'dca-btn', disabled: busy !== null, onClick: () => { setPresetPreview(null); setPresetId('') } }, t('pool.cancel')),
             ),
-          ),
+          ) : null,
         ),
         h('details', { className: 'dca-details' },
           h('summary', null, t('models.about')),
@@ -2757,15 +2646,8 @@ window.__ModuleLoader__.load({
       }, [])
 
       const loadAll = useCallback((background = false) => Promise.all(
-        ['/status', '/models', '/account', '/accounts', '/preferences', '/usage'].map((path) => loadRoute(path, background)),
+        ['/status', '/models', '/account', '/accounts'].map((path) => loadRoute(path, background)),
       ), [loadRoute])
-      const loadPreferences = useCallback(async () => {
-        const result = await loadRoute('/preferences')
-        void loadRoute('/status', true)
-        void loadRoute('/accounts', true)
-        return result
-      }, [loadRoute])
-      const loadUsage = useCallback(() => loadRoute('/usage'), [loadRoute])
       const loadModels = useCallback(() => loadRoute('/models'), [loadRoute])
       const refreshModels = useCallback(() => {
         void loadRoute('/status', true)
@@ -2787,18 +2669,15 @@ window.__ModuleLoader__.load({
       const models = data['/models']
       const account = data['/account']
       const pool = data['/accounts']
-      const preferences = data['/preferences']?.preferences
-      const usage = data['/usage']
       const tabs = [
-        { id: 'account', paths: ['/accounts', '/preferences'], content: pool && h(AccountTab, { status, pool, preferences, onChanged: loadAll, onPreferencesSaved: loadPreferences }) },
+        { id: 'account', paths: ['/accounts'], content: pool && h(AccountTab, { status, pool, onChanged: loadAll }) },
         { id: 'models', paths: ['/models'], content: models && h(ModelsTab, { models, onRefresh: refreshModels, onSaved: loadModels }) },
-        { id: 'usage', paths: ['/usage', '/preferences'], content: usage && h(UsageTab, { usage, onRefresh: loadUsage, onPreferencesSaved: loadPreferences }) },
         { id: 'diagnostics', paths: ['/status', '/account'], content: status && h(DiagnosticsTab, { status, account, accountError: errors['/account'] }) },
       ]
 
       return h(
         'div',
-        { className: 'dca-page' },
+        { className: 'dca-page dca-settings' },
         h(
           'div',
           { role: 'tablist', className: 'dca-tabs', 'aria-label': t('nav.label') },
@@ -2891,20 +2770,19 @@ window.__ModuleLoader__.load({
     /**
      * Which colour the row's dot takes.
      *
-     * Green means "this account can serve a request right now", red means it
-     * cannot — a failed probe or a credential the gateway rejected. Amber is
-     * reserved for "usable but something to know" (nothing can be claimed, a
-     * balance lapsing), so the panel does not paint a healthy account as broken.
+     * Red marks a known credential or balance problem. Amber marks a probe
+     * error or unconfirmed health; healthy accounts need no extra status text.
      */
     function dotTone(account) {
-      if (account.error) return ' dca-pop-dot-bad'
+      const state = account.health?.state
+      if (state === 'credentials' || state === 'insufficient') return ' dca-pop-dot-bad'
+      if (account.error || (state && state !== 'available')) return ' dca-pop-dot-warn'
       return ' dca-pop-dot-ok'
     }
 
     function ComposerChip(props) {
-      const [usage, setUsage] = useState(null)
+      const [accountInfo, setAccountInfo] = useState(null)
       const [open, setOpen] = useState(false)
-      const [, setDismissalVersion] = useState(0)
       const [busy, setBusy] = useState(false)
       const container = useRef(null)
       const openSettings = props?.openSettings
@@ -2932,7 +2810,7 @@ window.__ModuleLoader__.load({
           getRoute('/account'),
           getRoute('/accounts'),
         ])
-        setUsage({
+        setAccountInfo({
           ...(accountR.status === 'fulfilled' ? accountR.value : { ok: false }),
           pool: poolR.status === 'fulfilled' ? poolR.value : null,
         })
@@ -2986,33 +2864,16 @@ window.__ModuleLoader__.load({
         }
       }, [load])
 
-      const accounts = usage?.pool?.accounts ?? []
-      const alertKey = `dca-balance-alert:${usage?.accountId ?? usage?.source ?? 'current'}:${usage?.lowBalanceThreshold ?? 500}`
-      let dismissed = (balanceDismissals.get(alertKey) ?? 0) > Date.now()
-      try { dismissed ||= Number(window.localStorage.getItem(alertKey)) > Date.now() } catch {}
-      useEffect(() => {
-        if (usage && usage.lowBalance === false) {
-          balanceDismissals.delete(alertKey)
-          try { window.localStorage.removeItem(alertKey) } catch {}
-        }
-      }, [alertKey, usage?.lowBalance])
-      const dismissAlert = () => {
-        balanceDismissals.set(alertKey, Date.now() + 86400000)
-        try { window.localStorage.setItem(alertKey, String(Date.now() + 86400000)) } catch {}
-        setDismissalVersion((value) => value + 1)
-      }
-      const lowBalance = usage?.lowBalance === true
-      const backupCount = accounts.filter((account) => !account.active && account.health?.state === 'available' && account.credit?.remain >= (usage?.lowBalanceThreshold ?? 500)).length
-
+      const accounts = accountInfo?.pool?.accounts ?? []
       // Nothing to show until the Host answers, and nothing to show when no
       // credential is configured: an empty pill on every composer would be
       // noise for anyone not using this provider.
-      if (!usage || usage.composerChip === false) return null
+      if (!accountInfo || accountInfo.composerChip === false) return null
       if (!ownsSelection) return null
       // With a 码道 model selected but no usable credential, saying nothing was
       // the worst option: the user picked this provider and the readout simply
       // is not there. Show the state and where to fix it instead.
-      const hasCredential = usage?.ok === true || usage?.source || usage?.account
+      const hasCredential = accountInfo?.ok === true || accountInfo?.source || accountInfo?.account
       if (!hasCredential) {
         const body = [
           h('span', { key: 'm', 'aria-hidden': true, className: 'dca-chip-mark' }, '◈'),
@@ -3029,7 +2890,7 @@ window.__ModuleLoader__.load({
             {
               type: 'button',
               className: 'dca-chip-trigger',
-              title: usage?.error ?? t('chip.noCredentialHint'),
+              title: accountInfo?.error ?? t('chip.noCredentialHint'),
               onClick: openSettings,
             },
             ...body,
@@ -3037,7 +2898,7 @@ window.__ModuleLoader__.load({
         )
       }
 
-      const credits = usage.credit
+      const credits = accountInfo.credit
       const label = credits
         ? `${t('chip.credits')} ${credits.remain}`
         : t('chip.loading')
@@ -3057,7 +2918,7 @@ window.__ModuleLoader__.load({
             // compact controls, and a boxed pill among them reads as a form
             // field. Hover and focus come from the stylesheet, which inline
             // styles cannot express.
-            className: `dca-chip-trigger${open ? ' dca-chip-trigger-on' : ''}${lowBalance ? ' dca-low-balance' : ''}`,
+            className: `dca-chip-trigger${open ? ' dca-chip-trigger-on' : ''}`,
           },
           h('span', { 'aria-hidden': true, className: 'dca-chip-mark' }, '◈'),
           h('span', null, label),
@@ -3125,11 +2986,6 @@ window.__ModuleLoader__.load({
                   t('chip.settings'),
                 ),
               ),
-              lowBalance && !dismissed ? h('div', { className: 'dca-balance-alert', role: 'status' },
-                h('strong', null, t('reminder.low')),
-                h('span', null, t('reminder.backups').replace('{count}', backupCount)),
-                h('button', { type: 'button', className: 'dca-btn-xs', onClick: dismissAlert }, t('reminder.dismiss')),
-              ) : null,
               // One row per account, in a real table so the balances line up in a
               // single right-aligned column. The serving account is a row, not a
               // header: "which account" and "how many credits" are the same fact
@@ -3139,7 +2995,7 @@ window.__ModuleLoader__.load({
                 ? h(
                     'p',
                     { className: 'dca-pop-empty' },
-                    usage.credits ? formatBalance(usage.credits) : t('account.creditUnread'),
+                    accountInfo.credit ? formatBalance(accountInfo.credit) : t('account.creditUnread'),
                   )
                 : h(
                     'table',
@@ -3187,19 +3043,11 @@ window.__ModuleLoader__.load({
                                 'span',
                                 { className: 'dca-pop-who' },
                                 h('span', { className: 'dca-pop-name' }, account.label),
-                                // The state goes UNDER the name, not beside it: a
-                                // reason string ("约 21 小时后恢复") is long, and in a
-                                // 248px panel it would squeeze the name to nothing.
-                                account.active || account.error || account.checkin
-                                  ? h(
-                                      'span',
-                                      { className: 'dca-pop-mark' },
-                                      account.active
-                                        ? h('span', { className: 'dca-pop-mark-current' }, t('chip.current'))
-                                        : null,
-                                      account.health ? h('span', { className: 'dca-pop-mark-reason' }, t(`health.${account.health.state}`)) : null,
-                                      account.error
-                                        ? h('span', { className: 'dca-pop-mark-reason' }, account.error)
+                                account.active || account.error || (account.health?.state && account.health.state !== 'available')
+                                  ? h('span', { className: 'dca-pop-mark' },
+                                      account.active ? h('span', { className: 'dca-pop-mark-current' }, t('chip.current')) : null,
+                                      account.error || (account.health?.state && account.health.state !== 'available')
+                                        ? h('span', { className: 'dca-pop-mark-reason', title: account.error || undefined }, t(`health.${account.health?.state && account.health.state !== 'available' ? account.health.state : 'unknown'}`))
                                         : null,
                                     )
                                   : null,
@@ -3208,7 +3056,7 @@ window.__ModuleLoader__.load({
                           ),
                           h(
                             'td',
-                            { className: `dca-pop-num${account.lowBalance ? ' dca-low-balance' : ''}` },
+                            { className: 'dca-pop-num' },
                             account.credit ? formatCredits(account.credit.remain) : '—',
                             account.credit?.expiring > 0
                               ? h(

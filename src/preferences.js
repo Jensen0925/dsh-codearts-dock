@@ -6,7 +6,7 @@ import { randomUUID } from 'node:crypto'
 import { CONFIG_DIR } from './paths.js'
 
 export class InputError extends Error {}
-export const FEATURE_DEFAULTS = Object.freeze({ lowBalanceEnabled: true, lowBalanceThreshold: 500, usageEnabled: true, modelPresets: [] })
+export const FEATURE_DEFAULTS = Object.freeze({ modelPresets: [] })
 const plain = (value) => value !== null && typeof value === 'object' && !Array.isArray(value)
 const fail = (message) => { throw new InputError(message) }
 const safeId = (id) => typeof id === 'string' && id.length > 0 && id.length <= 200 && !['__proto__', 'constructor', 'prototype'].includes(id)
@@ -36,15 +36,9 @@ export function validateSelection(value) {
 export function validatePreferences(input) {
   if (!plain(input)) fail('偏好设置格式不正确')
   const out = {}
-  for (const key of ['autoCheckin', 'composerChip', 'lowBalanceEnabled', 'usageEnabled']) {
-    if (key in input) {
-      if (typeof input[key] !== 'boolean') fail(`${key} 必须为布尔值`)
-      out[key] = input[key]
-    }
-  }
-  if ('lowBalanceThreshold' in input) {
-    if (!Number.isFinite(input.lowBalanceThreshold) || input.lowBalanceThreshold < 0 || input.lowBalanceThreshold > 1e9) fail('余额阈值必须在 0 到 10 亿之间')
-    out.lowBalanceThreshold = input.lowBalanceThreshold
+  if ('composerChip' in input) {
+    if (typeof input.composerChip !== 'boolean') fail('composerChip 必须为布尔值')
+    out.composerChip = input.composerChip
   }
   if ('refreshIntervalMs' in input) {
     if (!Number.isInteger(input.refreshIntervalMs) || input.refreshIntervalMs < 60000 || input.refreshIntervalMs > 86400000) fail('刷新间隔必须在 1 分钟到 24 小时之间')
@@ -81,9 +75,8 @@ export function persistPreferences(patch) {
 }
 export function portablePreferences(settings) {
   return validatePreferences({
-    autoCheckin: settings.autoCheckin === true, composerChip: settings.composerChip !== false,
-    lowBalanceEnabled: settings.lowBalanceEnabled !== false, lowBalanceThreshold: settings.lowBalanceThreshold ?? 500,
-    usageEnabled: settings.usageEnabled !== false, modelPresets: settings.modelPresets ?? [],
+    composerChip: settings.composerChip !== false,
+    modelPresets: settings.modelPresets ?? [],
     enabledModelIds: settings.enabledModelIds ?? null, modelOverrides: settings.modelOverrides ?? {},
     refreshIntervalMs: Math.max(60000, Math.min(86400000, Number(settings.refreshIntervalMs) || 300000)),
   })

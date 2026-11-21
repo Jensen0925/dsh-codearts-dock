@@ -1,7 +1,7 @@
 {
   "meta": {
     "title": "CodeArts Dock",
-    "description": "Unofficial Huawei Cloud CodeArts model connector for DeepSeek Harness. Multi-account management, credit alerts, health checks, model presets, local usage metadata and encrypted configuration backups. Requires your own authorized account; upstream charges may apply.",
+    "description": "Unofficial Huawei Cloud CodeArts model connector for DeepSeek Harness. Multi-account management, credit overview, health checks, model presets and encrypted configuration backups. Requires your own authorized account; upstream charges may apply.",
     "detail": "docs/DETAIL.md"
   }
 }

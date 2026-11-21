@@ -13,6 +13,3 @@ export function accountHealth({ error, credit, checkedAt = Date.now() } = {}) {
   } else if (Number.isFinite(credit?.remain)) state = credit.remain <= 0 ? 'insufficient' : 'available'
   return { state, checkedAt, action: state === 'credentials' ? 'credentials' : state === 'insufficient' ? 'switch' : 'recheck' }
 }
-export function isLowBalance(credit, settings) {
-  return settings.lowBalanceEnabled !== false && Number.isFinite(credit?.remain) && credit.remain < settings.lowBalanceThreshold
-}

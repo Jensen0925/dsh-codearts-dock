@@ -56,15 +56,14 @@ import {
   claimDaily,
   readCheckin,
   readCheckinState,
-  runAutoCheckin,
+  claimAllDaily,
   todaySummary,
 } from './checkin.js'
 import { getSts } from './sts.js'
 import { CONFIG_DIR } from './paths.js'
-import { FEATURE_DEFAULTS, InputError, readPreferences, persistPreferences, validatePreferences } from './preferences.js'
+import { FEATURE_DEFAULTS, InputError, readPreferences, validatePreferences } from './preferences.js'
 import { registerFeatureRoutes, applyPreferences } from './features.js'
-import { createUsageStore } from './usage.js'
-import { accountHealth, isLowBalance } from './health.js'
+import { accountHealth } from './health.js'
 
 /** Plugin name; also the client module id. */
 export const name = 'dsh-connect-codearts'
@@ -93,10 +92,6 @@ export const Config = z.object({
   refreshIntervalMs: z.number().description('模型目录与积分的刷新间隔（毫秒）'),
   composerChip: z.boolean().default(true).description('在输入框旁显示积分'),
   registerProvider: z.boolean().default(true).description('是否注册码道这个 provider 路由'),
-  autoCheckin: z.boolean().default(false).description('每天自动签到一次'),
-  lowBalanceEnabled: z.boolean().default(true).description('低余额提醒'),
-  lowBalanceThreshold: z.number().default(500).description('低余额提醒阈值'),
-  usageEnabled: z.boolean().default(true).description('在本机保留最近 200 条请求元数据'),
   enabledModelIds: z.array(z.string()).description('启用的模型；留空表示全部'),
   modelOverrides: z.dict(z.object({
     images: z.boolean(),
@@ -128,8 +123,6 @@ export const DEFAULTS = {
   ...FEATURE_DEFAULTS,
   /** Turn the provider off without uninstalling the bundle. */
   enabled: true,
-  /** Claim the daily bonus in the background, once a day. Off by default. */
-  autoCheckin: false,
   /**
    * The user's model selection.
    *
@@ -177,7 +170,6 @@ export function apply(ctx, config = {}) {
   const settings = { ...DEFAULTS, ...config }
   // Restore before timers and adapters start; preferences never include credentials.
   try { Object.assign(settings, validatePreferences(readPreferences())) } catch {}
-  const usage = createUsageStore({ enabled: () => settings.usageEnabled !== false })
   const healthChecks = new Map()
   const healthCache = new Map()
   let rescheduleCatalog = () => {}
@@ -215,7 +207,6 @@ export function apply(ctx, config = {}) {
     const adapter = createCodeArtsAdapter({
       credentials,
       catalog,
-      usage,
       gateway: () => settings.gateway,
       attachments: () => ctx.get('attachments'),
       log: logger,
@@ -290,43 +281,6 @@ export function apply(ctx, config = {}) {
   // serves its settings page, which is where the user fixes the credential.
   void refresh()
 
-  // Auto check-in runs from the Host, not the page: the settings panel is not
-  // open at the hour a daily claim usually becomes available, and a timer in the
-  // browser would simply never fire. It reads the saved switch each time, so
-  // turning it off takes effect without a restart.
-  ctx.effect(() => {
-    const sweep = async () => {
-      if (settings.autoCheckin !== true) return
-      try {
-        const store = readStore()
-        const targets = []
-        for (const account of store.accounts) {
-          try {
-            targets.push({
-              id: account.id,
-              client: new MadaoClient({ credentials: await tripleOf(account), gateway: settings.gateway }),
-            })
-          } catch {
-            // An account whose key cannot be exchanged is skipped.
-          }
-        }
-        if (targets.length > 0) {
-          await runAutoCheckin({ targets })
-          healthCache.clear()
-          healthChecks.clear()
-        }
-      } catch (error) {
-        logger(`自动签到失败：${error?.message ?? error}`)
-      }
-    }
-    // Hourly is enough for a once-a-day entitlement, and the day guard makes a
-    // frequent timer harmless: it can skip, never double-claim.
-    const timer = setInterval(() => void sweep(), 60 * 60 * 1000)
-    timer.unref?.()
-    void sweep()
-    return () => clearInterval(timer)
-  }, 'codearts: auto check-in')
-
   ctx.effect(() => {
     let timer
     let disposed = false
@@ -362,7 +316,7 @@ export function apply(ctx, config = {}) {
       )
     }
 
-    const deps = { credentials, catalog, client, refresh, logger, settings, ctx, settingsNs, usage, healthChecks, healthCache, rescheduleCatalog: () => rescheduleCatalog(), invalidateAccounts: () => { healthCache.clear(); healthChecks.clear(); tripleCache.clear() } }
+    const deps = { credentials, catalog, client, refresh, logger, settings, ctx, settingsNs, healthChecks, healthCache, rescheduleCatalog: () => rescheduleCatalog(), invalidateAccounts: () => { healthCache.clear(); healthChecks.clear(); tripleCache.clear() } }
 
     registerFeatureRoutes(route, deps, readJsonBody)
 
@@ -391,7 +345,7 @@ export function apply(ctx, config = {}) {
     route('/models/select', (req) => handleModelSelection(req, deps))
     route('/checkin', () => handleCheckinStatus(deps))
     route('/checkin/claim', (req) => handleCheckinClaim(req, deps))
-    route('/checkin/auto', (req) => handleAutoCheckin(req, deps))
+    route('/checkin/claim-all', (req) => handleCheckinClaimAll(req, deps))
   })
 
   // Release the renewal timer when the plugin unloads.
@@ -453,9 +407,6 @@ async function buildStatus(deps) {
       settingsPath: [],
     },
     settings: {
-      lowBalanceEnabled: deps.settings.lowBalanceEnabled,
-      lowBalanceThreshold: deps.settings.lowBalanceThreshold,
-      usageEnabled: deps.settings.usageEnabled,
       composerChip: deps.settings.composerChip !== false,
       refreshIntervalMs: deps.settings.refreshIntervalMs ?? DEFAULT_REFRESH_MS,
       gateway: deps.settings.gateway ?? null,
@@ -516,8 +467,6 @@ async function buildAccount(deps) {
       expiresAt: resolved.expiresAtMs ?? null,
       credit,
       roles,
-      lowBalance: isLowBalance(credit, deps.settings),
-      lowBalanceThreshold: deps.settings.lowBalanceThreshold,
       composerChip: deps.settings.composerChip !== false,
       health: accountHealth({ credit }),
     }
@@ -583,7 +532,6 @@ async function inspectAccount(account, deps, force = false) {
       entry.error = message(error)
     }
     entry.health = accountHealth({ error: failure, credit: entry.credit })
-    entry.lowBalance = isLowBalance(entry.credit, deps.settings)
     const current = readStore().accounts.find((item) => item.id === account.id)
     if (current?.sk === account.sk && deps.healthChecks.get(account.id)?.promise === operation) deps.healthCache.set(account.id, entry)
     return entry
@@ -599,14 +547,11 @@ async function handleAccounts(deps) {
   for (const account of store.accounts) {
     const cached = deps.healthCache.get(account.id)
     const entry = cached && Date.now() - cached.health.checkedAt < 60000 ? { ...cached, ...publicAccount(account, store) } : await inspectAccount(account, deps)
-    accounts.push({ ...entry, lowBalance: isLowBalance(entry.credit, deps.settings) })
+    accounts.push(entry)
   }
   return {
     ok: true, version: STORE_VERSION, activeId: store.activeId, accounts,
     today: todaySummary(accounts.map(({ id, label }) => ({ id, label })), new Date()),
-    autoCheckin: deps.settings.autoCheckin === true,
-    lowBalanceEnabled: deps.settings.lowBalanceEnabled !== false,
-    lowBalanceThreshold: deps.settings.lowBalanceThreshold,
   }
 }
 async function handleAccountCheck(req, deps) {
@@ -809,7 +754,6 @@ async function handleCheckinStatus(deps) {
     ok: true,
     accounts,
     today: todaySummary(accounts, now),
-    autoCheckin: deps.settings.autoCheckin === true,
   }
 }
 
@@ -831,28 +775,9 @@ async function handleCheckinClaim(req, deps) {
   }
 }
 
-/**
- * Run auto check-in now.
- *
- * `enabled` reflects the saved switch; turning it on is a separate, explicit
- * action, and this handler only runs the sweep. It never becomes a timer here —
- * the timer is the plugin's, so a page that is closed still checks in.
- */
-async function handleAutoCheckin(req, deps) {
-  const body = await readJsonBody(req)
-  deps.healthCache.clear()
-  deps.healthChecks.clear()
-  // `enabled` changes the standing preference. The one-off button sends
-  // `now: true` instead, so pressing it never opts a user into daily
-  // automation — an action and a preference are different things.
-  const oneOff = body.now === true
-  if (!oneOff && typeof body.enabled === 'boolean' && body.enabled !== deps.settings.autoCheckin) {
-    deps.settings.autoCheckin = body.enabled
-    // Remember the choice across restarts without editing the profile patch.
-    await persistAutoCheckin(body.enabled)
-  }
-  if (!oneOff && body.enabled === false) return { ok: true, enabled: false, summary: null }
-
+/** Claim the daily bonus for the pool, only on an explicit click. */
+async function handleCheckinClaimAll(req, deps) {
+  await readJsonBody(req)
   const store = readStore()
   const targets = []
   for (const account of store.accounts) {
@@ -865,21 +790,10 @@ async function handleAutoCheckin(req, deps) {
       // An account whose key cannot be exchanged is skipped, not fatal.
     }
   }
-  const summary = await runAutoCheckin({ targets })
+  const summary = await claimAllDaily({ targets })
   deps.healthCache.clear()
   deps.healthChecks.clear()
-  return { ok: true, enabled: deps.settings.autoCheckin === true, summary }
-}
-
-/**
- * Persist a preference beside the account store.
- *
- * One writer for every switch: the preferences file is small and shared, and a
- * second writer would eventually read-modify-write over the first's key.
- */
-/** Persist the auto check-in switch. */
-async function persistAutoCheckin(enabled) {
-  await persistPreferences({ autoCheckin: enabled })
+  return { ok: true, summary }
 }
 
 async function handleTest(deps) {
@@ -1012,7 +926,7 @@ async function handleRoute(req, res, handler) {
 
 /** Routes that change state and therefore accept POST only. */
 const MUTATING_PATHS = new Set([
-  '/preferences/save', '/presets', '/usage/clear', '/accounts/check',
+  '/preferences/save', '/presets', '/accounts/check',
   '/backup/export', '/backup/preview', '/backup/restore',
   '/models/select',
   '/save',
@@ -1024,7 +938,7 @@ const MUTATING_PATHS = new Set([
   '/accounts/activate',
   '/accounts/rename',
   '/checkin/claim',
-  '/checkin/auto',
+  '/checkin/claim-all',
 ])
 
 /** The exact sub-path of a plugin route, or null when it is not one. */

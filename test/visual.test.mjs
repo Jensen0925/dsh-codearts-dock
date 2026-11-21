@@ -47,7 +47,7 @@ check('inputs are monospace 12/20 on bg-l1', () => {
 
 check('cards sit on bg-layer-3 with a border-l2 frame at radius 12', () => {
   has('border-radius:12px;background:var(--dsw-alias-bg-layer-3', 'card surface')
-  has('.dca-card:hover{border-color:var(--dsw-alias-label-dimmed,#777)}', 'card brightens on hover')
+  assert.ok(!source.includes('.dca-card:hover'), 'passive cards do not imply a click action')
 })
 
 check('the section switcher is a sticky underlined tab strip, not cards', () => {
@@ -67,12 +67,8 @@ check('the account pool is a grid table with an uppercase header row', () => {
   has('padding:10px 14px', 'row rhythm')
 })
 
-check('one bulk claim button sits beside the daily switch', () => {
-  // Restored on request, in the place the reference puts it: one control for the
-  // whole pool, on the switch row. Still NEVER one per row — a daily bonus must
-  // not cost one click per account.
+check('one bulk claim button serves the account pool', () => {
   assert.ok(source.includes("'pool.checkinAll': ['一键签到'"), 'the bulk button exists')
-  assert.ok(source.includes('dca-checkin-now'), 'and sits on the switch row')
   assert.ok(
     !source.includes('dca-pool-col-checkin'),
     'never a per-row claim control',
@@ -105,19 +101,10 @@ check('hints and row metadata use the reference type scale', () => {
   has('font-size:11px;line-height:16px', 'row metadata line')
 })
 
-check('the switch writes the preference; the button fires a one-off run', () => {
-  // Two callers now, and the distinction is the whole point: a SWITCH expresses
-  // a standing preference, a BUTTON performs an action once. Swapping them would
-  // make the button opt someone into daily automation, or make the switch claim
-  // on every toggle.
-  const calls = [...source.matchAll(/postRoute\('\/checkin\/auto', \{([^}]*)\}\)/g)]
-  assert.equal(calls.length, 2, 'two callers of the check-in route')
-  const prefs = calls.filter((c) => c[1].includes('enabled'))
-  const oneOff = calls.filter((c) => c[1].includes('now'))
-  assert.equal(prefs.length, 1, 'exactly one writes the preference')
-  assert.equal(oneOff.length, 1, 'exactly one fires a one-off sweep')
-  assert.ok(!prefs[0][1].includes('now'), 'the switch never fires a sweep')
-  assert.ok(!oneOff[0][1].includes('enabled'), 'the button never flips the preference')
+check('check-in is a manual action with no automatic switch or route', () => {
+  assert.ok(source.includes("postRoute('/checkin/claim-all', {})"), 'manual claim uses a dedicated route')
+  assert.ok(!source.includes('/checkin/auto'), 'the automatic route is gone')
+  assert.ok(!source.includes('pool.autoTitle'), 'the automatic switch is gone')
 })
 
 check('every class the markup uses has a rule in the stylesheet', () => {
@@ -142,8 +129,14 @@ check('the account row is two lines: identity, then a probe line', () => {
   has('justify-self:end;text-align:right;font-variant-numeric:tabular-nums', 'credits hug the right')
 })
 
-check('switches are the platform checkbox, not a painted toggle', () => {
-  has('.dca-switchrow input[type="checkbox"]', 'a real checkbox input')
+check('narrow settings layouts follow panel width, not viewport width', () => {
+  has('.dca-settings{container:dca-settings / inline-size;', 'the settings root defines the query container')
+  has('@container dca-settings (max-width:420px)', 'the narrow rules query the panel')
+  assert.ok(!/@media\s*\(\s*max-width/.test(source), 'settings must also adapt inside a wide window')
+})
+
+check('selection controls retain native checkbox styling', () => {
+  has('.dca-model-controls input[type="checkbox"]', 'a real model checkbox input')
   has('accent-color:var(--dsw-alias-brand-primary,#5686fe)', 'sized and drawn by the engine')
 })
 
@@ -184,16 +177,6 @@ check('the settings nav glyph is registered under the section\'s own id', () => 
   )
 })
 
-check('the pool and check-in switches are iOS-style, not bare checkboxes', () => {
-  // 38x22 track with a 16px knob that slides 16px; the input stays present but
-  // invisible so the role, keyboard handling and checked state survive.
-  has('.dca-sw{position:relative;display:inline-block;width:38px;height:22px', 'track box')
-  has('.dca-sw input{position:absolute;opacity:0', 'the real input is kept, not removed')
-  has('width:16px;height:16px;border-radius:50%', 'knob')
-  has('transform:translateX(16px)', 'knob slides when checked')
-  has('input:checked + .dca-sw-track{background:var(--dsw-alias-brand-primary', 'checked track uses the accent')
-})
-
 check('the account pool has no on/off switch: the selected account just serves', () => {
   // The switch was removed on request. Which account serves is not a preference
   // to toggle — the selected account serves every request and a failure is
@@ -203,8 +186,7 @@ check('the account pool has no on/off switch: the selected account just serves',
   assert.ok(!source.includes('pool.enableHint'), 'its hint is gone too')
   assert.ok(!host.includes("route('/pool'"), 'the host no longer serves that route')
   assert.ok(!host.includes('nextAccountClient'), 'failover wiring is gone with it')
-  // The daily check-in switch is a different decision and stays.
-  assert.ok(source.includes("postRoute('/checkin/auto'"), 'the check-in switch remains')
+  assert.ok(source.includes("postRoute('/checkin/claim-all'"), 'manual check-in remains')
 })
 
 check('the provider is declared, so Settings → Models renders a card for it', () => {
