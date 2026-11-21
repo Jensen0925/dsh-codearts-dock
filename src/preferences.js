@@ -6,7 +6,7 @@ import { randomUUID } from 'node:crypto'
 import { CONFIG_DIR } from './paths.js'
 
 export class InputError extends Error {}
-export const FEATURE_DEFAULTS = Object.freeze({ modelPresets: [] })
+export const FEATURE_DEFAULTS = Object.freeze({ modelPresets: [], favoriteModelIds: [] })
 const plain = (value) => value !== null && typeof value === 'object' && !Array.isArray(value)
 const fail = (message) => { throw new InputError(message) }
 const safeId = (id) => typeof id === 'string' && id.length > 0 && id.length <= 200 && !['__proto__', 'constructor', 'prototype'].includes(id)
@@ -39,6 +39,10 @@ export function validatePreferences(input) {
   if ('composerChip' in input) {
     if (typeof input.composerChip !== 'boolean') fail('composerChip 必须为布尔值')
     out.composerChip = input.composerChip
+  }
+  if ('favoriteModelIds' in input) {
+    if (!Array.isArray(input.favoriteModelIds) || input.favoriteModelIds.length > 500 || !input.favoriteModelIds.every(safeId)) fail('常用模型列表格式不正确')
+    out.favoriteModelIds = [...new Set(input.favoriteModelIds)]
   }
   if ('refreshIntervalMs' in input) {
     if (!Number.isInteger(input.refreshIntervalMs) || input.refreshIntervalMs < 60000 || input.refreshIntervalMs > 86400000) fail('刷新间隔必须在 1 分钟到 24 小时之间')
@@ -76,7 +80,7 @@ export function persistPreferences(patch) {
 export function portablePreferences(settings) {
   return validatePreferences({
     composerChip: settings.composerChip !== false,
-    modelPresets: settings.modelPresets ?? [],
+    modelPresets: settings.modelPresets ?? [], favoriteModelIds: settings.favoriteModelIds ?? [],
     enabledModelIds: settings.enabledModelIds ?? null, modelOverrides: settings.modelOverrides ?? {},
     refreshIntervalMs: Math.max(60000, Math.min(86400000, Number(settings.refreshIntervalMs) || 300000)),
   })

@@ -160,8 +160,15 @@ function harness(surface = 'settings', rootProps = {}) {
     await new Promise(setImmediate)
     render()
   }
+  async function fail(path) {
+    const index = pending.findIndex((request) => request.path === path)
+    assert.notEqual(index, -1, `Missing request ${path}`)
+    pending.splice(index, 1)[0].reject(new Error('Offline refresh failure'))
+    await new Promise(setImmediate)
+    render()
+  }
   render()
-  return { render, findAll, one, text, settle, pending, writes, intervals, copied, postResponses, confirmations, controls, downloads }
+  return { render, findAll, one, text, settle, fail, pending, writes, intervals, copied, postResponses, confirmations, controls, downloads }
 }
 
 const app = harness()
@@ -465,5 +472,147 @@ const otherProvider = harness('composer', { useProjection: () => ({ next: { prov
 assert.equal(otherProvider.render(), null)
 assert.equal(otherProvider.pending.length, 0)
 console.log('✓ composer shows concise health states, keeps raw errors out of row text, and supports account switching')
+
+// Pinned ordering is a preference independent of the unsaved model draft.
+async function flushSettings(instance, responses) {
+  await new Promise(setImmediate)
+  let turns = 0
+  while (instance.pending.length && turns++ < 20) {
+    const path = instance.pending[0].path
+    assert.ok(path in responses, `Unexpected request ${path}`)
+    await instance.settle(path, responses[path])
+  }
+  assert.equal(instance.pending.length, 0)
+  instance.render()
+}
+const pins = harness()
+const pinResponses = { ...fixtures, '/models': { ...fixtures['/models'], favoriteModelIds: ['coder'] } }
+await flushSettings(pins, pinResponses)
+pins.one((node) => node.props.role === 'tab' && node.props.id.endsWith('-tab-models')).props.onClick(); pins.render()
+const modelOrder = () => pins.findAll((node) => node.type === 'div' && /^dca-model(?: |$)/.test(node.props.className ?? '')).map((node) => node.props.key)
+const star = (label) => pins.one((node) => node.type === 'button' && node.props['aria-label'] === label)
+assert.equal(modelOrder()[0], 'coder')
+pins.one((node) => node.type === 'input' && node.props['aria-label'] === 'Reasoner').props.onChange({ target: { checked: false } }); pins.render()
+pins.postResponses.set('/preferences/save', (body) => {
+  pinResponses['/models'] = { ...pinResponses['/models'], favoriteModelIds: body.favoriteModelIds }
+  return { ok: true, preferences: { favoriteModelIds: body.favoriteModelIds } }
+})
+star('置顶 Expensive').props.onClick()
+await flushSettings(pins, pinResponses)
+assert.deepEqual(pins.writes.at(-1), { path: '/preferences/save', body: { favoriteModelIds: ['coder', 'expensive'] } })
+assert.deepEqual(modelOrder(), ['coder', 'expensive', 'reasoner', 'free'])
+assert.equal(pins.one((node) => node.type === 'input' && node.props['aria-label'] === 'Reasoner').props.checked, false)
+assert.ok(!pins.writes.some((entry) => entry.path === '/models/select'), 'pinning must not save the live selection')
+pins.one((node) => node.type === 'select' && node.props['aria-label'] === '模型排序').props.onChange({ target: { value: 'ratio' } }); pins.render()
+assert.deepEqual(modelOrder(), ['coder', 'expensive', 'free', 'reasoner'])
+pins.one((node) => node.type === 'input' && node.props.type === 'search').props.onChange({ target: { value: 'Reasoner' } }); pins.render()
+assert.deepEqual(modelOrder(), ['reasoner'], 'pinned models still obey search filters')
+pins.one((node) => node.type === 'input' && node.props.type === 'search').props.onChange({ target: { value: '' } }); pins.render()
+star('取消置顶 Coder').props.onClick()
+await flushSettings(pins, pinResponses)
+assert.deepEqual(modelOrder(), ['expensive', 'free', 'reasoner', 'coder'])
+pins.postResponses.set('/preferences/save', { ok: false, error: 'Cannot save pinned models' })
+star('置顶 Free').props.onClick()
+await flushSettings(pins, pinResponses)
+assert.equal(star('置顶 Free').props['aria-pressed'], false, 'failed writes must not appear persisted')
+assert.match(pins.text(pins.render()), /Cannot save pinned models/)
+console.log('✓ pinned models lead each sort, obey filters, persist separately, and preserve unsaved drafts on success and failure')
+
+const balances = harness()
+const checkedAt = balances.controls.now - 300000
+const balanceResponses = { ...fixtures,
+  '/account': { ok: true, accountId: 'primary', creditIdentity: 'primary-key', credit: { remain: 20 }, creditCheckedAt: checkedAt },
+  '/accounts': { ok: true, accounts: [
+    { id: 'primary', creditIdentity: 'primary-key', label: 'Primary', credit: { remain: 20 }, creditCheckedAt: checkedAt },
+    { id: 'backup', creditIdentity: 'backup-key', label: 'Backup', credit: { remain: 0 }, creditCheckedAt: checkedAt },
+  ] },
+}
+await flushSettings(balances, balanceResponses)
+const balanceCell = (name) => {
+  const row = balances.one((node) => node.type === 'div' && /^dca-pool-row(?: dca-pool-row-current)?$/.test(node.props.className ?? '') && balances.text(node).includes(name))
+  return balances.findAll((node) => node.props.className === 'dca-pool-credits-row', row)[0]
+}
+balanceResponses['/accounts'] = { ok: true, accounts: balanceResponses['/accounts'].accounts.map((account) => ({ ...account, credit: null, creditCheckedAt: null, health: { state: 'network' } })) }
+balances.intervals[0]()
+await flushSettings(balances, balanceResponses)
+assert.match(balances.text(balanceCell('Primary')), /20.*上次结果.*5 分钟前/)
+assert.match(balances.text(balanceCell('Backup')), /0.*上次结果.*5 分钟前/, 'zero is a successful balance too')
+balances.controls.now += 120000
+balances.intervals[1]()
+balances.intervals[0]()
+await balances.fail('/accounts')
+await flushSettings(balances, balanceResponses)
+assert.match(balances.text(balanceCell('Primary')), /20.*上次结果.*7 分钟前/, 'failed reads must not move the success timestamp')
+balanceResponses['/accounts'] = { ok: true, accounts: [{ id: 'primary', creditIdentity: 'primary-key', label: 'Primary', credit: { remain: 0 }, creditCheckedAt: balances.controls.now }] }
+balances.intervals[0]()
+await flushSettings(balances, balanceResponses)
+assert.equal(balances.text(balanceCell('Primary')), '0')
+balanceResponses['/accounts'] = { ok: true, accounts: [{ id: 'primary', creditIdentity: 'replaced-key', label: 'Primary', credit: null }] }
+balances.intervals[0]()
+await flushSettings(balances, balanceResponses)
+assert.equal(balances.text(balanceCell('Primary')), '—', 'new credentials must not inherit an old credential snapshot')
+console.log('✓ settings retain successful balances and timestamps on gateway and route failures, recover zero balances, and isolate credential identities')
+
+const staleChip = harness('composer', { useProjection: () => ({ next: { provider: 'codearts' } }) })
+const chipCheckedAt = staleChip.controls.now - 300000
+const currentAccount = { ok: true, accountId: 'primary', creditIdentity: 'primary-key', credit: { remain: 20 }, creditCheckedAt: chipCheckedAt }
+const currentPool = { ok: true, accounts: [
+  { id: 'primary', creditIdentity: 'primary-key', active: true, label: 'Primary', credit: { remain: 20 }, creditCheckedAt: chipCheckedAt },
+  { id: 'backup', creditIdentity: 'backup-key', active: false, label: 'Backup', credit: { remain: 0 }, creditCheckedAt: chipCheckedAt },
+] }
+await staleChip.settle('/account', currentAccount)
+await staleChip.settle('/accounts', currentPool)
+const chipTrigger = () => staleChip.one((node) => node.props['aria-haspopup'] === 'dialog')
+const chipRefresh = () => staleChip.one((node) => node.props.className === 'dca-pop-refresh')
+chipTrigger().props.onClick(); staleChip.render()
+const failedRefresh = chipRefresh().props.onClick()
+await staleChip.fail('/account')
+await staleChip.fail('/accounts')
+await failedRefresh; staleChip.render()
+assert.equal(staleChip.text(chipTrigger()), '◈上次积分 20')
+assert.match(staleChip.text(staleChip.render()), /积分刷新失败，显示上次结果/)
+assert.match(staleChip.text(staleChip.render()), /5 分钟前/)
+assert.equal(staleChip.text(chipRefresh()).includes('重试'), true)
+const nullRefresh = chipRefresh().props.onClick()
+await staleChip.settle('/account', { ...currentAccount, credit: null, creditCheckedAt: null })
+await staleChip.settle('/accounts', { ok: true, accounts: currentPool.accounts.map((account) => ({ ...account, credit: null, creditCheckedAt: null })) })
+await nullRefresh; staleChip.render()
+assert.equal(staleChip.text(chipTrigger()), '◈上次积分 20', 'an HTTP success without credit data is still a failed credit read')
+const gatewayError = chipRefresh().props.onClick()
+await staleChip.settle('/account', { ok: false, stage: 'gateway', error: 'offline gateway error' })
+await staleChip.settle('/accounts', { ok: false, error: 'offline gateway error' })
+await gatewayError; staleChip.render()
+assert.equal(staleChip.text(chipTrigger()), '◈上次积分 20', 'HTTP-200 error payloads must retain last successful values too')
+const recovery = chipRefresh().props.onClick()
+await staleChip.settle('/account', { ...currentAccount, credit: { remain: 7 }, creditCheckedAt: staleChip.controls.now })
+await staleChip.settle('/accounts', { ok: true, accounts: currentPool.accounts.map((account) => ({ ...account, credit: { remain: account.id === 'primary' ? 7 : 0 } })) })
+await recovery; staleChip.render()
+assert.equal(staleChip.text(chipTrigger()), '◈积分 7')
+assert.equal(staleChip.findAll((node) => node.props.className === 'dca-credit-status').length, 0)
+// An older background response must not overwrite a newer manual refresh.
+staleChip.intervals[0]()
+const olderReads = staleChip.pending.splice(0)
+const newestRefresh = chipRefresh().props.onClick()
+await staleChip.settle('/account', { ...currentAccount, credit: { remain: 9 }, creditCheckedAt: staleChip.controls.now })
+await staleChip.settle('/accounts', currentPool)
+await newestRefresh
+for (const request of olderReads) request.resolve(request.path === '/account' ? { ...currentAccount, credit: { remain: 999 } } : currentPool)
+await new Promise(setImmediate); staleChip.render()
+assert.equal(staleChip.text(chipTrigger()), '◈积分 9', 'late background responses cannot restore an older value')
+staleChip.one((node) => node.props['aria-label'] === '切换到 Backup').props.onClick()
+await new Promise(setImmediate); staleChip.render()
+assert.doesNotMatch(staleChip.text(chipTrigger()), /9/, 'switching clears the previous account headline immediately')
+await staleChip.settle('/account', { ok: true, accountId: 'backup', creditIdentity: 'backup-key', credit: null })
+await staleChip.settle('/accounts', { ok: true, accounts: currentPool.accounts.map((account) => ({ ...account, active: account.id === 'backup' })) })
+assert.doesNotMatch(staleChip.text(chipTrigger()), /9/, 'failed reads for the new account cannot reuse the previous account balance')
+console.log('✓ composer retains last values on refresh failures, exposes retry and timestamps, clears stale markers on recovery, and isolates account switches')
+
+const unreadChip = harness('composer', { useProjection: () => ({ next: { provider: 'codearts' } }) })
+await unreadChip.fail('/account')
+await unreadChip.fail('/accounts')
+unreadChip.one((node) => node.props['aria-haspopup'] === 'dialog').props.onClick(); unreadChip.render()
+assert.match(unreadChip.text(unreadChip.render()), /积分暂时无法读取，请重试/)
+assert.doesNotMatch(unreadChip.text(unreadChip.render()), /上次积分|积分 0/)
+console.log('✓ first-time credit failures show an actionable state without inventing a cached balance')
 
 console.log('\nui: all checks passed')

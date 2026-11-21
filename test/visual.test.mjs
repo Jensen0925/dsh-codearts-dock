@@ -410,7 +410,7 @@ check('settings tab panels stay mounted and have matching controls', () => {
 check('settings routes populate independently and can be retried', () => {
   assert.ok(source.includes('getRoute(path, { signal: controller.signal })'), 'the four reads are cancellable')
   assert.ok(source.includes('if (controller.signal.aborted) return false'), 'a superseded response cannot replace fresh data')
-  assert.ok(source.includes('setData((current) => ({ ...current, [path]: value }))'), 'fast status does not wait for account probes')
+  assert.ok(source.includes('setData((current) => ({ ...current, [path]: mergeCredits(path, current[path], value) }))'), 'fast status does not wait for account probes')
   assert.ok(source.includes('onSaved: loadModels'), 'model saves reload only the model catalog')
   assert.ok(source.includes("t('common.retry')"), 'a failed read can be retried in place')
 })

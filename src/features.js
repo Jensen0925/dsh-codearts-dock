@@ -9,8 +9,10 @@ export async function applyPreferences(deps, patch) {
   await persistPreferences(validated)
   Object.assign(deps.settings, validated)
   if ('refreshIntervalMs' in validated) deps.rescheduleCatalog?.()
-  deps.catalog.configure({ enabledIds: deps.settings.enabledModelIds, overrides: deps.settings.modelOverrides })
-  deps.ctx.emit('llm/models-updated', 'codearts')
+  if ('enabledModelIds' in validated || 'modelOverrides' in validated) {
+    deps.catalog.configure({ enabledIds: deps.settings.enabledModelIds, overrides: deps.settings.modelOverrides })
+    deps.ctx.emit('llm/models-updated', 'codearts')
+  }
   return { ok: true, preferences: portablePreferences(deps.settings) }
 }
 export function registerFeatureRoutes(route, deps, readBody) {

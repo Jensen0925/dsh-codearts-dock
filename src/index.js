@@ -93,6 +93,7 @@ export const Config = z.object({
   composerChip: z.boolean().default(true).description('在输入框旁显示积分'),
   registerProvider: z.boolean().default(true).description('是否注册码道这个 provider 路由'),
   enabledModelIds: z.array(z.string()).description('启用的模型；留空表示全部'),
+  favoriteModelIds: z.array(z.string()).default([]).description('模型设置页中置顶的常用模型'),
   modelOverrides: z.dict(z.object({
     images: z.boolean(),
     allowOff: z.boolean(),
@@ -430,6 +431,7 @@ async function buildModels(deps) {
     enabledIds: selectionIsDefault ? null : deps.catalog.visible().map((model) => model.id),
     total: all.length,
     presets: deps.settings.modelPresets,
+    favoriteModelIds: deps.settings.favoriteModelIds ?? [],
     models: all.map((model) => ({
       enabled: deps.catalog.isEnabled(model.id),
       overrides: overrides[model.id] ?? null,
@@ -466,6 +468,8 @@ async function buildAccount(deps) {
       temporary: resolved.source === 'codearts',
       expiresAt: resolved.expiresAtMs ?? null,
       credit,
+      creditCheckedAt: credit ? Date.now() : null,
+      creditIdentity: createHash('sha256').update(JSON.stringify([resolved.source, deps.credentials.accountId ?? identity.userId ?? resolved.key.ak, deps.settings.gateway ?? ''])).digest('hex'),
       roles,
       composerChip: deps.settings.composerChip !== false,
       health: accountHealth({ credit }),
@@ -514,12 +518,15 @@ async function inspectAccount(account, deps, force = false) {
   if (existing?.signature === signature) return existing.promise
   const operation = (async () => {
     if (force) tripleCache.delete(account.id)
-    const entry = { ...publicAccount(account, readStore()), credit: null, checkin: null, error: null }
+    const entry = { ...publicAccount(account, readStore()), credit: null, creditCheckedAt: null, creditIdentity: signature, checkin: null, error: null }
     let failure
     try {
       const client = new MadaoClient({ credentials: await tripleOf(account), gateway: deps.settings.gateway })
       const credit = await readCredit(client, { strict: true })
-      if (credit) entry.credit = { remain: credit.remain, total: credit.total, plan: credit.plan ?? null, expiring: credit.expiringTotal ?? 0 }
+      if (credit) {
+        entry.credit = { remain: credit.remain, total: credit.total, plan: credit.plan ?? null, expiring: credit.expiringTotal ?? 0 }
+        entry.creditCheckedAt = Date.now()
+      }
       const checkin = await readCheckin(client, { now: new Date(), state: readCheckinState(), accountId: account.id })
       entry.checkin = { available: checkin.available, claimable: checkin.claimable, claimedToday: checkin.claimedToday, amount: checkin.amount, title: checkin.title, reason: checkin.reason ?? null }
       const identity = parseIdentity(tripleCache.get(account.id)?.securityToken)

@@ -138,6 +138,14 @@ window.__ModuleLoader__.load({
       'models.clearFilters': ['清除筛选', 'Clear filters'],
       'models.about': ['目录说明与使用帮助', 'About the catalog'],
       'models.clean': ['所有修改已保存', 'All changes saved'],
+      'credit.lastResult': ['上次结果', 'Last result'],
+      'credit.updated': ['积分更新时间', 'Credits updated'],
+      'credit.refreshFailed': ['积分刷新失败，显示上次结果', 'Credits refresh failed; showing the last result'],
+      'credit.unavailable': ['积分暂时无法读取，请重试', 'Credits are unavailable; please retry'],
+      'chip.lastCredits': ['上次积分', 'Last credits'],
+      'models.pin': ['置顶 {model}', 'Pin {model}'],
+      'models.unpin': ['取消置顶 {model}', 'Unpin {model}'],
+      'models.favoriteSaved': ['已更新常用置顶', 'Pinned models updated'],
       'models.unsaved': ['有未保存的修改', 'Unsaved changes'],
       'models.needOne': ['请至少启用一个模型后保存', 'Enable at least one model to save'],
       'diag.details': ['技术详情', 'Technical details'],
@@ -425,6 +433,44 @@ window.__ModuleLoader__.load({
       if (minutes < 60) return t('time.minutesAgo').replace('{count}', minutes)
       if (minutes < 1440) return t('time.hoursAgo').replace('{count}', Math.floor(minutes / 60))
       return t('time.daysAgo').replace('{count}', Math.floor(minutes / 1440))
+    }
+
+    /** Keep only the last successful value for the same credential identity. */
+    function keepCredit(previous, next) {
+      if (!next) return next
+      if (next.credit && Number.isFinite(next.credit.remain)) {
+        return { ...next, creditCheckedAt: next.creditCheckedAt ?? Date.now(), creditStale: false }
+      }
+      const identity = (value) => value?.creditIdentity ?? value?.id ?? value?.accountId ?? value?.source
+      const key = identity(next)
+      if (key && key === identity(previous) && previous.credit) {
+        return { ...next, credit: previous.credit, creditCheckedAt: previous.creditCheckedAt, creditStale: true }
+      }
+      return { ...next, credit: null, creditCheckedAt: null, creditStale: false }
+    }
+
+    function mergeCredits(path, previous, next) {
+      if (path === '/account') return keepCredit(previous, next)
+      if (path === '/accounts') {
+        const old = new Map((previous?.accounts ?? []).map((account) => [account.id, account]))
+        return { ...next, accounts: (next.accounts ?? []).map((account) => keepCredit(old.get(account.id), account)) }
+      }
+      return next
+    }
+
+    function staleCredits(path, previous) {
+      if (!previous) return previous
+      if (path === '/account') return { ...previous, creditStale: !!previous.credit }
+      if (path === '/accounts') return { ...previous, accounts: previous.accounts.map((account) => ({ ...account, creditStale: !!account.credit })) }
+      return previous
+    }
+
+    function CreditStatus({ account, now = Date.now() }) {
+      if (!account?.creditStale) return null
+      return h('span', { className: 'dca-credit-status', title: t('credit.refreshFailed') },
+        t('credit.lastResult'),
+        account.creditCheckedAt ? h('time', { dateTime: new Date(account.creditCheckedAt).toISOString(), title: `${t('credit.updated')} ${formatTime(account.creditCheckedAt)}` }, ` · ${relativeTime(account.creditCheckedAt, now)}`) : null,
+      )
     }
 
     /**
@@ -737,7 +783,7 @@ window.__ModuleLoader__.load({
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
   min-width:0;
 }
-.dca-model-name b{font-size:13px;font-weight:500}
+.dca-model-name b{font-size:13px;font-weight:500;min-width:0;overflow:hidden;text-overflow:ellipsis}
 .dca-effort{display:inline-flex;align-items:center;gap:5px;cursor:pointer}
 /* A quiet pill, not a boxed form control: the row already carries two checkboxes,
    and a third bordered control would make a settings table look like a form. */
@@ -938,6 +984,13 @@ window.__ModuleLoader__.load({
   .dca-form-field{max-width:100%}
   .dca-preset-tools .dca-preset-row > .dca-input{flex-basis:100%}
 }
+.dca-pin{appearance:none;display:inline-flex;align-items:center;justify-content:center;flex:none;width:28px;height:28px;padding:4px;border:1px solid transparent;border-radius:6px;background:transparent;color:var(--dsw-alias-label-tertiary,#999);cursor:pointer}
+.dca-pin:hover{background:var(--dsw-alias-bg-layer-3,#202126);color:var(--dsw-alias-label-primary,#e6e6e6)}
+.dca-pin-on{color:var(--dsw-alias-brand-primary,#5686fe)}
+.dca-pin:focus-visible{outline:2px solid var(--dsw-alias-brand-primary,#5686fe);outline-offset:2px}
+.dca-pin:disabled{opacity:.5;cursor:default}
+.dca-credit-status{display:block;flex-basis:100%;font-size:11px;line-height:16px;color:var(--dsw-alias-state-warn-primary,#d49937)}
+.dca-pop-notice{margin:6px 0;font-size:12px;line-height:18px;color:var(--dsw-alias-state-warn-primary,#d49937)}
 .dca-account-credits{font-size:16px;font-weight:600;line-height:22px}
 .dca-account-error{max-width:100%;font-size:12px}
 .dca-account-error > summary{color:var(--dsw-alias-state-error-primary,#ef4444)}
@@ -1568,6 +1621,7 @@ window.__ModuleLoader__.load({
                     'div',
                     { className: 'dca-pool-credits-row' },
                     h('span', { className: 'dca-account-credits' }, account.credit ? formatCredits(account.credit.remain) : '—'),
+                    h(CreditStatus, { account, now }),
                     account.credit?.plan ? h('span', { className: 'dca-pool-sub' }, account.credit.plan) : null,
                     // Warn about credits that lapse. The amount is real; the
                     // deadline is not knowable from this gateway, so the chip
@@ -2043,6 +2097,10 @@ window.__ModuleLoader__.load({
       const [presetName, setPresetName] = useState('')
       const [presetEditorOpen, setPresetEditorOpen] = useState(false)
       const [presetPreview, setPresetPreview] = useState(null)
+      const [savedFavorites, setSavedFavorites] = useState(null)
+      useEffect(() => { setSavedFavorites(null) }, [models.favoriteModelIds])
+      const favoriteIds = savedFavorites ?? models.favoriteModelIds ?? []
+      const favorites = new Set(favoriteIds)
       const [savedPresets, setSavedPresets] = useState(null)
       useEffect(() => { setSavedPresets(null) }, [models.presets])
       const [notice, setNotice] = useState(null)
@@ -2087,6 +2145,21 @@ window.__ModuleLoader__.load({
         visibleModels.sort((left, right) => ratioOf(left) - ratioOf(right))
       } else if (sort === 'name') {
         visibleModels.sort((left, right) => left.name.localeCompare(right.name))
+      }
+
+      // Preserve the chosen sort within the pinned and unpinned groups.
+      visibleModels.sort((left, right) => Number(favorites.has(right.id)) - Number(favorites.has(left.id)))
+      const toggleFavorite = async (id) => {
+        if (busy) return
+        setBusy('favorite'); setNotice(null)
+        try {
+          const next = favorites.has(id) ? favoriteIds.filter((entry) => entry !== id) : [...favoriteIds, id]
+          const result = await postRoute('/preferences/save', { favoriteModelIds: next })
+          if (!result.ok) throw new Error(result.error ?? t('common.retry'))
+          setSavedFavorites(result.preferences.favoriteModelIds)
+          setNotice({ kind: 'success', text: t('models.favoriteSaved') })
+          await onRefresh()
+        } catch (error) { setNotice({ kind: 'error', text: error.message }) } finally { setBusy(null) }
       }
 
       const toggle = useCallback((id, next) => {
@@ -2359,6 +2432,14 @@ window.__ModuleLoader__.load({
                           onChange: (event) => toggle(model.id, event.target.checked),
                         }),
                         h('b', null, model.name),
+                        h('button', {
+                          type: 'button', className: `dca-pin${favorites.has(model.id) ? ' dca-pin-on' : ''}`,
+                          disabled: busy !== null, 'aria-pressed': favorites.has(model.id),
+                          title: t(favorites.has(model.id) ? 'models.unpin' : 'models.pin').replace('{model}', model.name),
+                          'aria-label': t(favorites.has(model.id) ? 'models.unpin' : 'models.pin').replace('{model}', model.name),
+                          onClick: () => void toggleFavorite(model.id),
+                        }, h('svg', { width: 15, height: 15, viewBox: '0 0 24 24', fill: favorites.has(model.id) ? 'currentColor' : 'none', stroke: 'currentColor', strokeWidth: 1.8, 'aria-hidden': true },
+                          h('path', { d: 'm12 3 2.8 5.7 6.3.9-4.6 4.5 1.1 6.3L12 17.4l-5.6 3 1.1-6.3L3 9.6l6.2-.9Z' }))),
                         model.ratio
                           ? h(
                               'span',
@@ -2633,10 +2714,11 @@ window.__ModuleLoader__.load({
           if (!value || (path !== '/account' && value.ok !== true)) {
             throw new Error(value?.error ?? t('common.retryHint'))
           }
-          setData((current) => ({ ...current, [path]: value }))
+          setData((current) => ({ ...current, [path]: mergeCredits(path, current[path], value) }))
           return true
         } catch (error) {
           if (!controller.signal.aborted) {
+            setData((current) => ({ ...current, [path]: staleCredits(path, current[path]) }))
             setErrors((current) => ({ ...current, [path]: `${path}：${error.message}` }))
           }
           return false
@@ -2776,7 +2858,7 @@ window.__ModuleLoader__.load({
     function dotTone(account) {
       const state = account.health?.state
       if (state === 'credentials' || state === 'insufficient') return ' dca-pop-dot-bad'
-      if (account.error || (state && state !== 'available')) return ' dca-pop-dot-warn'
+      if (account.creditStale || account.error || (state && state !== 'available')) return ' dca-pop-dot-warn'
       return ' dca-pop-dot-ok'
     }
 
@@ -2785,6 +2867,9 @@ window.__ModuleLoader__.load({
       const [open, setOpen] = useState(false)
       const [busy, setBusy] = useState(false)
       const container = useRef(null)
+      const loadSequence = useRef(0)
+      const [now, setNow] = useState(Date.now())
+      const [actionError, setActionError] = useState(null)
       const openSettings = props?.openSettings
 
       // Only speak up when this session is actually pointed at a 码道 model.
@@ -2803,16 +2888,22 @@ window.__ModuleLoader__.load({
       const ownsSelection = selectedProvider === undefined || selectedProvider === PROVIDER_ID
 
       const load = useCallback(async () => {
-        // Two reads: `/account` is the serving credential and the balance the
-        // pill shows, `/accounts` is the pool the panel lists. Settled rather
-        // than all — a pool read failing must not blank a working pill.
-        const [accountR, poolR] = await Promise.allSettled([
-          getRoute('/account'),
-          getRoute('/accounts'),
-        ])
-        setAccountInfo({
-          ...(accountR.status === 'fulfilled' ? accountR.value : { ok: false }),
-          pool: poolR.status === 'fulfilled' ? poolR.value : null,
+        const sequence = ++loadSequence.current
+        const [accountR, poolR] = await Promise.allSettled([getRoute('/account'), getRoute('/accounts')])
+        if (sequence !== loadSequence.current) return
+        setNow(Date.now())
+        setAccountInfo((previous) => {
+          const accountOk = accountR.status === 'fulfilled' && (accountR.value?.ok === true || accountR.value?.stage === 'credentials')
+          const poolOk = poolR.status === 'fulfilled' && poolR.value?.ok === true && Array.isArray(poolR.value.accounts)
+          const account = accountOk
+            ? mergeCredits('/account', previous, accountR.value)
+            : staleCredits('/account', previous) ?? { ok: false, stage: 'gateway' }
+          return {
+            ...account,
+            pool: poolOk ? mergeCredits('/accounts', previous?.pool, poolR.value) : staleCredits('/accounts', previous?.pool),
+            accountReadFailed: !accountOk || accountR.value?.ok !== true || !accountR.value?.credit,
+            poolReadFailed: !poolOk,
+          }
         })
       }, [])
 
@@ -2823,8 +2914,15 @@ window.__ModuleLoader__.load({
         if (!ownsSelection) return undefined
         void load()
         const timer = setInterval(() => void load(), 5 * 60 * 1000)
-        return () => clearInterval(timer)
+        return () => { clearInterval(timer); loadSequence.current += 1 }
       }, [load, ownsSelection])
+
+      useEffect(() => {
+        if (!open) return undefined
+        setNow(Date.now())
+        const timer = setInterval(() => setNow(Date.now()), 30000)
+        return () => clearInterval(timer)
+      }, [open])
 
       // Closing on an outside click keeps the panel from being modal: it is a
       // reading, not a task.
@@ -2845,7 +2943,7 @@ window.__ModuleLoader__.load({
       }, [open])
 
       const refresh = useCallback(async () => {
-        setBusy(true)
+        setBusy(true); setActionError(null)
         try {
           await load()
         } finally {
@@ -2855,16 +2953,21 @@ window.__ModuleLoader__.load({
 
       /** Move the pool to another account; the panel's rows call this. */
       const activateAccount = useCallback(async (account) => {
-        setBusy(true)
+        setBusy(true); setActionError(null)
+        loadSequence.current += 1
         try {
-          await postRoute('/accounts/activate', { id: account.id })
+          const result = await postRoute('/accounts/activate', { id: account.id })
+          if (!result.ok) throw new Error(result.error ?? t('common.retry'))
+          // The previous headline belongs to another account, even if the next read fails.
+          setAccountInfo((previous) => previous ? { ...previous, credit: null, creditCheckedAt: null, creditStale: false, creditIdentity: null, accountId: account.id, source: undefined,
+            pool: previous.pool ? { ...previous.pool, accounts: previous.pool.accounts.map((entry) => ({ ...entry, active: entry.id === account.id })) } : null,
+          } : previous)
           await load()
-        } finally {
-          setBusy(false)
-        }
+        } catch (error) { setActionError(error.message) } finally { setBusy(false) }
       }, [load])
 
       const accounts = accountInfo?.pool?.accounts ?? []
+      const refreshFailed = accountInfo?.accountReadFailed || accountInfo?.poolReadFailed || accountInfo?.creditStale || accounts.some((account) => account.creditStale)
       // Nothing to show until the Host answers, and nothing to show when no
       // credential is configured: an empty pill on every composer would be
       // noise for anyone not using this provider.
@@ -2873,7 +2976,7 @@ window.__ModuleLoader__.load({
       // With a 码道 model selected but no usable credential, saying nothing was
       // the worst option: the user picked this provider and the readout simply
       // is not there. Show the state and where to fix it instead.
-      const hasCredential = accountInfo?.ok === true || accountInfo?.source || accountInfo?.account
+      const hasCredential = accountInfo?.ok === true || accountInfo?.source || accountInfo?.account || accountInfo?.stage === 'gateway'
       if (!hasCredential) {
         const body = [
           h('span', { key: 'm', 'aria-hidden': true, className: 'dca-chip-mark' }, '◈'),
@@ -2900,8 +3003,8 @@ window.__ModuleLoader__.load({
 
       const credits = accountInfo.credit
       const label = credits
-        ? `${t('chip.credits')} ${credits.remain}`
-        : t('chip.loading')
+        ? `${t(accountInfo.creditStale ? 'chip.lastCredits' : 'chip.credits')} ${formatCredits(credits.remain)}`
+        : t('account.creditUnread')
 
       return h(
         'div',
@@ -2910,7 +3013,7 @@ window.__ModuleLoader__.load({
           'button',
           {
             type: 'button',
-            title: t('chip.panelTitle'),
+            title: accountInfo.creditStale ? t('credit.refreshFailed') : t('chip.panelTitle'),
             'aria-haspopup': 'dialog',
             'aria-expanded': open,
             onClick: () => setOpen((value) => !value),
@@ -2970,7 +3073,7 @@ window.__ModuleLoader__.load({
                       strokeLinejoin: 'round',
                     }),
                   ),
-                  t('chip.refresh'),
+                  refreshFailed ? t('common.retry') : t('chip.refresh'),
                 ),
                 h(
                   'button',
@@ -2986,6 +3089,9 @@ window.__ModuleLoader__.load({
                   t('chip.settings'),
                 ),
               ),
+              actionError ? h('p', { className: 'dca-pop-notice', role: 'alert' }, actionError) : null,
+              refreshFailed ? h('p', { className: 'dca-pop-notice', role: 'status' }, accountInfo.credit || accounts.some((account) => account.credit) ? t('credit.refreshFailed') : t('credit.unavailable')) : null,
+              h(CreditStatus, { account: accountInfo, now }),
               // One row per account, in a real table so the balances line up in a
               // single right-aligned column. The serving account is a row, not a
               // header: "which account" and "how many credits" are the same fact
@@ -3058,6 +3164,7 @@ window.__ModuleLoader__.load({
                             'td',
                             { className: 'dca-pop-num' },
                             account.credit ? formatCredits(account.credit.remain) : '—',
+                            h(CreditStatus, { account, now }),
                             account.credit?.expiring > 0
                               ? h(
                                   'span',

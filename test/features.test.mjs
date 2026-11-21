@@ -27,6 +27,8 @@ const secretAccount = { ak: 'TEST_BACKUP_AK_123456789', sk: 'TEST_BACKUP_SK_9876
 await check('preferences validate retained settings and ignore retired alert and history fields', async () => {
   for (const invalid of [-1, 0, '60000', 86400001]) assert.throws(() => validatePreferences({ refreshIntervalMs: invalid }))
   assert.throws(() => validatePreferences({ composerChip: 'true' }))
+  for (const favoriteModelIds of [null, 'model', [5], ['__proto__'], Array(501).fill('model')]) assert.throws(() => validatePreferences({ favoriteModelIds }))
+  assert.deepEqual(validatePreferences({ favoriteModelIds: ['b', 'a', 'b'] }), { favoriteModelIds: ['b', 'a'] })
   assert.throws(() => validatePreferences({ enabledModelIds: [], modelOverrides: {} }))
   assert.throws(() => validatePreferences(JSON.parse('{"modelOverrides":{"__proto__":{"images":true}}}')))
   assert.throws(() => validatePreferences({ modelPresets: Array(21).fill({}) }))
@@ -141,6 +143,20 @@ await check('feature routes enforce POST, validate preferences, and persist pres
   const id = preset.body.presets[0].id
   assert.equal((await request('/presets', { action: 'delete', id })).body.presets.length, 0)
 })
+await check('pinned models persist without changing model selection and travel with backups', async () => {
+  const before = (await request('/models')).body.enabledIds
+  const saved = await request('/preferences/save', { favoriteModelIds: ['test-model', 'temporarily-unavailable'] })
+  assert.deepEqual(saved.body.preferences.favoriteModelIds, ['test-model', 'temporarily-unavailable'])
+  assert.deepEqual(readPreferences().favoriteModelIds, ['test-model', 'temporarily-unavailable'])
+  assert.deepEqual((await request('/models')).body.favoriteModelIds, ['test-model', 'temporarily-unavailable'])
+  assert.deepEqual((await request('/models')).body.enabledIds, before)
+  const exported = await request('/backup/export', {})
+  assert.deepEqual(exported.body.backup.preferences.favoriteModelIds, ['test-model', 'temporarily-unavailable'])
+  await request('/preferences/save', { favoriteModelIds: [] })
+  const restored = await request('/backup/restore', { text: JSON.stringify(exported.body.backup) })
+  assert.equal(restored.status, 200)
+  assert.deepEqual((await request('/models')).body.favoriteModelIds, ['test-model', 'temporarily-unavailable'])
+})
 await check('malformed, non-object, oversized and remote feature requests are rejected without mutations', async () => {
   const before = JSON.stringify((await request('/preferences')).body)
   for (const path of ['/preferences/save', '/presets', '/backup/export', '/backup/preview', '/backup/restore', '/accounts/check', '/checkin/claim-all']) {
@@ -161,6 +177,8 @@ await check('account checks use one probe for concurrent clicks, expose actionab
   const [a, b] = await Promise.all([request('/accounts/check', { id }), request('/accounts/check', { id })])
   assert.equal(a.body.account.health.state, 'available')
   assert.equal(b.body.account.credit.remain, 50)
+  assert.ok(b.body.account.creditCheckedAt > 0)
+  assert.equal(typeof b.body.account.creditIdentity, 'string')
   assert.ok(!('lowBalance' in b.body.account))
   assert.equal(creditReads - creditsBefore, 1)
   assert.equal(iamReads - iamBefore, 1)

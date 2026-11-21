@@ -8,8 +8,8 @@ An unofficial third-party plugin, unaffiliated with Huawei and DeepSeek / Harnes
 
 - Native adapter for streaming text, reasoning, tool calls and model-supported image input.
 - Multiple accounts, import/export, manual switching and actionable health checks.
-- Composer credit chip and multi-account balance overview.
-- Model search, capability filters, multiplier sorting, drafts and configuration presets.
+- Composer credit chip and multi-account balance overview, retaining clearly marked last results when refreshes fail.
+- Model search, pinned favorites, capability filters, multiplier sorting, drafts and configuration presets.
 - Configuration migration with mandatory password encryption when credentials are included, and a restore preview.
 - Manual check-in for eligible accounts; availability and results depend on the upstream service.
 
