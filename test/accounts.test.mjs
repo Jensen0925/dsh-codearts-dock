@@ -6,7 +6,7 @@
  */
 
 import assert from 'node:assert/strict'
-import { mkdtempSync, rmSync, existsSync, readFileSync, statSync } from 'node:fs'
+import { mkdtempSync, rmSync, existsSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -142,92 +142,174 @@ await check('an export round-trips back through the importer', async () => {
 
 // ── check-in ───────────────────────────────────────────────────────────────
 
-/** A gateway stub whose daily campaign flips to claimed after the first claim. */
-function fakeGateway() {
-  const state = { claimable: true, claims: 0, items: null }
+/**
+ * A gateway stub shaped like the live welfare list, with each campaign's
+ * claimable flag flipping independently on its first claim.
+ *
+ * The roster mirrors what the real endpoint returned: two daily campaigns, a
+ * one-off Skill registration reward, two student-only campaigns that are not
+ * claimable without certification, and an auto-granted new-user reward that
+ * must never be posted to the claim endpoint.
+ */
+function fakeGateway(overrides = {}) {
+  const state = { claims: [], claimable: { 34: true, 40: true, 42: true, 39: false, 2: false, 4: false }, ...overrides }
+  const items = () => [
+    { campaignId: 42, title: 'Skill创新赛报名礼', type: 'USER_LOGIN', claimable: state.claimable[42],
+      pendingTotalAmount: state.claimable[42] ? 2000 : 0, benefitAmount: 2000, benefitUnit: 'CREDIT',
+      status: state.claimable[42] ? 'ELIGIBLE' : 'CONFIRMED', description: '报名参赛一次性领取2000积分',
+      extra: { triggerMode: 'MANUAL_CLAIM', endTime: '2026-12-05T16:00:00Z' } },
+    { campaignId: 40, title: 'Skill创新赛每日签到礼', type: 'USER_LOGIN', claimable: state.claimable[40],
+      pendingTotalAmount: state.claimable[40] ? 1000 : 0, benefitAmount: 1000, benefitUnit: 'CREDIT',
+      status: state.claimable[40] ? 'ELIGIBLE' : 'CONFIRMED', description: '参加Skill创新赛，每日签到领取1000积分',
+      extra: { triggerMode: 'MANUAL_CLAIM', endTime: '2026-12-05T16:00:00Z' } },
+    { campaignId: 39, title: '2026年学生专属福利', type: 'STUDENT_CERTIFIED', claimable: false,
+      pendingTotalAmount: 0, benefitAmount: 5000, benefitUnit: 'CREDIT', status: null,
+      description: '在校大学生每月可领取 5000 积分', extra: { triggerMode: 'MANUAL_CLAIM' } },
+    { campaignId: 34, title: '每日签到领100积分', type: 'USER_LOGIN', claimable: state.claimable[34],
+      pendingTotalAmount: state.claimable[34] ? 100 : 0, benefitAmount: 100, benefitUnit: 'CREDIT',
+      status: state.claimable[34] ? 'ELIGIBLE' : 'CONFIRMED', description: null,
+      extra: { triggerMode: 'MANUAL_CLAIM', endTime: '2026-12-31T15:59:59Z' } },
+    { campaignId: 4, title: '新用户注册送 4000 积分', type: 'NEW_USER_REGISTER', claimable: false,
+      pendingTotalAmount: 0, benefitAmount: 4000, benefitUnit: 'CREDIT', status: 'CLAIMED',
+      description: null, extra: { triggerMode: 'AUTO_GRANT' } },
+    { campaignId: 2, title: '学生认证领积分', type: 'STUDENT_CERTIFIED', claimable: false,
+      pendingTotalAmount: 0, benefitAmount: 4000, benefitUnit: 'CREDIT', status: null,
+      description: '完成学生认证领取 4000 积分', extra: { triggerMode: 'MANUAL_CLAIM' } },
+  ]
   const client = {
-    getJson: async () => ({
-      data: {
-        items: [
-          // A second login campaign runs at the same time: the daily one must
-          // still be the one chosen.
-          { campaignId: 40, title: 'Skill创新赛每日签到礼', claimable: true, pendingTotalAmount: 1000, benefitUnit: 'CREDIT', status: 'ELIGIBLE' },
-          {
-            campaignId: 34,
-            title: '每日签到领100积分',
-            claimable: state.claimable,
-            pendingTotalAmount: state.claimable ? 100 : 0,
-            benefitUnit: 'CREDIT',
-            status: state.claimable ? 'ELIGIBLE' : 'CONSUMED',
-          },
-        ],
-      },
-    }),
-    postJson: async () => {
-      state.claims += 1
-      state.claimable = false
+    getJson: async () => ({ data: { items: items() } }),
+    postJson: async (_path, body) => {
+      state.claims.push(body.campaignId)
+      state.claimable[body.campaignId] = false
       return { ok: true }
     },
   }
   return { client, state }
 }
 
-await check('the daily campaign is picked out of a list with other campaigns', () => {
-  const items = [{ campaignId: 40, title: 'other' }, { campaignId: 34, title: '每日签到领100积分' }]
+await check('the daily campaign is still matched by id, then by title', () => {
+  const items = [{ campaignId: 40, title: 'Skill创新赛每日签到礼' }, { campaignId: 34, title: '每日签到领100积分' }]
   assert.equal(checkin.dailyCampaignOf(items).campaignId, 34)
-  // With no id 34, the title hint still finds it.
   assert.equal(checkin.dailyCampaignOf([{ campaignId: 99, title: '每日签到礼' }]).campaignId, 99)
 })
 
-await check('a claim is made once and never repeated the same day', async () => {
-  const { client, state } = fakeGateway()
+await check('eligible campaigns are discovered from the live list, not hardcoded', async () => {
+  const { client } = fakeGateway()
+  const state = await checkin.readCheckin(client, { now: new Date('2026-11-18T10:00:00+08:00'), accountId: 'acct-read' })
+  // Only the three MANUAL_CLAIM campaigns the account can actually claim.
+  assert.deepEqual(state.campaigns.map((c) => c.campaignId), [34, 40, 42])
+  assert.equal(state.claimable, true)
+  assert.equal(state.amount, 3100, '100 + 1000 + 2000 are all still on the table')
+  const skill = state.campaigns.find((campaign) => campaign.campaignId === 40)
+  assert.equal(skill.label, 'Skill创新赛每日签到礼')
+  assert.equal(skill.claimable, true)
+  // Daily campaigns lead; the bigger one-off follows them.
+  assert.equal(state.campaigns[0].campaignId, 34)
+})
+
+await check('student-only and auto-granted campaigns are never claimed', async () => {
+  const { client, state: gateway } = fakeGateway()
+  await checkin.claimDaily(client, { accountId: 'acct-guard', now: new Date('2026-11-18T10:00:00+08:00') })
+  // 39 and 2 need student certification; 4 is AUTO_GRANT, not a manual claim.
+  assert.ok(!gateway.claims.includes(39), 'an uncertified student offer must not be claimed')
+  assert.ok(!gateway.claims.includes(2), 'an uncertified student offer must not be claimed')
+  assert.ok(!gateway.claims.includes(4), 'an auto-granted campaign must never be posted')
+  assert.deepEqual(gateway.claims, [34, 40, 42])
+})
+
+await check('ineligible campaigns are reported so the UI can explain them', async () => {
+  const { client } = fakeGateway()
+  const state = await checkin.readCheckin(client, { now: new Date('2026-11-18T10:00:00+08:00'), accountId: 'acct-why' })
+  assert.equal(state.unavailable.length, 3)
+  const ids = state.unavailable.map((item) => item.campaignId)
+  assert.deepEqual(ids, [39, 4, 2])
+  const auto = state.unavailable.find((item) => item.campaignId === 4)
+  assert.equal(auto.triggerMode, 'AUTO_GRANT')
+})
+
+await check('an excluded campaign says why, not just that it is excluded', async () => {
+  // Upstream marks a claimed reward CONFIRMED, and the local record knows too;
+  // both mean "done", which is different from "needs certification".
+  const { client } = fakeGateway()
+  const clock = new Date('2026-11-18T10:00:00+08:00')
+  await checkin.claimDaily(client, { accountId: 'acct-reason', now: clock })
+  const after = await checkin.readCheckin(client, { now: clock, accountId: 'acct-reason' })
+  // Everything claimable was just claimed, so all six report an exclusion.
+  const byId = new Map(after.unavailable.map((item) => [item.campaignId, item.reason]))
+  assert.equal(byId.get(4), 'auto', 'an auto-granted reward is never a manual claim')
+  assert.equal(byId.get(39), 'condition', 'student offers need certification')
+  assert.equal(byId.get(2), 'condition')
+  // Claimed this run: the local record explains it.
+  for (const id of [34, 40, 42]) assert.equal(byId.get(id), 'claimed', `campaign ${id} was just claimed`)
+})
+
+await check('a campaign claimed elsewhere still reads as already claimed', async () => {
+  // No local record: the upstream CONFIRMED status has to carry the meaning.
+  const { client } = fakeGateway({ claimable: { 34: false, 40: false, 42: false, 39: false, 2: false, 4: false } })
+  const state = await checkin.readCheckin(client, { now: new Date('2026-11-18T10:00:00+08:00'), accountId: 'acct-fresh' })
+  const byId = new Map(state.unavailable.map((item) => [item.campaignId, item.reason]))
+  assert.equal(byId.get(42), 'claimed')
+  assert.equal(byId.get(39), 'condition', 'a campaign with no status is a prerequisite gap')
+})
+
+await check('a claim is made once per campaign and never repeated the same day', async () => {
+  const { client, state: gateway } = fakeGateway()
   const day = new Date('2026-11-18T10:00:00+08:00')
   const id = 'acct-daily'
 
   const first = await checkin.claimDaily(client, { accountId: id, now: day })
   assert.equal(first.claimed, true)
-  assert.equal(first.amount, 100)
-  assert.equal(state.claims, 1, 'must claim exactly once')
+  assert.equal(first.amount, 3100, 'all three claimable entitlements granted')
+  assert.deepEqual(gateway.claims, [34, 40, 42], 'one write per campaign, in display order')
 
   const second = await checkin.claimDaily(client, { accountId: id, now: day })
   assert.equal(second.claimed, false)
-  assert.equal(state.claims, 1, 'a same-day retry must not reach upstream')
+  assert.equal(gateway.claims.length, 3, 'a same-day retry must not reach upstream')
 })
 
-await check('the day record is per account, not global', async () => {
-  const { client, state } = fakeGateway()
+await check('one campaign already claimed does not block the others', async () => {
+  const { client, state: gateway } = fakeGateway({ claimable: { 34: false, 40: true, 42: true, 39: false, 2: false, 4: false } })
+  const day = new Date('2026-11-18T10:00:00+08:00')
+  const result = await checkin.claimDaily(client, { accountId: 'acct-half', now: day })
+  assert.equal(result.claimed, true)
+  assert.equal(result.amount, 3000, '1000 + 2000 still claimable')
+  assert.deepEqual(gateway.claims, [40, 42])
+})
+
+await check('the record is per account, not global', async () => {
+  const { client, state: gateway } = fakeGateway()
   const day = new Date('2026-11-18T10:00:00+08:00')
   const a = await checkin.claimDaily(client, { accountId: 'acct-a', now: day })
   assert.equal(a.claimed, true)
   // A different account on the same day is a different entitlement.
-  state.claimable = true
+  gateway.claimable = { 34: true, 40: true, 42: true, 39: false, 2: false, 4: false }
   const b = await checkin.claimDaily(client, { accountId: 'acct-b', now: day })
   assert.equal(b.claimed, true)
-  assert.equal(state.claims, 2)
+  assert.equal(gateway.claims.length, 6, 'three campaigns for each of two accounts')
 })
 
 await check('a new day allows a new claim', async () => {
-  const { client, state } = fakeGateway()
+  const { client, state: gateway } = fakeGateway()
   const first = await checkin.claimDaily(client, { accountId: 'acct-day', now: new Date('2026-11-18T10:00:00+08:00') })
   assert.equal(first.claimed, true)
-  state.claimable = true
+  gateway.claimable = { 34: true, 40: true, 42: true, 39: false, 2: false, 4: false }
   const next = await checkin.claimDaily(client, { accountId: 'acct-day', now: new Date('2026-11-19T10:00:00+08:00') })
   assert.equal(next.claimed, true)
 })
 
-await check('an already-claimed campaign is not sent to the write endpoint', async () => {
-  const { client, state } = fakeGateway()
-  state.claimable = false
+await check('nothing claimable upstream means no write at all', async () => {
+  const { client, state: gateway } = fakeGateway({ claimable: { 34: false, 40: false, 42: false, 39: false, 2: false, 4: false } })
   const result = await checkin.claimDaily(client, { accountId: 'acct-consumed', now: new Date('2026-11-18T10:00:00+08:00') })
   assert.equal(result.claimed, false)
-  assert.equal(state.claims, 0, 'the write endpoint must not be called')
+  assert.equal(gateway.claims.length, 0, 'the write endpoint must not be called')
+  assert.match(result.reasons[0], /没有可领取/)
 })
 
-await check('a missing campaign is reported, not claimed blindly', async () => {
+await check('an empty welfare list is reported, not claimed blindly', async () => {
   const client = { getJson: async () => ({ data: { items: [] } }), postJson: async () => { throw new Error('must not be called') } }
   const result = await checkin.claimDaily(client, { accountId: 'acct-none', now: new Date('2026-11-18T10:00:00+08:00') })
   assert.equal(result.claimed, false)
-  assert.match(result.reason, /没有每日签到活动/)
+  assert.match(result.reasons[0], /没有可领取/)
 })
 
 await check('the today summary counts only claimed accounts', async () => {
@@ -244,7 +326,7 @@ await check('the today summary counts only claimed accounts', async () => {
   assert.equal(summary.pending, 1)
 })
 
-await check('manual batch claims each eligible account once and continues after a failure', async () => {
+await check('manual batch claims every eligible account and continues after a failure', async () => {
   const first = fakeGateway()
   const second = fakeGateway()
   const now = new Date('2026-11-18T10:00:00+08:00')
@@ -254,22 +336,101 @@ await check('manual batch claims each eligible account once and continues after 
     { id: 'batch-second', client: second.client },
   ]
   const result = await checkin.claimAllDaily({ targets, now })
-  assert.equal(result.claimed, 2)
+  assert.equal(result.attempted, 3)
+  assert.equal(result.claimed, 2, 'the two healthy accounts were claimed')
   assert.equal(result.failures.length, 1)
   assert.equal(result.failures[0].id, 'batch-error')
-  assert.equal(first.state.claims, 1)
-  assert.equal(second.state.claims, 1)
+  assert.deepEqual(first.state.claims, [34, 40, 42])
+  assert.deepEqual(second.state.claims, [34, 40, 42])
+  // A second sweep finds nothing left to claim and writes nothing.
   const retry = await checkin.claimAllDaily({ targets: [targets[0], targets[2]], now })
-  assert.equal(retry.skipped, 2)
   assert.equal(retry.claimed, 0)
-  assert.equal(first.state.claims, 1)
-  assert.equal(second.state.claims, 1)
+  assert.equal(first.state.claims.length, 3)
+  assert.equal(second.state.claims.length, 3)
 })
-
 await check('the day key follows the local calendar, not UTC', () => {
   // 23:30 in +08:00 is still the 18th locally even though UTC has rolled over.
   assert.equal(checkin.todayKey(new Date('2026-11-18T23:30:00+08:00')), '2026-11-18')
   assert.equal(checkin.todayKey(new Date('2026-11-19T00:30:00+08:00')), '2026-11-19')
+})
+
+// ── check-in state migration ───────────────────────────────────────────────
+
+await check('an original single-campaign record is lifted onto campaign 34', async () => {
+  // The shape shipped before the Skill campaign existed: one bare attempt per
+  // account. Treating it as "nothing recorded" would let the 100-credit campaign
+  // be claimed twice on upgrade day.
+  writeFileSync(
+    checkin.CHECKIN_STATE_PATH,
+    JSON.stringify({
+      accounts: { 'acct-legacy': { day: checkin.todayKey(), at: Date.now(), claimed: true, amount: 100 } },
+    }),
+  )
+  const state = checkin.readCheckinState()
+  assert.equal(state.accounts['acct-legacy']['34'].claimed, true)
+  assert.equal(state.accounts['acct-legacy']['34'].amount, 100)
+  assert.equal(state.accounts['acct-legacy']['40'], undefined, 'campaign 40 was never attempted')
+  assert.equal(checkin.attemptedToday(state, 'acct-legacy', 34), true)
+  assert.equal(checkin.attemptedToday(state, 'acct-legacy', 40), false)
+})
+
+await check('the credits/skill keyed record is lifted onto campaign ids', async () => {
+  // The intermediate shape keyed campaigns by name instead of id.
+  writeFileSync(
+    checkin.CHECKIN_STATE_PATH,
+    JSON.stringify({
+      accounts: {
+        'acct-named': {
+          credits: { day: checkin.todayKey(), at: Date.now(), claimed: true, amount: 100 },
+          skill: { day: checkin.todayKey(), at: Date.now(), claimed: true, amount: 1000 },
+        },
+      },
+    }),
+  )
+  const state = checkin.readCheckinState()
+  assert.equal(state.accounts['acct-named']['34'].claimed, true)
+  assert.equal(state.accounts['acct-named']['40'].claimed, true)
+  assert.equal(checkin.attemptedToday(state, 'acct-named', 34), true)
+  assert.equal(checkin.attemptedToday(state, 'acct-named', 40), true)
+})
+
+await check('a migrated record still blocks a duplicate claim, and only for that campaign', async () => {
+  const { client, state: gateway } = fakeGateway()
+  writeFileSync(
+    checkin.CHECKIN_STATE_PATH,
+    JSON.stringify({
+      accounts: { 'acct-legacy': { day: checkin.todayKey(), at: Date.now(), claimed: true, amount: 100 } },
+    }),
+  )
+  const result = await checkin.claimDaily(client, { accountId: 'acct-legacy' })
+  // Campaign 34 is remembered as claimed today, so the other two are written.
+  assert.equal(result.claimed, true)
+  assert.equal(result.amount, 3000, '1000 + 2000 still claimable')
+  assert.deepEqual(gateway.claims, [40, 42])
+  const credits = result.campaigns.find((campaign) => campaign.key === '34')
+  assert.equal(credits.claimed, false)
+  assert.match(credits.reason, /今天已经领过/)
+})
+
+await check('the record round-trips through disk keyed by campaign id', async () => {
+  const { client } = fakeGateway()
+  await checkin.claimDaily(client, { accountId: 'acct-roundtrip', now: new Date('2026-11-18T10:00:00+08:00') })
+  const raw = JSON.parse(readFileSync(checkin.CHECKIN_STATE_PATH, 'utf8'))
+  for (const id of [34, 40, 42]) {
+    assert.equal(raw.accounts['acct-roundtrip'][String(id)].claimed, true, `campaign ${id} recorded`)
+  }
+  assert.equal(raw.accounts['acct-roundtrip']['4'], undefined, 'the auto-granted campaign is never recorded')
+  // And the file stays owner-only, like the account store.
+  assert.equal(statSync(checkin.CHECKIN_STATE_PATH).mode & 0o777, 0o600)
+})
+
+await check('an unreadable record does not crash and does not suppress a claim', async () => {
+  writeFileSync(checkin.CHECKIN_STATE_PATH, '{ not json')
+  const state = checkin.readCheckinState()
+  assert.deepEqual(state.accounts, {})
+  const { client } = fakeGateway()
+  const result = await checkin.claimDaily(client, { accountId: 'acct-corrupt' })
+  assert.equal(result.claimed, true)
 })
 
 // Clean up the scratch home.

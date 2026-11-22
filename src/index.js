@@ -528,7 +528,30 @@ async function inspectAccount(account, deps, force = false) {
         entry.creditCheckedAt = Date.now()
       }
       const checkin = await readCheckin(client, { now: new Date(), state: readCheckinState(), accountId: account.id })
-      entry.checkin = { available: checkin.available, claimable: checkin.claimable, claimedToday: checkin.claimedToday, amount: checkin.amount, title: checkin.title, reason: checkin.reason ?? null }
+      entry.checkin = {
+        available: checkin.available,
+        claimable: checkin.claimable,
+        claimedToday: checkin.claimedToday,
+        amount: checkin.amount,
+        title: checkin.title,
+        reason: checkin.reason ?? null,
+        // The eligible campaigns, discovered from the upstream list rather than
+        // hardcoded, are what the row expands into; the fields above stay as the
+        // aggregate the compact row was built around.
+        campaigns: checkin.campaigns.map(({ key, campaignId, label, claimable, claimedToday, amount, reason, description }) => ({
+          key,
+          campaignId,
+          label,
+          claimable,
+          claimedToday,
+          amount,
+          description: description ?? null,
+          reason: reason ?? null,
+        })),
+        // Campaigns that exist upstream but cannot be claimed by this account
+        // (student certification, auto-grant) so the UI can explain the gap.
+        unavailable: checkin.unavailable ?? [],
+      }
       const identity = parseIdentity(tripleCache.get(account.id)?.securityToken)
       if (!account.accountName && identity.accountName) {
         entry.accountName = identity.accountName
@@ -764,7 +787,7 @@ async function handleCheckinStatus(deps) {
   }
 }
 
-/** Claim the daily bonus for one account, on an explicit click. */
+/** Claim the daily bonuses for one account, on an explicit click. */
 async function handleCheckinClaim(req, deps) {
   const body = await readJsonBody(req)
   const id = typeof body.id === 'string' ? body.id : undefined
@@ -776,7 +799,14 @@ async function handleCheckinClaim(req, deps) {
     const result = await claimDaily(client, { accountId: account.id })
     deps.healthCache.delete(account.id)
     deps.healthChecks.delete(account.id)
-    return { ok: true, ...result, label: account.label ?? defaultLabel(account.ak) }
+    return {
+      ok: true,
+      ...result,
+      // `reason` stays the single-line summary the one-campaign UI showed;
+      // `reasons` carries every campaign that was not claimed.
+      reason: result.reasons.join('；') || undefined,
+      label: account.label ?? defaultLabel(account.ak),
+    }
   } catch (error) {
     return { ok: false, claimed: false, reason: error?.message ?? String(error) }
   }

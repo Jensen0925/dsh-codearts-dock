@@ -11,7 +11,7 @@ An unofficial third-party plugin, unaffiliated with Huawei and DeepSeek / Harnes
 - Composer credit chip and multi-account balance overview, retaining clearly marked last results when refreshes fail.
 - Model search, pinned favorites, capability filters, multiplier sorting, drafts and configuration presets.
 - Configuration migration with mandatory password encryption when credentials are included, and a restore preview.
-- Manual check-in for eligible accounts; availability and results depend on the upstream service.
+- Manual bulk claim: eligible campaigns are discovered live from the upstream welfare list (daily check-in, Skill contest gifts and any future ones), then claimed for every account. Campaigns that need certification or are auto-granted are excluded.
 
 ## Get started
 

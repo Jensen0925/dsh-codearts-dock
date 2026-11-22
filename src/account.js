@@ -150,18 +150,39 @@ function findJsonEnd(raw, start) {
  * @typedef {object} BenefitItem
  * @property {number} campaignId campaign identifier.
  * @property {string} title campaign title.
+ * @property {string} type campaign trigger type, e.g. `USER_LOGIN`.
+ * @property {string|null} triggerMode `MANUAL_CLAIM`, `AUTO_GRANT`, …
  * @property {string|null} status upstream status text.
  * @property {boolean} claimable whether it can be claimed right now.
- * @property {number} pendingAmount credits on offer.
+ * @property {number} amount the campaign's full benefit amount.
+ * @property {number} pendingAmount credits still on offer right now.
  * @property {string} unit benefit unit.
+ * @property {string|null} description human description from the display config.
  * @property {string|null} expireAt ISO expiry, when one is declared.
  */
+
+/** Pull one field out of a campaign's `displayConfig` JSON blob, if it parses. */
+function displayField(displayConfig, field) {
+  if (typeof displayConfig !== 'string') return null
+  try {
+    const parsed = JSON.parse(displayConfig)
+    return typeof parsed?.[field] === 'string' ? parsed[field] : null
+  } catch {
+    return null
+  }
+}
 
 /**
  * List the campaigns this account can see, annotating which are claimable.
  *
  * This is a read: no claim is attempted. Displaying what *can* be claimed is
  * the whole point of the list.
+ *
+ * The upstream list is NOT a fixed set of check-in campaigns: alongside the
+ * daily ones it carries one-off registration rewards, student-only offers that
+ * need a certification first, and auto-granted campaigns that must never be
+ * posted to the claim endpoint. The extra fields below are what lets the
+ * check-in code tell those apart instead of guessing by id.
  * @param {import('./gateway.js').MadaoClient} client an authenticated client.
  * @returns {Promise<BenefitItem[]>} the campaigns.
  */
@@ -172,11 +193,15 @@ export async function listBenefits(client) {
   return items.map((item) => ({
     campaignId: Number(item.campaignId ?? 0),
     title: String(item.title ?? ''),
+    type: String(item.type ?? ''),
+    triggerMode: item.extra?.triggerMode ?? null,
     status: item.status ?? null,
     claimable: item.claimable === true,
+    amount: Number(item.benefitAmount ?? 0),
     pendingAmount: Number(item.pendingTotalAmount ?? 0),
     unit: String(item.benefitUnit ?? 'CREDIT'),
-    expireAt: item.expireAt ?? null,
+    description: item.description ?? displayField(item.displayConfig, 'description'),
+    expireAt: item.expireAt ?? item.extra?.endTime ?? null,
   }))
 }
 
