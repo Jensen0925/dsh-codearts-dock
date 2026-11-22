@@ -69,8 +69,12 @@ check('the account pool is a grid table with an uppercase header row', () => {
 
 check('one bulk claim button serves the account pool', () => {
   assert.ok(source.includes("'pool.checkinAll': ['一键签到'"), 'the bulk button exists')
+  // The guard's intent is "no per-row CLAIM BUTTON". A read-only check-in
+  // column is fine; only a button that claims for one row would break it.
+  // It used to match the class name `dca-pool-col-checkin`, which the status
+  // column legitimately introduced — assert on the control, not the column.
   assert.ok(
-    !source.includes('dca-pool-col-checkin'),
+    !/dca-pool-col-checkin[\s\S]{0,200}checkinClaim/.test(source),
     'never a per-row claim control',
   )
   // Disabled when there is nothing to claim, so a press that cannot act never

@@ -729,4 +729,59 @@ assert.match(unreadChip.text(unreadChip.render()), /积分暂时无法读取，�
 assert.doesNotMatch(unreadChip.text(unreadChip.render()), /上次积分|积分 0/)
 console.log('✓ first-time credit failures show an actionable state without inventing a cached balance')
 
+// Two daily campaigns run at once; the row has to show both, not one word.
+const dual = harness()
+const dualPool = [
+  { id: 'both', label: 'Both', active: true, health: { state: 'available' }, checkin: {
+    available: true, claimable: true, claimedToday: false, amount: 1100, title: '每日签到领100积分',
+    campaigns: [
+      { key: '34', campaignId: 34, label: '每日签到领100积分', claimable: true, claimedToday: false, amount: 100, reason: null },
+      { key: '40', campaignId: 40, label: 'Skill创新赛每日签到礼', claimable: true, claimedToday: false, amount: 1000, reason: null },
+    ],
+    // Campaigns this account cannot claim, so the tooltip can explain them.
+    unavailable: [
+      { campaignId: 39, label: '2026年学生专属福利', status: null, triggerMode: 'MANUAL_CLAIM', reason: 'condition' },
+      { campaignId: 4, label: '新用户注册送 4000 积分', status: 'CLAIMED', triggerMode: 'AUTO_GRANT', reason: 'auto' },
+    ],
+  } },
+  { id: 'half', label: 'Half', active: false, health: { state: 'available' }, checkin: {
+    available: true, claimable: true, claimedToday: false, amount: 1000, title: '每日签到领100积分',
+    campaigns: [
+      { key: 'credits', label: '每日签到领100积分', claimable: false, claimedToday: true, amount: 100, reason: null },
+      { key: 'skill', label: 'Skill创新赛每日签到礼', claimable: true, claimedToday: false, amount: 1000, reason: null },
+    ],
+  } },
+  { id: 'done', label: 'Done', active: false, health: { state: 'available' }, checkin: {
+    available: true, claimable: false, claimedToday: true, amount: 0, title: '每日签到领100积分',
+    campaigns: [
+      { key: 'credits', label: '每日签到领100积分', claimable: false, claimedToday: true, amount: 100, reason: null },
+      { key: 'skill', label: 'Skill创新赛每日签到礼', claimable: false, claimedToday: true, amount: 1000, reason: null },
+    ],
+  } },
+]
+await flushSettings(dual, { ...fixtures, '/accounts': { ok: true, activeId: 'both', accounts: dualPool } })
+const dualRow = (id) => dual.one((node) => node.type === 'div' && node.props.key === id && node.props.className?.startsWith('dca-pool-row'))
+// Nothing signed yet: the count states what is left, not a bare "due".
+assert.match(dual.text(dualRow('both')), /已签 0\/2/)
+// One of two signed: still pending, and the count reflects the progress.
+assert.match(dual.text(dualRow('half')), /已签 1\/2/)
+// Both signed collapses back to the single word the row used before.
+assert.match(dual.text(dualRow('done')), /今日已签/)
+assert.doesNotMatch(dual.text(dualRow('done')), /2\/2/)
+// The campaign names are reachable as the cell tooltip, not just a bare count.
+const dualCell = dual.findAll((node) => node.props.className === 'dca-pool-probe-main')
+assert.ok(dualCell.length > 0, 'the check-in cell renders')
+assert.ok(
+  dualCell.some((node) => typeof node.props.title === 'string' && node.props.title.includes('Skill创新赛每日签到礼')),
+  'each campaign is named in the cell tooltip',
+)
+// Campaigns the account cannot claim are explained rather than hidden.
+const explained = dual.findAll((node) => typeof node.props.title === 'string' && node.props.title.includes('2026年学生专属福利'))
+assert.ok(explained.length > 0, 'an ineligible campaign is named in the tooltip')
+assert.match(explained[0].props.title, /需先满足条件/)
+const autoLine = dual.findAll((node) => typeof node.props.title === 'string' && node.props.title.includes('新用户注册'))
+assert.ok(autoLine.length > 0, 'an auto-granted campaign is named too')
+assert.match(autoLine[0].props.title, /系统自动发放/)
+console.log('✓ the check-in cell reports per-campaign progress and explains ineligible ones')
+
 console.log('\nui: all checks passed')

@@ -348,6 +348,10 @@ window.__ModuleLoader__.load({
       'pool.checkinNoneToday': ['今天已没有可领取的签到', 'Nothing left to claim today'],
       'pool.checkinResult': ['{claimed} 个账号已签到，{failed} 个失败', '{claimed} claimed, {failed} failed'],
       'pool.checkinFailed': ['签到失败', 'Check-in failed'],
+      'pool.checkinPerCampaign': ['已签 {done}/{total}', '{done}/{total} claimed'],
+      'pool.checkinAuto': ['系统自动发放', 'granted automatically'],
+      'pool.checkinAlreadyClaimed': ['已领取', 'already claimed'],
+      'pool.checkinNeedsCondition': ['需先满足条件', 'needs a prerequisite'],
       'chip.loading': ['读取中…', 'Reading…'],
       'chip.credits': ['积分', 'credits'],
       'chip.panelTitle': ['码道账号与积分', 'CodeArts accounts and credits'],
@@ -574,16 +578,36 @@ window.__ModuleLoader__.load({
   font-size:12px;line-height:17px;color:var(--dsw-alias-label-tertiary,#999);
   min-width:0;overflow-wrap:anywhere;
 }
-.dca-pool-probe-cell{grid-area:probe;min-width:0}
+/* The check-in status spans both text rows of its column: a "1/2 个活动已签"
+   line would otherwise sit on the probe row while its header sits on the name
+   row. */
+.dca-pool-probe-cell{
+  grid-area:checkin;min-width:0;align-self:center;
+  /* Flush left in its own column, like the header above it: centring the text
+     made a short "今日已签" sit at a different x than a longer "1/2 个活动已签". */
+  justify-self:start;text-align:left;
+}
+.dca-pool-col-checkin{grid-area:checkin;min-width:0;justify-self:start;text-align:left}
 .dca-pool-probe-main{
   font-size:12px;line-height:17px;color:var(--dsw-alias-label-tertiary,#999);
   min-width:0;overflow-wrap:anywhere;
 }
 .dca-pool-credits-row{
-  grid-area:credits;
+  grid-area:credits;align-self:center;
+  /* The amount and its chips share a right edge. A wrapped row keeps the number
+     in the same column as the header for every account: letting the chip sit
+     beside it pushed a long balance left and made the column look ragged. */
   display:flex;flex-direction:row;flex-wrap:wrap;align-items:baseline;
-  justify-content:flex-end;gap:0 6px;min-width:0;
+  justify-content:flex-end;gap:2px 6px;min-width:0;
   justify-self:end;text-align:right;font-variant-numeric:tabular-nums;
+}
+/* The chip gets its own line rather than sharing the amount's, so the figures
+   stay flush right. */
+.dca-pool-credits-row .dca-tag-row{
+  /* Forced onto its own line: flex-wrap alone only wraps when the row is full,
+     and a short balance left the chip sitting beside it, which moved the number
+     off the header's edge. */
+  flex:0 0 100%;display:flex;justify-content:flex-end;margin-top:2px;
 }
 /* A small state chip on the name line, and a filled pill for "current". */
 .dca-pool-tag{
@@ -857,14 +881,26 @@ window.__ModuleLoader__.load({
   border:1px solid var(--dsw-alias-border-l2,#3a3d45);
   border-radius:12px;
   background:var(--dsw-alias-bg-layer-2,#24262c);
+  /* The rows share these columns through subgrid. Without that each row is its
+     own grid, so every row sized its columns to its own text and the header no
+     longer sat above the values it names. */
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(92px,auto) minmax(120px,auto) auto;
 }
 .dca-pool-row{
   display:grid;
-  grid-template-columns:minmax(0,1fr) minmax(140px,auto);
+  /* Account, then check-in, then figures. The check-in gets its own column so
+     its header lines up with the values and a long account name pushes the
+     columns instead of the status text. */
+  grid-column:1 / -1;
+  grid-template-columns:subgrid;
+  /* Name and its probe line on the left, the figures and the buttons on the
+     right, and the check-in between them. Two content rows, as before, so the
+     row height does not grow. */
   grid-template-areas:
-    "account credits"
-    "probe actions";
-  column-gap:12px;row-gap:4px;align-items:center;
+    "account checkin credits actions"
+    "probe   checkin credits actions";
+  column-gap:12px;row-gap:2px;align-items:center;
   padding:10px 14px;
   border-top:1px solid var(--dsw-alias-border-l1,#2c2d31);
   font-size:13px;
@@ -890,7 +926,7 @@ window.__ModuleLoader__.load({
 .dca-pool-col-credits{
   grid-area:credits;justify-self:end;text-align:right;font-variant-numeric:tabular-nums;
 }
-.dca-pool-col-actions{grid-area:actions;justify-self:end}
+.dca-pool-col-actions{grid-area:actions;justify-self:end;align-self:center}
 .dca-pool-card-head{
   display:flex;align-items:center;justify-content:space-between;
   gap:8px 12px;flex-wrap:wrap;
@@ -973,11 +1009,35 @@ window.__ModuleLoader__.load({
   .dca-model-actions{gap:8px}
   .dca-model-actions-buttons{margin-inline-start:auto}
   .dca-model-meta{gap:4px 10px}
-  .dca-pool-row{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"account credits" "probe actions";padding:10px}
+  .dca-pool-row{
+    grid-template-columns:minmax(0,1fr) auto auto;
+    /* On a narrow panel the check-in sits beside the balance instead of under
+       it, and the buttons take the last line: two lines of height rather than
+       four. */
+    grid-template-areas:
+      "account credits checkin"
+      "probe   actions actions";
+    padding:10px;
+  }
+  .dca-pool-row-head .dca-pool-col-checkin{display:none}
+  .dca-pool-col-checkin{justify-self:end;align-self:center}
+  .dca-pool-probe-cell{grid-area:checkin;justify-self:end;text-align:right;align-self:center}
+  .dca-pool-col-actions{grid-area:actions}
+  .dca-pool-actions{justify-content:flex-end}
 }
 
 @container dca-settings (max-width:420px){
-  .dca-pool-row{grid-template-columns:minmax(0,1fr) minmax(60px,auto);grid-template-areas:"account credits" "probe probe" "actions actions";row-gap:8px}
+  .dca-pool-row{
+    grid-template-columns:minmax(0,1fr) minmax(60px,auto);
+    grid-template-areas:
+      "account credits"
+      "probe   probe"
+      "checkin checkin"
+      "actions actions";
+    row-gap:8px;
+  }
+  .dca-pool-row-head .dca-pool-col-checkin{display:none}
+  .dca-pool-probe-cell{grid-area:checkin;justify-self:stretch;text-align:left}
   .dca-pool-col-actions{justify-self:stretch}
   .dca-pool-actions{justify-content:flex-start}
   .dca-pool-row-head .dca-pool-col-actions{display:none}
@@ -1446,6 +1506,60 @@ window.__ModuleLoader__.load({
     }
 
     /**
+     * The check-in cell text for one account.
+     *
+     * Two daily campaigns run at once, so a single "done / due" word would hide
+     * half the state. Show the campaign count when there is more than one, and
+     * keep the old single word otherwise so the cell stays as terse as before.
+     */
+    function checkinCampaignsOf(checkin) {
+      return Array.isArray(checkin?.campaigns) ? checkin.campaigns : []
+    }
+
+    function checkinCellText(checkin, t) {
+      if (!checkin) return '—'
+      const campaigns = checkinCampaignsOf(checkin)
+      if (campaigns.length === 0) {
+        return checkin.claimedToday
+          ? t('pool.checkinDone')
+          : checkin.claimable
+            ? t('pool.checkinPending')
+            : '—'
+      }
+      const done = campaigns.filter((campaign) => campaign.claimedToday).length
+      if (done === campaigns.length) return t('pool.checkinDone')
+      // Nothing claimable and nothing done usually means no campaign upstream.
+      // A bare dash reads as a rendering glitch next to the credit column's own
+      // dash, so say what it means instead.
+      if (done === 0 && !checkin.claimable) return t('pool.checkinNone')
+      return t('pool.checkinPerCampaign')
+        .replace('{done}', String(done))
+        .replace('{total}', String(campaigns.length))
+    }
+
+    /** The tooltip listing each campaign, so the count is never a mystery. */
+    function checkinTitle(checkin, t) {
+      const campaigns = checkinCampaignsOf(checkin)
+      const unavailable = Array.isArray(checkin?.unavailable) ? checkin.unavailable : []
+      if (campaigns.length <= 1 && unavailable.length === 0) return null
+      const lines = campaigns.map((campaign) => {
+        const mark = campaign.claimedToday ? '✓' : campaign.claimable ? '·' : '✕'
+        return `${mark} ${campaign.label}`
+      })
+      // Say why the others are missing instead of silently dropping them.
+      for (const item of unavailable) {
+        const key =
+          item.reason === 'auto'
+            ? 'pool.checkinAuto'
+            : item.reason === 'claimed'
+              ? 'pool.checkinAlreadyClaimed'
+              : 'pool.checkinNeedsCondition'
+        lines.push(`✕ ${item.label}（${t(key)}）`)
+      }
+      return lines.join('\n')
+    }
+
+    /**
      * The account pool.
      *
      * The header shows the account in use and one manual check-in action for
@@ -1547,6 +1661,7 @@ window.__ModuleLoader__.load({
                 'div',
                 { className: 'dca-pool-row dca-pool-row-head' },
                 h('span', { className: 'dca-pool-col-account' }, t('pool.colAccount')),
+                h('span', { className: 'dca-pool-col-checkin' }, t('pool.colCheckin')),
                 h('span', { className: 'dca-pool-col-credits' }, t('pool.colCredits')),
                 // An empty cell on purpose: the grid template names an `actions`
                 // area, and without a box the credits label would claim that
@@ -1610,7 +1725,15 @@ window.__ModuleLoader__.load({
                           title: `${t('health.checked')} ${formatTime(account.health.checkedAt)}`,
                         }, relativeTime(account.health.checkedAt, now)) : null,
                       ),
-                      h('span', null, account.accountName ?? account.akMasked),
+                      // The masked AK is only a second identity line when the
+                      // name above is something the user chose. For an unnamed
+                      // account `label` IS the masked AK, and printing it twice
+                      // in one row just looks like a rendering bug.
+                      account.accountName && account.accountName !== account.label
+                        ? h('span', null, account.accountName)
+                        : account.renameable
+                          ? h('span', null, account.akMasked)
+                          : null,
                       account.error ? h('details', { className: 'dca-details dca-account-error' },
                         h('summary', null, t('health.details')),
                         h('p', null, account.error),
@@ -1626,16 +1749,22 @@ window.__ModuleLoader__.load({
                     // Warn about credits that lapse. The amount is real; the
                     // deadline is not knowable from this gateway, so the chip
                     // states the amount and never a date it would have to invent.
+                    // It sits on its own line so the amount keeps the header's
+                    // right edge.
                     account.credit?.expiring > 0
                       ? h(
                           'span',
-                          {
-                            className: 'dca-tag dca-tag-warn',
-                            title: t('pool.expiringHint'),
-                          },
-                          t('pool.expiring').replace(
-                            '{amount}',
-                            Number(account.credit.expiring).toLocaleString(),
+                          { className: 'dca-tag-row' },
+                          h(
+                            'span',
+                            {
+                              className: 'dca-tag dca-tag-warn',
+                              title: t('pool.expiringHint'),
+                            },
+                            t('pool.expiring').replace(
+                              '{amount}',
+                              Number(account.credit.expiring).toLocaleString(),
+                            ),
                           ),
                         )
                       : null,
@@ -1645,12 +1774,13 @@ window.__ModuleLoader__.load({
                     { className: 'dca-pool-probe-cell' },
                     h(
                       'div',
-                      { className: 'dca-pool-probe-main' },
-                      checkin?.claimedToday
-                        ? t('pool.checkinDone')
-                        : checkin?.claimable
-                          ? t('pool.checkinPending')
-                          : '—',
+                      {
+                        className: 'dca-pool-probe-main',
+                        // The count would be a riddle without the campaign names,
+                        // and a second line would break the fixed row height.
+                        ...(checkinTitle(checkin, t) === null ? {} : { title: checkinTitle(checkin, t) }),
+                      },
+                      checkinCellText(checkin, t),
                     ),
                   ),
                   h(
