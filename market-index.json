@@ -34,7 +34,7 @@
       "repository": {
         "url": "https://github.com/Jensen0925/dsh-codearts-dock"
       },
-      "icon": "https://raw.githubusercontent.com/Jensen0925/dsh-codearts-dock/v1.1.0/icons/dsh-connect-codearts-128.png",
+      "icon": "https://raw.githubusercontent.com/Jensen0925/dsh-codearts-dock/v1.2.0/icons/dsh-codearts-dock-128.png",
       "metadata": {
         "category": "models",
         "keywords": [
@@ -52,8 +52,8 @@
       },
       "versions": [
         {
-          "version": "1.1.0",
-          "publishTimestamp": 1795399760,
+          "version": "1.2.0",
+          "publishTimestamp": 1795415380,
           "source": {
             "type": "npm"
           }
