@@ -24,6 +24,8 @@ on:
 permissions:
   contents: read
   # The one permission trusted publishing needs: mint the OIDC token.
+  # `npm publish` exchanges it for a short-lived registry token before it checks
+  # for credentials, so no NODE_AUTH_TOKEN needs to exist here.
   id-token: write
 
 jobs:
@@ -40,6 +42,9 @@ jobs:
       - name: Confirm the tag matches package.json
         # A tag that disagrees with the manifest would publish one version and
         # label another; fail before the registry has to reject anything.
+        # A manual run has no tag, so it is skipped there: applying it would
+        # compare the branch name against a version and fail every rehearsal.
+        if: github.event_name == 'push'
         run: |
           tag="${GITHUB_REF_NAME#v}"
           pkg="$(node -p "require('./package.json').version")"
