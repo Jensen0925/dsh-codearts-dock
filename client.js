@@ -399,6 +399,7 @@ window.__ModuleLoader__.load({
       'pool.checkinDone': ['今日已签', 'Checked in'],
       'pool.checkinUnavailable': ['不可领取', 'Unavailable'],
       'pool.checkinNone': ['无活动', 'No campaign'],
+      'pool.checkinUnknown': ['未读取', 'Not read'],
       'pool.checkinAll': ['一键签到', 'Check in now'],
       'pool.checkinAllHint': ['立刻为所有可签到的账号领取一次', 'Claim once for every eligible account'],
       'pool.checkinClaiming': ['签到中…', 'Claiming…'],
@@ -608,8 +609,18 @@ window.__ModuleLoader__.load({
   display:flex;align-items:center;justify-content:space-between;
   gap:8px 12px;flex-wrap:wrap;
 }
-.dca-pool-actions-group{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+/* The head holds a title, a sentence, a badge, and up to two buttons. Left as
+   four loose flex children, the buttons wrap away from each other and the
+   check-in drops onto its own line below a short row of leftovers. Wrapping the
+   controls in one group keeps them together, so the head is two things side by
+   side: what this card is, and what you can do to it. */
 .dca-pool-card-title{margin:0;font-size:13px;font-weight:600;line-height:20px}
+/* Title over sentence, kept together so the controls can sit opposite one block
+   instead of being a fourth loose child that wraps away from the rest. */
+.dca-pool-head-text{display:flex;align-items:baseline;gap:6px 10px;flex-wrap:wrap;min-width:0}
+/* Controls stay together on one line: a badge and two buttons that wrap apart
+   look like three unrelated leftovers rather than one set of actions. */
+.dca-pool-actions-group{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .dca-pool-tagline{flex:1 1 auto;min-width:0}
 .dca-pool-account-row{display:flex;align-items:center;gap:8px;min-width:0;flex-wrap:wrap}
 /* The account name is a BUTTON that looks like text: the pencil only appears on
@@ -984,12 +995,6 @@ window.__ModuleLoader__.load({
   grid-area:credits;justify-self:end;text-align:right;font-variant-numeric:tabular-nums;
 }
 .dca-pool-col-actions{grid-area:actions;justify-self:end;align-self:center}
-.dca-pool-card-head{
-  display:flex;align-items:center;justify-content:space-between;
-  gap:8px 12px;flex-wrap:wrap;
-}
-.dca-pool-tagline{flex:1 1 auto;min-width:0}
-.dca-pool-card-title{margin:0;font-size:13px;font-weight:600;line-height:20px}
 
 .dca-pool-sub{display:block;font-size:11px;line-height:16px;color:var(--dsw-alias-label-tertiary,#999)}
 .dca-pool-actions{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end;align-items:center}
@@ -1001,6 +1006,10 @@ window.__ModuleLoader__.load({
   color:var(--dsw-alias-label-primary,#e6e6e6);
   transition:background .15s,border-color .15s,opacity .15s;
 }
+/* One height for the small button, whichever spelling is used. The base button
+   sets min-height:32px, so "dca-btn dca-btn-xs" stood 6px taller than a plain
+   dca-btn-xs and a row mixing both looked misaligned. */
+.dca-btn-xs{min-height:26px}
 .dca-btn-xs:hover:not(:disabled){border-color:var(--dsw-alias-label-dimmed,#777)}
 .dca-btn-xs:focus-visible{outline:2px solid var(--dsw-alias-brand-primary,#5686fe);outline-offset:1px}
 .dca-btn-xs:disabled{opacity:.5;cursor:default}
@@ -1034,6 +1043,12 @@ window.__ModuleLoader__.load({
 .dca-empty{padding:24px 16px;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center}
 .dca-details > summary{cursor:pointer;font-size:12px;color:var(--dsw-alias-label-secondary,#c6c9d0);border-radius:4px}
 .dca-details[open] > summary{margin-bottom:12px}
+/* A collapsed <details> still lays out its card padding, so a closed section
+   renders as a tall empty box — the collapsed sections at the bottom of the
+   account page read as blanks rather than as things you can open. The padding
+   belongs to the content, so it is applied only while open. */
+.dca-card.dca-details:not([open]){padding-block:10px}
+.dca-card.dca-details[open]{padding-block:14px}
 .dca-details-body{display:flex;flex-direction:column;gap:12px;min-width:0}
 .dca-add-tools > summary{font-size:13px;font-weight:500;color:var(--dsw-alias-label-primary,#e6e6e6)}
 .dca-form-field{display:flex;flex-direction:column;gap:5px;flex:1 1 180px;min-width:0;font-size:12px;color:var(--dsw-alias-label-secondary,#c6c9d0)}
@@ -1111,7 +1126,11 @@ window.__ModuleLoader__.load({
 .dca-pin:disabled{opacity:.5;cursor:default}
 .dca-credit-status{display:block;flex-basis:100%;font-size:11px;line-height:16px;color:var(--dsw-alias-state-warn-primary,#d49937)}
 .dca-pop-notice{margin:6px 0;font-size:12px;line-height:18px;color:var(--dsw-alias-state-warn-primary,#d49937)}
-.dca-account-credits{font-size:16px;font-weight:600;line-height:22px}
+/* The balance is the one number on the row, but at 16px it outranked the
+   account name it belongs to and the two read as parallel headings. The
+   reference keeps it at the row's own size and leans on weight alone; matching
+   that puts the name back in front, which is what the row is about. */
+.dca-account-credits{font-size:14px;font-weight:600;line-height:20px}
 .dca-account-error{max-width:100%;font-size:12px}
 .dca-account-error > summary{color:var(--dsw-alias-state-error-primary,#ef4444)}
 .dca-account-error p{margin:6px 0 0;padding:8px 10px;border-inline-start:2px solid currentColor;overflow-wrap:anywhere;color:var(--dsw-alias-label-secondary,#b6b8be)}
@@ -1574,14 +1593,17 @@ window.__ModuleLoader__.load({
     }
 
     function checkinCellText(checkin, t) {
-      if (!checkin) return '—'
+      // A bare dash here sits one column away from the credit column's own dash,
+      // and two dashes side by side read as a rendering fault rather than as
+      // "there is nothing to say". Every "nothing" state says what it means.
+      if (!checkin) return t('pool.checkinUnknown')
       const campaigns = checkinCampaignsOf(checkin)
       if (campaigns.length === 0) {
         return checkin.claimedToday
           ? t('pool.checkinDone')
           : checkin.claimable
             ? t('pool.checkinPending')
-            : '—'
+            : t('pool.checkinNone')
       }
       const done = campaigns.filter((campaign) => campaign.claimedToday).length
       if (done === campaigns.length) return t('pool.checkinDone')
@@ -1683,30 +1705,34 @@ window.__ModuleLoader__.load({
         h(
           'div',
           { className: 'dca-pool-card-head' },
-          h('h2', { className: 'dca-title' }, t('pool.title')),
-          h('p', { className: 'dca-hint dca-pool-tagline' }, t('pool.tagline')),
+          // Title and sentence are one block so the controls opposite them are
+          // a single group; four loose children let the buttons wrap apart.
+          h('div', { className: 'dca-pool-head-text' },
+            h('h2', { className: 'dca-title' }, t('pool.title')),
+            h('p', { className: 'dca-hint dca-pool-tagline' }, t('pool.tagline')),
+          ),
           h('div', { className: 'dca-pool-actions-group' },
             active ? h('span', { className: 'dca-badge' }, `${t('pool.inUse')}${active.label}`) : null,
+            accounts.length === 0
+              ? null
+              : h(
+                  'button',
+                  {
+                    type: 'button',
+                    className: 'dca-btn dca-btn-xs',
+                    disabled: anyBusy || busyId !== null || !anyClaimable,
+                    title: anyClaimable
+                      ? t('pool.checkinAllHint')
+                      : t('pool.checkinNoneToday'),
+                    onClick: onCheckinAll,
+                  },
+                  busy === 'checkin' ? t('pool.checkinClaiming') : allSigned ? t('pool.allSigned') : t('pool.checkinAll'),
+                ),
             accounts.length > 0 ? h('button', {
               type: 'button', className: 'dca-btn-xs', onClick: onExport, disabled: anyBusy || busyId !== null,
               title: t('pool.exportHint'),
             }, t('pool.export')) : null,
           ),
-          accounts.length === 0
-            ? null
-            : h(
-                'button',
-                {
-                  type: 'button',
-                  className: 'dca-btn dca-btn-xs',
-                  disabled: anyBusy || busyId !== null || !anyClaimable,
-                  title: anyClaimable
-                    ? t('pool.checkinAllHint')
-                    : t('pool.checkinNoneToday'),
-                  onClick: onCheckinAll,
-                },
-                busy === 'checkin' ? t('pool.checkinClaiming') : allSigned ? t('pool.allSigned') : t('pool.checkinAll'),
-              ),
         ),
 
         accounts.length === 0
