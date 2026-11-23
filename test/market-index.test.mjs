@@ -16,7 +16,8 @@
  * could agree with itself while disagreeing with the page that reads it.
  */
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
+import { execFileSync } from 'node:child_process'
 import { createRequire } from 'node:module'
 import { join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -102,6 +103,49 @@ for (const entry of plugin.versions) {
 assert.match(plugin.icon, /^https:\/\/raw\.githubusercontent\.com\/Jensen0925\/dsh-codearts-dock\/(?:main|v[^/]+|[a-f\d]{40})\/icons\//)
 if (current?.source.type === 'npm') {
   assert.ok(plugin.icon.includes(`/v${pkg.version}/`) || plugin.icon.includes('/main/'), 'an npm entry points its icon at this release tag or main')
+}
+
+// The icon must also name a FILE that exists at that ref.
+//
+// The assertion above only validates the URL's SHAPE, which is how an artwork
+// rename slipped through: the index pointed at
+// `/v1.1.0/.../dsh-codearts-dock-128.png`, a path that only exists from the next
+// tag, so the Discover card showed a broken image while every assertion passed.
+//
+// A published ref is immutable, so the truth here is "what filenames does the
+// tag that this index lists actually carry". The local checkout answers that for
+// a ref it is currently on; for any other ref the tag listing is fetched, and an
+// unreachable network reports rather than fails — the suite must not start
+// failing on a train.
+const iconFile = plugin.icon.split('/').pop()
+const iconRef = plugin.icon.match(/\/dsh-codearts-dock\/([^/]+)\/icons\//)?.[1]
+
+/** Icon filenames present at a git ref, or null when that cannot be checked offline. */
+function iconNamesAt(ref) {
+  if (ref === undefined || ref === 'main') {
+    // main tracks this checkout, so the working tree is authoritative.
+    return readdirSync(new URL('../icons/', import.meta.url))
+  }
+  try {
+    const listing = execFileSync('git', ['ls-tree', '--name-only', `${ref}:icons`], {
+      cwd: root,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    })
+    return listing.split('\n').filter(Boolean)
+  } catch {
+    return null
+  }
+}
+
+const iconNames = iconNamesAt(iconRef)
+if (iconNames === null) {
+  console.log(`· icon file at ${iconRef} not verifiable offline; URL shape already checked`)
+} else {
+  assert.ok(
+    iconNames.includes(iconFile),
+    `the icon ${iconFile} must exist at ${iconRef}; that ref carries: ${iconNames.join(', ') || '(no icons)'}`,
+  )
 }
 
 console.log('✓ market index: format, version, source and icon reference are consistent')

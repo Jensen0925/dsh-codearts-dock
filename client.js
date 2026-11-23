@@ -9,7 +9,7 @@
  *     stays out of the way unless a 码道 model is selected.
  *
  * The Host half does all gateway work; this file only reads the small JSON
- * routes under `/plugins/dsh-connect-codearts/`. Nothing here touches
+ * routes under `/plugins/dsh-codearts-dock/`. Nothing here touches
  * credentials beyond posting them once.
  *
  * Written as a plain-JS module for the Client module table: React comes from
@@ -29,7 +29,7 @@ window.__ModuleLoader__.load({
     const { useState, useEffect, useCallback, useRef } = React
 
     /** Route root served by the plugin's Host half. */
-    const ROUTE = '/plugins/dsh-connect-codearts'
+    const ROUTE = '/plugins/dsh-codearts-dock'
 
     /** Provider route this plugin owns; the chip only shows for these models. */
     const PROVIDER_ID = 'codearts'
@@ -68,7 +68,7 @@ window.__ModuleLoader__.load({
         try {
           fn()
         } catch (error) {
-          console.error('[dsh-connect-codearts] credit listener failed', error)
+          console.error('[dsh-codearts-dock] credit listener failed', error)
         }
       }
       return () => { creditListeners.delete(fn) }
@@ -86,7 +86,7 @@ window.__ModuleLoader__.load({
         } catch (error) {
           // One broken subscriber must not stop the others, and must not make
           // the action that changed the balance look like it failed.
-          console.error('[dsh-connect-codearts] credit listener failed', error)
+          console.error('[dsh-codearts-dock] credit listener failed', error)
         }
       }
     }
@@ -2180,8 +2180,12 @@ window.__ModuleLoader__.load({
       const validPassword = exportPassword.length >= 8 && exportPassword.length <= 256 && exportPassword === confirmation
       let importFormat
       try { importFormat = JSON.parse(text)?.format } catch {}
-      const encryptedImport = importFormat === 'dsh-connect-codearts-encrypted'
-      const importLabel = encryptedImport ? 'backup.encrypted' : importFormat === 'dsh-connect-codearts-backup' ? 'backup.plain' : null
+      // Both ids the plugin has ever written: a backup exported before the
+      // rename must still be recognised here so the dialog asks for its
+      // password instead of calling the file unsupported.
+      const encryptedImport = importFormat === 'dsh-codearts-dock-encrypted' || importFormat === 'dsh-connect-codearts-encrypted'
+      const plainImport = importFormat === 'dsh-codearts-dock-backup' || importFormat === 'dsh-connect-codearts-backup'
+      const importLabel = encryptedImport ? 'backup.encrypted' : plainImport ? 'backup.plain' : null
       const canInspect = text.trim() && (!encryptedImport || (password.length >= 8 && password.length <= 256))
       const changeMode = (next) => {
         if (busy || next === mode) return
@@ -3434,7 +3438,7 @@ window.__ModuleLoader__.load({
 
     // ── registration ───────────────────────────────────────────────────────
 
-    const name = 'dsh-connect-codearts-client'
+    const name = 'dsh-codearts-dock-client'
     const inject = ['slots']
 
     /**
@@ -3461,14 +3465,14 @@ window.__ModuleLoader__.load({
     function apply(ctx) {
       if (typeof document !== 'undefined') {
         ctx.effect(() => {
-          const cssId = 'dsh-connect-codearts/client.css'
+          const cssId = 'dsh-codearts-dock/client.css'
           const selector = `style[data-plugin-css="${cssId}"]`
           const existing = document.querySelector(selector)
           if (existing !== null) {
             existing.textContent = CSS
           } else {
             const tag = document.createElement('style')
-            tag.dataset.plugin = 'dsh-connect-codearts'
+            tag.dataset.plugin = 'dsh-codearts-dock'
             tag.dataset.pluginCss = cssId
             tag.textContent = CSS
             document.head.appendChild(tag)
@@ -3477,7 +3481,7 @@ window.__ModuleLoader__.load({
             const owned = document.querySelector(selector)
             if (owned !== null) owned.remove()
           }
-        }, 'dsh-connect-codearts: stylesheet')
+        }, 'dsh-codearts-dock: stylesheet')
       }
 
       // The page and its glyph come from ONE callback: the section's
@@ -3490,7 +3494,7 @@ window.__ModuleLoader__.load({
           ctx.slots.register(
             {
               name: 'settings.section',
-              id: 'dsh-connect-codearts',
+              id: 'dsh-codearts-dock',
               order: 36,
               label: () => t('nav.label'),
             },
@@ -3500,7 +3504,7 @@ window.__ModuleLoader__.load({
         try {
           const iconInject = ctx.slots.inject('settings.section.icon', () => {
             const dispose = ctx.slots.register(
-              { name: 'settings.section.icon', id: 'dsh-connect-codearts' },
+              { name: 'settings.section.icon', id: 'dsh-codearts-dock' },
               NavIcon,
             )
             disposers.push(dispose)
@@ -3508,7 +3512,7 @@ window.__ModuleLoader__.load({
           })
           if (typeof iconInject === 'function') disposers.push(iconInject)
         } catch (error) {
-          console.error('[dsh-connect-codearts] settings nav icon failed to register (page unaffected):', error)
+          console.error('[dsh-codearts-dock] settings nav icon failed to register (page unaffected):', error)
         }
         return () => {
           for (const dispose of disposers) {
@@ -3687,7 +3691,7 @@ window.__ModuleLoader__.load({
       const openSettings = () => {
         let seatResult
         try {
-          seatResult = openThroughStoreSeat(softGet, 'dsh-connect-codearts')
+          seatResult = openThroughStoreSeat(softGet, 'dsh-codearts-dock')
         } catch {
           seatResult = undefined
         }
@@ -3703,7 +3707,7 @@ window.__ModuleLoader__.load({
         ctx.slots.register(
           {
             name: 'conversation.input.right',
-            id: 'dsh-connect-codearts-chip',
+            id: 'dsh-codearts-dock-chip',
             order: 6,
             inject: () => ({ openSettings }),
           },

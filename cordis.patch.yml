@@ -3,7 +3,7 @@
 # written here: the catalog is whatever the gateway advertised at the last
 # refresh, and a model selection therefore never needs a restart.
 - insert:
-    - id: dsh-connect-codearts
+    - id: dsh-codearts-dock
       name: dsh-codearts-dock
       config:
         enabled: true

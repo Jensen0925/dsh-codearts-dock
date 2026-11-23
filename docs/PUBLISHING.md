@@ -101,4 +101,4 @@ npm trust github dsh-codearts-dock --file release.yml --allow-publish --dry-run 
 
 `main` 分支的每次推送都会跑 `.github/workflows/ci.yml`（离线测试 + 发布前检查 + 打包清单），它不发布任何东西。
 
-本仓库保留 `dsh-connect-codearts` 本机配置目录和内部设置标识，模型 provider 仍为 `codearts`，以兼容已有配置。请勿同时启用新旧两个包。
+1.1.0 及更早版本的包名是 `dsh-connect-codearts`，配置目录与内部标识也是这个名字。从 1.2.0 起统一为 `dsh-codearts-dock`：配置目录、loader 行 id、HTTP 路由前缀、客户端槽位 id 和备份格式 id 全部改名，读取侧保留对旧目录、旧设置命名空间与旧备份格式的兼容，升级不丢账号和偏好。模型 provider 仍为 `codearts`。不要同时启用新旧两个包——两者会注册同一个 provider 路由。

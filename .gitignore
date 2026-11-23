@@ -5,7 +5,7 @@ node_modules/
 package-lock.json
 
 # Local credentials are never committed. The plugin reads them from
-# ~/.config/dsh-connect-codearts/credentials.json (or the environment), not
+# ~/.config/dsh-codearts-dock/credentials.json (or the environment), not
 # from the checkout, so nothing here should ever hold a key.
 credentials.json
 credentials.enc

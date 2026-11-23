@@ -170,7 +170,7 @@ check('the settings nav glyph is registered under the section\'s own id', () => 
   // one inject callback so the pairing cannot drift.
   assert.ok(source.includes("'settings.section.icon'"), 'the icon seat is used')
   assert.ok(
-    source.includes("name: 'settings.section.icon', id: 'dsh-connect-codearts'"),
+    source.includes("name: 'settings.section.icon', id: 'dsh-codearts-dock'"),
     'the glyph id must equal the section id',
   )
   assert.ok(source.includes('NAV_ICON'), 'the glyph has artwork')
@@ -343,7 +343,7 @@ check('the settings button opens this plugin\'s own settings section', () => {
   assert.ok(source.includes('actions?.openSection'), 'calls openSection on the shell instance')
   assert.ok(source.includes('openSection(sectionId)'), 'opens the section named by its id')
   assert.ok(
-    source.includes("openThroughStoreSeat(softGet, 'dsh-connect-codearts')"),
+    source.includes("openThroughStoreSeat(softGet, 'dsh-codearts-dock')"),
     'and that id is this plugin\'s own section',
   )
   // The shell pins create() to its one live instance; a bare handle would move a

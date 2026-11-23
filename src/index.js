@@ -66,7 +66,7 @@ import { registerFeatureRoutes, applyPreferences } from './features.js'
 import { accountHealth } from './health.js'
 
 /** Plugin name; also the client module id. */
-export const name = 'dsh-connect-codearts'
+export const name = 'dsh-codearts-dock'
 
 /** Services this plugin needs before it can activate. */
 import z from '@deepseek-ai/schemastery'
@@ -104,7 +104,7 @@ export const Config = z.object({
 export const inject = ['llm']
 
 /** Route prefix for this plugin's HTTP surface. */
-const ROUTE_PREFIX = '/plugins/dsh-connect-codearts'
+const ROUTE_PREFIX = '/plugins/dsh-codearts-dock'
 
 /** Default refresh period for the catalog and the credit reading. */
 const DEFAULT_REFRESH_MS = 5 * 60 * 1000
@@ -1102,7 +1102,7 @@ function message(error) {
  * routes, so nothing here is the source of truth.
  */
 function createLogger() {
-  const prefix = '[dsh-connect-codearts]'
+  const prefix = '[dsh-codearts-dock]'
   return (line) => {
     try {
       console.log(`${prefix} ${line}`)

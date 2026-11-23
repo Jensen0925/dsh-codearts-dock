@@ -112,7 +112,7 @@ await check('a host that mounts the plugin directly still gets a namespace', asy
   // `ctx.fiber.entry` is added by the Loader, so it is absent under ctx.plugin()
   // or a test harness. The fallback is what keeps the row registering there.
   const { directories } = activate()
-  assert.equal(directories[0][0].settingsNs, 'dsh-connect-codearts')
+  assert.equal(directories[0][0].settingsNs, 'dsh-codearts-dock')
 })
 
 await check('the adapter is registered for exactly this provider route', async () => {
@@ -201,7 +201,7 @@ await check('every route is registered exact, so paths cannot shadow each other'
   }
   plugin.apply(ctx, {})
   assert.deepEqual([...kinds], ['exact'], `expected only exact routes, got: ${[...kinds].join(', ')}`)
-  assert.ok(seen.includes('/plugins/dsh-connect-codearts/models/select'), 'the save route is registered')
+  assert.ok(seen.includes('/plugins/dsh-codearts-dock/models/select'), 'the save route is registered')
 })
 
 await check('a Config schema is declared, so the settings namespace exists', async () => {

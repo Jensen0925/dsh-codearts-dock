@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="icons/dsh-connect-codearts-256.png" width="112" alt="CodeArts Dock · 码道驿站" />
+  <img src="icons/dsh-codearts-dock-256.png" width="112" alt="CodeArts Dock · 码道驿站" />
 </p>
 
 # CodeArts Dock · 码道驿站
@@ -121,7 +121,7 @@ Token 用量与上下文分析可通过 `dsh-context` 插件查看。本插件�
 - 本机请求元数据不作为遥测上传。宿主、网关及你配置的其他组件可能有各自的数据处理行为。
 - 复制诊断信息使用字段白名单；技术详情和你自行截取的日志仍可能含账号名称、路径或错误信息，提交反馈前请检查。
 
-为兼容旧版，本机配置目录仍使用 `dsh-connect-codearts`：默认位于 `~/.config/dsh-connect-codearts/`，设置 `APPDATA` 时使用其下的同名目录；还兼容读取旧凭证文件 `~/.dsh-connect-codearts/credentials.json`。包名变更为 `dsh-codearts-dock`，模型 provider 仍为 `codearts`。
+本机配置默认位于 `~/.config/dsh-codearts-dock/`（设置 `APPDATA` 时使用其下的同名目录）。从旧版 `dsh-connect-codearts` 升级时，账号、偏好和签到记录会自动沿用：读取顺序是新目录优先、旧目录 `~/.config/dsh-connect-codearts/` 兜底，第一次保存即写入新目录，旧文件保留不动，因此回退旧版也不会丢数据。更早的单条凭证文件 `~/.dsh-connect-codearts/credentials.json` 同样兼容读取，旧版导出的加密备份也可以直接恢复。模型 provider 仍为 `codearts`。
 
 详细说明见 [SECURITY.md](SECURITY.md)。
 

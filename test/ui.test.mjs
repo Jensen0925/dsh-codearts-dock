@@ -89,7 +89,7 @@ function harness(surface = 'settings', rootProps = {}) {
     navigator: { language: 'zh-CN', clipboard: { writeText: async (text) => copied.push(text) } },
     setInterval: (fn) => { intervals.push(fn); return intervals.length }, clearInterval() {},
     fetch: async (url, options = {}) => {
-      const path = url.replace('/plugins/dsh-connect-codearts', '')
+      const path = url.replace('/plugins/dsh-codearts-dock', '')
       if (options.method === 'POST') {
         const body = JSON.parse(options.body)
         writes.push({ path, body })
@@ -374,7 +374,7 @@ labelled('加密密码').props.onChange({ target: { value: 'password-123' } })
 labelled('确认加密密码').props.onChange({ target: { value: 'password-123' } }); features.render()
 assert.equal(fb('下载备份').props.disabled, false)
 const backupForm = () => features.one((node) => node.type === 'form' && features.findAll((child) => child.type === 'button' && features.text(child) === '下载备份', node).length === 1)
-const exportedEnvelope = { format: 'dsh-connect-codearts-encrypted', version: 1, data: 'fake-test-ciphertext' }
+const exportedEnvelope = { format: 'dsh-codearts-dock-encrypted', version: 1, data: 'fake-test-ciphertext' }
 features.postResponses.set('/backup/export', { ok: true, backup: exportedEnvelope })
 await act(() => backupForm().props.onSubmit({ preventDefault() {} }))
 assert.equal(features.writes.at(-1).body.includeCredentials, true)
@@ -426,7 +426,7 @@ await act(() => inputFile().props.onChange({ target: { value: 'too-big.json', fi
 assert.match(features.text(fp('account')), /备份文件过大/)
 assert.equal(labelled('备份内容（也可粘贴 JSON）', 'textarea').props.value, '')
 assert.equal(fb('读取并预览').props.disabled, true)
-const plainBackup = '{"format":"dsh-connect-codearts-backup","version":1,"preferences":{}}'
+const plainBackup = '{"format":"dsh-codearts-dock-backup","version":1,"preferences":{}}'
 labelled('备份内容（也可粘贴 JSON）', 'textarea').props.onChange({ target: { value: plainBackup } }); features.render()
 assert.equal(features.findAll((node) => node.type === 'input' && node.props.autoComplete === 'off' && node.props.type === 'password', backupRoot()).length, 0)
 features.postResponses.set('/backup/preview', { ok: true, changes: [], preferences: {}, accounts: { added: 0, updated: 0 } })

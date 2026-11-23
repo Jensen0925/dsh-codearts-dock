@@ -88,7 +88,7 @@ const index = {
     author: 'Jensen0925',
     homepage: ROOT,
     repository: { url: ROOT },
-    icon: `https://raw.githubusercontent.com/Jensen0925/dsh-codearts-dock/${iconRef}/icons/dsh-connect-codearts-128.png`,
+    icon: `https://raw.githubusercontent.com/Jensen0925/dsh-codearts-dock/${iconRef}/icons/dsh-codearts-dock-128.png`,
     metadata: { category: 'models', keywords: pkg.keywords },
     versions: [{ version: pkg.version, publishTimestamp, source }],
   }],

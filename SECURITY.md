@@ -10,9 +10,8 @@
 
 ## 凭证存储
 
-- 默认配置目录：`~/.config/dsh-connect-codearts/`；设置 `APPDATA` 时，使用 `$APPDATA/dsh-connect-codearts/`。当前实现不读取 `XDG_CONFIG_HOME`。
-- 账号池文件：`credentials.json`。仍兼容读取 `~/.dsh-connect-codearts/credentials.json` 中的旧凭证。
-- 目录名称保留旧包名以兼容已有安装，不代表仍需安装旧包。
+- 默认配置目录：`~/.config/dsh-codearts-dock/`；设置 `APPDATA` 时，使用 `$APPDATA/dsh-codearts-dock/`。当前实现不读取 `XDG_CONFIG_HOME`。
+- 账号池文件：`credentials.json`。从旧版升级时，读取顺序为当前目录 → 旧目录 `~/.config/dsh-connect-codearts/` → `~/.dsh-connect-codearts/credentials.json` 中的单条旧凭证；写入只发生在当前目录，旧文件不会被改写或删除。
 - 账号池保存明文 AK/SK 与账号元数据，写入时指定文件权限 `0600`。权限保护的实际效果取决于操作系统和文件系统，不能防止同一用户下的恶意进程、磁盘泄露或不当备份。
 - 普通账号导出包含明文密钥；不要把导出文件放进公开仓库、同步共享目录或问题反馈。
 

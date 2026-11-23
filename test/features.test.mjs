@@ -42,7 +42,7 @@ await check('concurrent preference writes are atomic, private, and do not lose o
   await Promise.all([persistPreferences({ refreshIntervalMs: 120000 }), persistPreferences({ composerChip: false }), persistPreferences({ modelPresets: [] })])
   assert.equal(readPreferences().refreshIntervalMs, 120000)
   assert.equal(readPreferences().composerChip, false)
-  const mode = (await stat(join(scratch, 'dsh-connect-codearts', 'preferences.json'))).mode & 0o777
+  const mode = (await stat(join(scratch, 'dsh-codearts-dock', 'preferences.json'))).mode & 0o777
   assert.equal(mode, 0o600)
 })
 await check('account health separates credentials, throttling, quota, network, and upstream failures', async () => {
@@ -114,12 +114,12 @@ const routes = new Map()
 const plugin = await import('../src/index.js')
 const effect = (fn) => { const dispose = fn(); if (typeof dispose === 'function') disposers.push(dispose); return dispose }
 plugin.apply({ effect, get: () => undefined, emit() {}, inject: (_, callback) => callback({ effect, webServer: { register: (route) => { routes.set(route.path, route.handler); return () => {} } } }) }, { registerProvider: false, autoCheckin: true })
-for (const path of ['/usage', '/usage/clear', '/checkin/auto']) assert.ok(!routes.has(`/plugins/dsh-connect-codearts${path}`), `Retired route registered: ${path}`)
+for (const path of ['/usage', '/usage/clear', '/checkin/auto']) assert.ok(!routes.has(`/plugins/dsh-codearts-dock${path}`), `Retired route registered: ${path}`)
 const request = (path, body, method = body === undefined ? 'GET' : 'POST', options = {}) => new Promise((resolve, reject) => {
-  const handler = routes.get(`/plugins/dsh-connect-codearts${path}`)
+  const handler = routes.get(`/plugins/dsh-codearts-dock${path}`)
   if (!handler) return reject(new Error(`Unknown route ${path}`))
   const req = Readable.from(options.raw !== undefined ? [Buffer.from(options.raw)] : body === undefined ? [] : [Buffer.from(JSON.stringify(body))])
-  Object.assign(req, { method, url: `/plugins/dsh-connect-codearts${path}`, socket: { remoteAddress: options.remoteAddress ?? '127.0.0.1' }, headers: options.headers ?? {} })
+  Object.assign(req, { method, url: `/plugins/dsh-codearts-dock${path}`, socket: { remoteAddress: options.remoteAddress ?? '127.0.0.1' }, headers: options.headers ?? {} })
   let status
   handler(req, { setHeader() {}, writeHead: (value) => { status = value }, end: (text) => resolve({ status, body: JSON.parse(text) }) })
 })

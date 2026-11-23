@@ -23,7 +23,12 @@
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises'
 import { readFileSync, existsSync, statSync } from 'node:fs'
 import { createHash, randomUUID } from 'node:crypto'
-import { CONFIG_DIR, CREDENTIAL_PATH, LEGACY_CREDENTIAL_PATH } from './paths.js'
+import {
+  CONFIG_DIR,
+  CREDENTIAL_PATH,
+  LEGACY_CONFIG_CREDENTIAL_PATH,
+  LEGACY_CREDENTIAL_PATH,
+} from './paths.js'
 
 /** Current on-disk schema version. */
 export const STORE_VERSION = 2
@@ -156,7 +161,10 @@ export function readStore() {
  * @returns {{store: StoreDocument, path: string|null}} the document and its source file.
  */
 export function locateStore() {
-  for (const path of [CREDENTIAL_PATH, LEGACY_CREDENTIAL_PATH]) {
+  // Order states the migration: the current file wins, then the one this
+  // plugin wrote under its pre-1.2 name, then a single-pair credential from
+  // before the account store existed.
+  for (const path of [CREDENTIAL_PATH, LEGACY_CONFIG_CREDENTIAL_PATH, LEGACY_CREDENTIAL_PATH]) {
     if (!existsSync(path)) continue
     try {
       const parsed = JSON.parse(readFileSync(path, 'utf8'))

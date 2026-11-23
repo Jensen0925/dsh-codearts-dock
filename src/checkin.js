@@ -34,7 +34,7 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { mkdir, rename, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { CONFIG_DIR } from './paths.js'
+import { CONFIG_DIR, configCandidates } from './paths.js'
 import { claimBenefit, listBenefits } from './account.js'
 
 /** File holding the per-account claim record. */
@@ -123,20 +123,24 @@ function normaliseAccountEntry(entry) {
 
 /** Read the record; a missing or corrupt file is an empty record. */
 export function readCheckinState() {
-  if (!existsSync(CHECKIN_STATE_PATH)) return { accounts: {} }
-  try {
-    const parsed = JSON.parse(readFileSync(CHECKIN_STATE_PATH, 'utf8'))
-    if (parsed && typeof parsed === 'object' && typeof parsed.accounts === 'object') {
-      const accounts = {}
-      for (const [accountId, entry] of Object.entries(parsed.accounts)) {
-        const normalised = normaliseAccountEntry(entry)
-        if (Object.keys(normalised).length > 0) accounts[accountId] = normalised
+  // Newest location first, so the claim history follows a rename instead of
+  // looking like "nothing was ever claimed" on the next start.
+  for (const path of configCandidates('checkin-state.json')) {
+    if (!existsSync(path)) continue
+    try {
+      const parsed = JSON.parse(readFileSync(path, 'utf8'))
+      if (parsed && typeof parsed === 'object' && typeof parsed.accounts === 'object') {
+        const accounts = {}
+        for (const [accountId, entry] of Object.entries(parsed.accounts)) {
+          const normalised = normaliseAccountEntry(entry)
+          if (Object.keys(normalised).length > 0) accounts[accountId] = normalised
+        }
+        return { accounts }
       }
-      return { accounts }
+    } catch {
+      // Fall through: an unreadable record means "no attempts recorded", and the
+      // upstream `claimable` flag still prevents a blind claim.
     }
-  } catch {
-    // Fall through: an unreadable record means "no attempts recorded", and the
-    // upstream `claimable` flag still prevents a blind claim.
   }
   return { accounts: {} }
 }

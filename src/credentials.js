@@ -19,18 +19,27 @@ import { readFileSync, existsSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { getSts, StsError } from './sts.js'
-import { activeAccount, defaultLabel, readStore } from './accounts.js'
+import { activeAccount, defaultLabel, locateStore } from './accounts.js'
 import {
   CONFIG_DIR,
   CREDENTIAL_PATH,
   ENV_AK,
   ENV_SK,
   ENV_TOKEN,
+  LEGACY_CONFIG_CREDENTIAL_PATH,
   LEGACY_CREDENTIAL_PATH,
 } from './paths.js'
 
 // Re-exported so callers that imported these from here keep working.
-export { CONFIG_DIR, CREDENTIAL_PATH, ENV_AK, ENV_SK, ENV_TOKEN, LEGACY_CREDENTIAL_PATH }
+export {
+  CONFIG_DIR,
+  CREDENTIAL_PATH,
+  ENV_AK,
+  ENV_SK,
+  ENV_TOKEN,
+  LEGACY_CONFIG_CREDENTIAL_PATH,
+  LEGACY_CREDENTIAL_PATH,
+}
 
 /** A user-facing credential failure with actionable text. */
 export class CredentialError extends Error {
@@ -62,7 +71,8 @@ export class CredentialError extends Error {
  * @returns {StoredKey|null} the parsed key, or null when absent.
  */
 export function readSavedCredentials(path = CREDENTIAL_PATH) {
-  for (const candidate of [path, LEGACY_CREDENTIAL_PATH]) {
+  const candidates = [path, LEGACY_CONFIG_CREDENTIAL_PATH, LEGACY_CREDENTIAL_PATH]
+  for (const candidate of [...new Set(candidates)]) {
     if (!existsSync(candidate)) continue
     try {
       const parsed = JSON.parse(readFileSync(candidate, 'utf8'))
@@ -110,13 +120,16 @@ export function listCandidates() {
 
   // The account store: the active account is the one requests use. Naming it
   // in the label is what lets a user see which of several accounts is live.
-  const store = readStore()
-  const active = activeAccount(store)
+  // The path comes from the store itself rather than from CREDENTIAL_PATH: on a
+  // profile that has not saved since the rename it is still the old file, and
+  // naming a file that does not exist sends the user to the wrong place.
+  const located = locateStore()
+  const active = activeAccount(located.store)
   if (active) {
     candidates.push({
       key: { ak: active.ak, sk: active.sk, ...(active.accountName ? { account: active.accountName } : {}) },
       source: 'file',
-      label: `账号「${active.label ?? defaultLabel(active.ak)}」（${CREDENTIAL_PATH}）`,
+      label: `账号「${active.label ?? defaultLabel(active.ak)}」（${located.path ?? CREDENTIAL_PATH}）`,
       accountId: active.id,
     })
   }

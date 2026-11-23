@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import { mkdir, writeFile, rename } from 'node:fs/promises'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
-import { CONFIG_DIR } from './paths.js'
+import { CONFIG_DIR, configCandidates } from './paths.js'
 
 export class InputError extends Error {}
 export const FEATURE_DEFAULTS = Object.freeze({ modelPresets: [], favoriteModelIds: [] })
@@ -62,7 +62,17 @@ export function validatePreferences(input) {
 }
 export const PREFERENCES_PATH = join(CONFIG_DIR, 'preferences.json')
 export function readPreferences() {
-  try { const value = JSON.parse(readFileSync(PREFERENCES_PATH, 'utf8')); return plain(value) ? value : {} } catch { return {} }
+  // Newest location first: a user upgrading from the pre-1.2 name keeps the
+  // model selection, presets and favourites they already had.
+  for (const path of configCandidates('preferences.json')) {
+    try {
+      const value = JSON.parse(readFileSync(path, 'utf8'))
+      return plain(value) ? value : {}
+    } catch {
+      // Absent or corrupt: try the older name, then fall back to defaults.
+    }
+  }
+  return {}
 }
 let pending = Promise.resolve()
 export function persistPreferences(patch) {

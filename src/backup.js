@@ -3,16 +3,29 @@ import { randomBytes, scrypt, createCipheriv, createDecipheriv, createHash } fro
 import { promisify } from 'node:util'
 import { InputError, validatePreferences } from './preferences.js'
 const derive = promisify(scrypt)
-const FORMAT = 'dsh-connect-codearts-backup'
-const ENCRYPTED = 'dsh-connect-codearts-encrypted'
+const FORMAT = 'dsh-codearts-dock-backup'
+const ENCRYPTED = 'dsh-codearts-dock-encrypted'
+
+/**
+ * Format ids this plugin wrote under its pre-1.2 name.
+ *
+ * Read, never written: a backup a user exported before the rename must still
+ * restore, and the id inside the file is what identifies it. The old encrypted
+ * id also has to reach the AAD, because the seal authenticates it.
+ */
+const LEGACY_FORMAT = 'dsh-connect-codearts-backup'
+const LEGACY_ENCRYPTED = 'dsh-connect-codearts-encrypted'
 const MAX_BYTES = 512 * 1024
 const invalid = (message = '备份格式或版本不受支持') => { throw new InputError(message) }
 function passwordCheck(password) {
   if (typeof password !== 'string' || password.length < 8 || password.length > 256) invalid('备份密码需为 8 到 256 个字符')
 }
 function validatePayload(value) {
-  if (!value || value.format !== FORMAT || value.version !== 1 || !value.preferences) invalid()
+  const legacy = value?.format === LEGACY_FORMAT
+  if (!value || (value.format !== FORMAT && !legacy) || value.version !== 1 || !value.preferences) invalid()
   const preferences = validatePreferences(value.preferences)
+  // Normalised to the current id on the way in, so an old file restores into
+  // the same in-memory shape and the caller never has to know which it read.
   const result = { format: FORMAT, version: 1, preferences }
   if ('accounts' in value) {
     if (!Array.isArray(value.accounts) || value.accounts.length > 100) invalid('备份最多包含 100 个账号')
@@ -55,11 +68,15 @@ export async function decodeBackup(text, password = '') {
   if (typeof text !== 'string' || Buffer.byteLength(text) > MAX_BYTES * 1.5) invalid('备份文件过大或内容不正确')
   let raw
   try { raw = JSON.parse(text) } catch { invalid('备份不是合法 JSON') }
-  if (raw?.format === FORMAT) {
+  if (raw?.format === FORMAT || raw?.format === LEGACY_FORMAT) {
     if ('accounts' in raw || 'activeAccountId' in raw) invalid('含凭证的备份必须为加密文件')
     return validatePayload(raw)
   }
-  if (raw?.format !== ENCRYPTED || raw.version !== 1 || raw.cipher !== 'aes-256-gcm' || raw.kdf !== 'scrypt') invalid()
+  // The seal authenticates the exact id it was written with, so an old file has
+  // to be opened under the old AAD; a file written now still uses the new one.
+  const sealedFormat = raw?.format
+  if (sealedFormat !== ENCRYPTED && sealedFormat !== LEGACY_ENCRYPTED) invalid()
+  if (raw.version !== 1 || raw.cipher !== 'aes-256-gcm' || raw.kdf !== 'scrypt') invalid()
   passwordCheck(password)
   const bytes = (field, size) => {
     const encoded = raw[field]
@@ -73,7 +90,7 @@ export async function decodeBackup(text, password = '') {
   let payload
   try {
     const decipher = createDecipheriv('aes-256-gcm', key, iv)
-    decipher.setAAD(Buffer.from(`${ENCRYPTED}:1`))
+    decipher.setAAD(Buffer.from(`${sealedFormat}:1`))
     decipher.setAuthTag(tag)
     payload = JSON.parse(Buffer.concat([decipher.update(data), decipher.final()]).toString('utf8'))
   } catch { invalid('密码错误，或备份文件已损坏') } finally { key.fill(0) }
