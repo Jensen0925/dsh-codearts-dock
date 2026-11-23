@@ -14,7 +14,13 @@ https://github.com/Jensen0925/dsh-codearts-dock.git
 
 ### npm
 
-npm 发行包名为 `dsh-codearts-dock`。包是否已发布、可用版本和发布时间，以 [npm 页面](https://www.npmjs.com/package/dsh-codearts-dock) 的实际记录为准。
+在 Harness 插件管理页的安装入口输入包名：
+
+```text
+dsh-codearts-dock
+```
+
+已发布版本与时间以 [npm 页面](https://www.npmjs.com/package/dsh-codearts-dock) 的实际记录为准。请通过 Harness 的插件管理安装；在任意目录单独运行 `npm install` 只会安装文件，不会启用插件。
 
 ### 自定义插件索引
 
@@ -24,7 +30,7 @@ npm 发行包名为 `dsh-codearts-dock`。包是否已发布、可用版本和�
 https://raw.githubusercontent.com/Jensen0925/dsh-codearts-dock/main/market-index.json
 ```
 
-该索引由本项目维护，提供固定 Git 提交的安装目标，即使 npm 尚未发布也可使用 Git 来源。索引发布不等于被官方或其他社区市场收录，不代表官方审核、安全认证或推荐。
+索引条目使用 npm 来源，安装目标就是 `dsh-codearts-dock@<版本>`，与上面直接输包名安装的是同一份发布包；条目记录的发布时间来自 registry，不是本地生成索引的那一天。索引由本项目维护，发布不等于被官方或其他社区市场收录，不代表官方审核、安全认证或推荐。
 
 ### 社区市场
 
@@ -32,12 +38,42 @@ https://raw.githubusercontent.com/Jensen0925/dsh-codearts-dock/main/market-index
 
 ## 给维护者
 
-1. 更新版本、README、免责声明、安全说明和多语言元数据。
-2. 执行 `npm test` 与 `npm run check:release`。
-3. 执行 `npm pack --dry-run`，检查包内文件，再生成并检查实际 tarball。不得包含账号、令牌、本机笔记、导出或备份。
-4. 将验证后的源码提交、推送到 GitHub，为发行提交创建版本标签。
-5. 确认 npm 登录身份后执行 `npm publish --access public --registry=https://registry.npmjs.org/`。如要求 2FA，由维护者在官方流程中完成认证；不要把令牌提交到仓库。
-6. 使用 `node scripts/build-market-index.mjs <40位发行提交SHA>` 更新固定提交索引，再推送索引。
-7. 核实 npm 的具体版本和索引安装目标，并按需提交社区目录收录申请。
+发布由 GitHub Actions 完成，本地不需要、也不应该保存 npm 发布令牌。
+
+### 一次性的首次配置
+
+`dsh-codearts-dock` 已在 registry 上，先把发布权交给仓库工作流（需要本人在终端交互完成，含 2FA）：
+
+```bash
+npm login --registry=https://registry.npmjs.org/
+npm trust github dsh-codearts-dock --file .github/workflows/release.yml
+npm trust list dsh-codearts-dock   # 确认已绑定
+```
+
+绑定之后，`.github/workflows/release.yml` 用 OIDC 短时令牌发布，并附带 provenance 签名。这是 npm 正在推进的方向：绕过 2FA 的长期令牌将在 2027 年 1 月起不再能直接发布。绑定完成后可以删掉 `~/.npmrc` 里的 `//registry.npmjs.org/:_authToken=`。
+
+### 每次发布
+
+1. `node scripts/release.mjs 1.1.0`：改版本号并尝试用 registry 的发布时间重建索引。
+   版本还没发布时这步会明确报错并打印后续命令——这是预期行为，不是故障。
+2. 检查 `npm test`、`npm run check:release`、`npm pack --dry-run` 的输出，确认包内不含账号、令牌、本机笔记、导出或备份。
+3. 提交并推 tag：
+
+   ```bash
+   git add -A && git commit -m "chore: release v1.1.0"
+   git tag -a v1.1.0 -m "v1.1.0" && git push origin main --follow-tags
+   ```
+
+   tag 触发 `.github/workflows/release.yml`：它先校验 tag 与 `package.json` 版本一致、离线测试全绿、该版本尚未存在，然后发布。
+4. 发布完成后重钉索引，让「发现」页指向刚发布的版本及真实发布时间：
+
+   ```bash
+   node scripts/release.mjs --repin
+   git commit -am "chore: repin index for v1.1.0" && git push
+   ```
+
+5. 核实 npm 上的具体版本和索引里的安装目标，并按需提交社区目录收录申请。
+
+`main` 分支的每次推送都会跑 `.github/workflows/ci.yml`（离线测试 + 发布前检查 + 打包清单），它不发布任何东西。
 
 本仓库保留 `dsh-connect-codearts` 本机配置目录和内部设置标识，模型 provider 仍为 `codearts`，以兼容已有配置。请勿同时启用新旧两个包。

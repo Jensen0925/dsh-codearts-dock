@@ -1,0 +1,80 @@
+# Publishes a tag to npm through trusted publishing (OIDC).
+#
+# No npm token exists in this repository: the runner proves its identity to the
+# registry with a short-lived OIDC token, and the registry only hands one out to
+# the workflow a maintainer configured as this package's trusted publisher.
+# Set that up once with `npm trust github dsh-codearts-dock --file .github/workflows/release.yml`
+# (interactive, needs 2FA); it replaces the `//registry.npmjs.org/:_authToken=`
+# line that a long-lived token used to supply.
+#
+# Tag-gated on purpose: pushing a tag is the human "publish this" decision, so a
+# merge to main can never ship to the registry on its own.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Verify and pack, but do not publish'
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  # The one permission trusted publishing needs: mint the OIDC token.
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+
+      - name: Confirm the tag matches package.json
+        # A tag that disagrees with the manifest would publish one version and
+        # label another; fail before the registry has to reject anything.
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          pkg="$(node -p "require('./package.json').version")"
+          if [ "$tag" != "$pkg" ]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match package.json version $pkg"
+            exit 1
+          fi
+          echo "publishing $pkg"
+
+      - name: Install the one runtime dependency
+        run: npm install --no-package-lock --no-audit --no-fund
+
+      - name: Offline suites
+        run: npm test
+
+      - name: Release metadata
+        run: npm run check:release
+
+      - name: Refuse to republish an existing version
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          if npm view "dsh-codearts-dock@$version" version >/dev/null 2>&1; then
+            echo "::error::dsh-codearts-dock@$version is already on the registry"
+            exit 1
+          fi
+          echo "dsh-codearts-dock@$version is free"
+
+      - name: Publish
+        if: github.event_name == 'push' || inputs.dry_run == false
+        run: npm publish --access public
+        env:
+          # Trusted publishing ignores any token; state it so a stray NPM_TOKEN
+          # in the environment cannot silently change what gets published.
+          NPM_CONFIG_PROVENANCE: 'true'
+
+      - name: Pack instead of publish
+        if: github.event_name == 'workflow_dispatch' && inputs.dry_run != false
+        run: npm pack --dry-run

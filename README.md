@@ -8,7 +8,7 @@
 
 > 第三方、非官方插件，与华为技术有限公司及 DeepSeek / DeepSeek Harness 的运营方**无任何关联**，未获其官方授权、认可或赞助。使用本插件需要你自己的合法账号和服务权限；模型调用可能消耗积分或产生费用，本插件不绕过计费。使用前请阅读 [免责声明](DISCLAIMER.md) 与 [安全说明](SECURITY.md)。
 
-[GitHub](https://github.com/Jensen0925/dsh-codearts-dock) · [问题反馈](https://github.com/Jensen0925/dsh-codearts-dock/issues) · [MIT 许可](LICENSE)
+[![npm](https://img.shields.io/npm/v/dsh-codearts-dock.svg)](https://www.npmjs.com/package/dsh-codearts-dock) [GitHub](https://github.com/Jensen0925/dsh-codearts-dock) · [问题反馈](https://github.com/Jensen0925/dsh-codearts-dock/issues) · [MIT 许可](LICENSE)
 
 ## 能做什么
 
@@ -39,13 +39,13 @@ https://github.com/Jensen0925/dsh-codearts-dock.git
 
 ### 从 npm 安装
 
-npm 发布完成后，可在同一安装入口输入包名：
+在同一个安装入口输入包名：
 
 ```text
 dsh-codearts-dock
 ```
 
-请通过 Harness 的插件管理安装；在任意目录单独运行 `npm install` 不会自动启用 Harness 插件。
+请通过 Harness 的插件管理安装；在任意目录单独运行 `npm install` 只会安装文件，不会启用 Harness 插件。
 
 ### 从插件索引安装
 

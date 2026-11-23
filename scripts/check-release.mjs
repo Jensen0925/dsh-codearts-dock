@@ -26,4 +26,43 @@ for (const lang of ['en', 'zh']) {
   assert.ok(locale.meta.title.includes('CodeArts Dock'))
   assert.ok(existsSync(resolve(root, locale.meta.detail)))
 }
-console.log('release: package metadata, bundle, locale and documentation links passed')
+
+// The index is what the Discover page installs from. It cannot name a version
+// that is not on the registry yet, so the valid states are "lists this version"
+// (repinned after publishing) and "lists an older one" (release in flight). What
+// it must never do is advertise a version newer than the manifest, because that
+// entry installs something this checkout does not describe.
+const index = JSON.parse(read('market-index.json'))
+assert.equal(index.format, 1)
+assert.equal(index.plugins.length, 1)
+assert.equal(index.plugins[0].name, pkg.name)
+assert.ok(index.plugins[0].versions.length > 0, 'market-index.json lists no versions')
+const compare = (a, b) => {
+  const parse = (v) => v.split('-')[0].split('.').map(Number)
+  const [x, y] = [parse(a), parse(b)]
+  for (let i = 0; i < 3; i += 1) if (x[i] !== y[i]) return x[i] - y[i]
+  return 0
+}
+for (const version of index.plugins[0].versions) {
+  assert.ok(
+    compare(version.version, pkg.version) <= 0,
+    `market-index.json lists ${version.version}, which is newer than package.json ${pkg.version}`,
+  )
+}
+const listed = index.plugins[0].versions.map((version) => version.version)
+if (!listed.includes(pkg.version)) {
+  console.log(
+    `note: market-index.json lists ${listed.join(', ')} but package.json is ${pkg.version}.` +
+      ' Run `node scripts/release.mjs --repin` after the publish so the Discover entry tracks this version.',
+  )
+}
+
+// The release workflow must publish the same version the tag names, and it can
+// only do that if it is present. Absent here means releases silently fall back to
+// whatever a maintainer runs by hand, which is the situation this file guards.
+assert.ok(existsSync(resolve(root, '.github/workflows/release.yml')), 'Missing .github/workflows/release.yml')
+const release = read('.github/workflows/release.yml')
+assert.match(release, /id-token: write/, 'the release job needs id-token: write for trusted publishing')
+assert.match(release, /npm publish --access public/, 'the release job publishes the package')
+
+console.log('release: package metadata, bundle, locale, index and documentation links passed')
