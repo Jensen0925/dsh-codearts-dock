@@ -1,0 +1,3 @@
+#!/usr/bin/env sh
+# Run legal/license checks before every commit.
+npm run check:legal

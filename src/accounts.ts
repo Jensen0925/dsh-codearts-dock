@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * The account store: many credential pairs, one of them active.
  *

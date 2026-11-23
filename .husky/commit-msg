@@ -1,0 +1,4 @@
+#!/usr/bin/env sh
+# Enforce conventional commit format.
+# See docs/COMMITS.md for the rule.
+node scripts/check-commits.mjs --message-file "$1"

@@ -7,6 +7,7 @@
  */
 
 import { BENEFITS_PATH, BENEFIT_CLAIM_PATH, CREDIT_STATISTICS_PATH, ROLES_PATH } from './gateway.js'
+import { errorMessage } from './errors.js'
 
 /**
  * @typedef {object} CreditInfo
@@ -237,6 +238,6 @@ export async function claimBenefit(client, campaignId) {
     })
     return { ok: true, reply }
   } catch (error) {
-    return { ok: false, reason: error?.message ?? String(error) }
+    return { ok: false, reason: errorMessage(error) }
   }
 }

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Host half of the 码道 (CodeArts) connector.
  *
@@ -64,6 +65,7 @@ import { CONFIG_DIR } from './paths.js'
 import { FEATURE_DEFAULTS, InputError, readPreferences, validatePreferences } from './preferences.js'
 import { registerFeatureRoutes, applyPreferences } from './features.js'
 import { accountHealth } from './health.js'
+import { resolveModelPromo } from './promo.js'
 
 /** Plugin name; also the client module id. */
 export const name = 'dsh-codearts-dock'
@@ -93,7 +95,6 @@ export const Config = z.object({
   composerChip: z.boolean().default(true).description('在输入框旁显示积分'),
   registerProvider: z.boolean().default(true).description('是否注册码道这个 provider 路由'),
   enabledModelIds: z.array(z.string()).description('启用的模型；留空表示全部'),
-  favoriteModelIds: z.array(z.string()).default([]).description('模型设置页中置顶的常用模型'),
   modelOverrides: z.dict(z.object({
     images: z.boolean(),
     allowOff: z.boolean(),
@@ -431,7 +432,6 @@ async function buildModels(deps) {
     enabledIds: selectionIsDefault ? null : deps.catalog.visible().map((model) => model.id),
     total: all.length,
     presets: deps.settings.modelPresets,
-    favoriteModelIds: deps.settings.favoriteModelIds ?? [],
     models: all.map((model) => ({
       enabled: deps.catalog.isEnabled(model.id),
       overrides: overrides[model.id] ?? null,
@@ -449,6 +449,8 @@ async function buildModels(deps) {
       strengths: model.strengths,
       defaultStrength: model.defaultStrength ?? null,
       description: model.description ?? null,
+      promo: resolveModelPromo(model) ?? null,
+      busyLevel: model.busyLevel ?? 'unknown',
     })),
   }
 }

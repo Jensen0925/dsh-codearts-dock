@@ -14,26 +14,18 @@
  */
 
 import assert from 'node:assert/strict'
+import { test } from 'vitest'
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-const results = []
-const check = async (name, fn) => {
-  try {
-    await fn()
-    results.push(`✓ ${name}`)
-  } catch (error) {
-    results.push(`✗ ${name}\n    ${error.message}`)
-    process.exitCode = 1
-  }
-}
+const check = (name, fn) => test(name, fn)
 
 const scratch = mkdtempSync(join(tmpdir(), 'dca-reg-'))
 process.env.APPDATA = scratch
 process.env.DSH_CONNECT_CODEARTS_LEGACY_CREDENTIAL = join(scratch, 'legacy.json')
 
-const plugin = await import('../src/index.js')
+const plugin = await import('../src/index.ts')
 
 /** Apply the plugin against a recording context. */
 function activate() {
@@ -162,7 +154,6 @@ await check('discovery returns the catalog in the shape discovery consumers expe
   }
 })
 
-rmSync(scratch, { recursive: true, force: true })
 await check('every route is registered exact, so paths cannot shadow each other', async () => {
   // THE BUG THIS CATCHES: with `prefix` registrations, `/models` also claims
   // `/models/select`. A save POST then lands on the read route, which answers
@@ -246,7 +237,7 @@ await check('the adapter carries every method the Host calls unconditionally', a
   // The bug this catches is a mid-session crash, not a load failure: a plain
   // class that merely looks like an adapter registers and streams fine, then
   // dies when another code path asks for `imageRequestPricing`.
-  const { createCodeArtsAdapter } = await import('../src/adapter.js')
+  const { createCodeArtsAdapter } = await import('../src/adapter.ts')
   const adapter = createCodeArtsAdapter({
     catalog: { find: () => null, models: () => [], visible: () => [] },
     credentials: {},
@@ -264,7 +255,7 @@ await check('the last good catalog survives a restart', async () => {
   const { mkdtempSync, writeFileSync } = await import('node:fs')
   const { tmpdir } = await import('node:os')
   const { join } = await import('node:path')
-  const { Catalog } = await import('../src/catalog.js')
+  const { Catalog } = await import('../src/catalog.ts')
   const cache = join(mkdtempSync(join(tmpdir(), 'dca-cat-')), 'catalog.json')
 
   const first = new Catalog({})
@@ -292,12 +283,16 @@ await check('the last good catalog survives a restart', async () => {
 await check('the status route reports both settings gates', async () => {
   // A missing card has two silent causes; reporting the facts means the next
   // diagnosis does not have to guess which one it was.
-  const { readFileSync } = await import('node:fs')
-  const host = readFileSync(new URL('../src/index.js', import.meta.url), 'utf8')
+  const { existsSync, readFileSync } = await import('node:fs')
+  const hostUrl = existsSync(new URL('../src/index.ts', import.meta.url))
+    ? new URL('../src/index.ts', import.meta.url)
+    : new URL('../src/index.js', import.meta.url)
+  const host = readFileSync(hostUrl, 'utf8')
   assert.ok(host.includes('configSchema:'), 'reports whether a Config schema is exported')
   assert.ok(host.includes('registration:'), 'exposes a registration block at all')
 })
 
-console.log(results.join('\n'))
-if (process.exitCode) console.log('\nregistration: some checks failed')
-else console.log('\nregistration: all checks passed')
+
+test('cleanup scratch data', () => {
+  rmSync(scratch, { recursive: true, force: true })
+})

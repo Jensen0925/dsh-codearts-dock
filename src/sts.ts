@@ -14,6 +14,7 @@
  */
 
 import { signHuawei } from './protocol/sign.js'
+import { errorMessage } from './errors.js'
 
 const IAM_HOST = 'iam.cn-north-4.myhuaweicloud.com'
 const IAM_REQUEST_PATH = '/v3.0/OS-CREDENTIAL/securitytokens'
@@ -72,7 +73,7 @@ export async function getSts(ak, sk, durationSeconds = 3600, fetchImpl = globalT
       body,
     })
   } catch (error) {
-    throw new StsError(`无法连接华为云 IAM（${IAM_HOST}）：${error?.message ?? error}`)
+    throw new StsError(`无法连接华为云 IAM（${IAM_HOST}）：${errorMessage(error)}`)
   }
 
   const text = await response.text()

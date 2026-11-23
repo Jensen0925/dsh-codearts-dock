@@ -1,5 +1,5 @@
 /** Fixed, actionable health categories; never persist error text or credentials. */
-export function accountHealth({ error, credit, checkedAt = Date.now() } = {}) {
+export function accountHealth({ error, credit, checkedAt = Date.now() }: { error?: any; credit?: any; checkedAt?: number } = {}) {
   let state = 'unknown'
   if (error) {
     const code = String(error.code ?? '')

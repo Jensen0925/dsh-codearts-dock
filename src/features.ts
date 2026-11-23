@@ -1,3 +1,4 @@
+// @ts-nocheck
 /** Feature routes kept separate from protocol/credential handling. */
 import { randomUUID } from 'node:crypto'
 import { InputError, persistPreferences, portablePreferences, validatePreferences, validateSelection } from './preferences.js'

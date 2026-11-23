@@ -195,15 +195,19 @@ window.__ModuleLoader__.load({
       'models.clearFilters': ['清除筛选', 'Clear filters'],
       'models.about': ['目录说明与使用帮助', 'About the catalog'],
       'models.clean': ['模型配置已保存', 'Model settings saved'],
-      'models.saveHint': ['置顶即时保存；启用、能力开关和推理强度需点击「保存模型配置」。', 'Pins save immediately. Save model settings to apply selection, capability and reasoning changes.'],
+      'models.saveHint': ['勾选模型、能力开关和推理强度后，点击「保存模型配置」使修改生效。', 'Save model selection, capability switches and reasoning levels with “Save model settings”.'],
       'credit.lastResult': ['上次结果', 'Last result'],
       'credit.updated': ['积分更新时间', 'Credits updated'],
       'credit.refreshFailed': ['积分刷新失败，显示上次结果', 'Credits refresh failed; showing the last result'],
       'credit.unavailable': ['积分暂时无法读取，请重试', 'Credits are unavailable; please retry'],
       'chip.lastCredits': ['上次积分', 'Last credits'],
-      'models.pin': ['置顶 {model}', 'Pin {model}'],
-      'models.unpin': ['取消置顶 {model}', 'Unpin {model}'],
-      'models.favoriteSaved': ['常用置顶已保存', 'Pinned models saved'],
+      'models.promo.halfPrice': ['限时半价', 'Limited-time half price'],
+      'models.busy.idle': ['空闲', 'Idle'],
+      'models.busy.label': ['繁忙程度', 'Load'],
+      'models.busy.normal': ['正常', 'Normal'],
+      'models.busy.busy': ['轻微拥堵', 'Slightly congested'],
+      'models.busy.congested': ['极度拥堵', 'Extremely congested'],
+      'models.busy.unavailable': ['不可用', 'Unavailable'],
       'models.unsaved': ['有未保存的模型配置', 'Unsaved model settings'],
       'models.needOne': ['请至少启用一个模型后保存', 'Enable at least one model to save'],
       'diag.details': ['技术详情', 'Technical details'],
@@ -636,7 +640,7 @@ window.__ModuleLoader__.load({
 .dca-rename-btn b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .dca-rename-glyph{
   flex:none;font-size:11px;line-height:16px;
-  color:var(--dsw-alias-label-tertiary,#999);opacity:0;transition:opacity .15s;
+  color:var(--dsw-alias-label-tertiary,#999);opacity:.55;transition:opacity .15s;
 }
 .dca-rename-btn:hover .dca-rename-glyph,
 .dca-rename-btn:focus-visible .dca-rename-glyph{opacity:1}
@@ -655,6 +659,7 @@ window.__ModuleLoader__.load({
      made a short "今日已签" sit at a different x than a longer "1/2 个活动已签". */
   justify-self:start;text-align:left;
 }
+.dca-pool-checkin-label{display:none}
 .dca-pool-col-checkin{grid-area:checkin;min-width:0;justify-self:start;text-align:left}
 .dca-pool-probe-main{
   font-size:12px;line-height:17px;color:var(--dsw-alias-label-tertiary,#999);
@@ -717,8 +722,8 @@ window.__ModuleLoader__.load({
 }
 .dca-transfer-actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
 /* ---- model rows -------------------------------------------------------
-   Line one: enable box, name, ratio, flags on the left; the row's own switches
-   on the right. Line two: facts, indented to the name (22px = the box plus its
+   Line one: enable box, name, ratio on the left; image/thinking flags on
+   the right. Line two: facts, indented to the name (22px = the box plus its
    8px gap) so the two lines read as one block. */
 .dca-model-head{
   display:flex;align-items:center;justify-content:space-between;
@@ -726,7 +731,7 @@ window.__ModuleLoader__.load({
 }
 .dca-model-controls{
   display:flex;align-items:center;flex-wrap:wrap;
-  gap:12px;row-gap:8px;min-width:0;flex:none;
+  gap:8px;row-gap:6px;min-width:0;flex:none;margin-inline-start:auto;
 }
 .dca-model-details{
   display:flex;align-items:center;justify-content:space-between;
@@ -741,6 +746,22 @@ window.__ModuleLoader__.load({
   display:inline-flex;align-items:center;gap:5px;flex:none;
   font-size:11px;line-height:16px;
   color:var(--dsw-alias-label-secondary,#c6c9d0);
+  padding:2px 6px;border:1px solid var(--dsw-alias-border-l2,#36373b);
+  border-radius:6px;background:var(--dsw-alias-bg-layer-1,#1c1d21);
+  cursor:pointer;transition:border-color .15s,background .15s;
+}
+.dca-model-flag:hover:not(:has(input:disabled)){
+  border-color:var(--dsw-alias-label-dimmed,#777);
+}
+.dca-model-flag input[type="checkbox"]{
+  margin:0;width:13px;height:13px;flex:none;
+  accent-color:var(--dsw-alias-brand-primary,#5686fe);cursor:pointer;
+}
+.dca-model-flag input[type="checkbox"]:disabled{cursor:default;opacity:.6}
+.dca-model-flag-on{
+  border-color:var(--dsw-alias-brand-primary,rgba(86,134,254,.5));
+  background:rgba(86,134,254,.08);
+  color:var(--dsw-alias-brand-primary,#5686fe);
 }
 .dca-card-plain{border-color:transparent;background:transparent;padding:0}
 .dca-card-title{margin:0;font-size:13px;font-weight:600;line-height:20px}
@@ -865,19 +886,33 @@ window.__ModuleLoader__.load({
   border:1px solid currentColor;
 }
 .dca-model-controls label{cursor:pointer}
-.dca-model-controls input[type="checkbox"]{
-  margin:0 5px 0 0;width:14px;height:14px;flex:none;
-  accent-color:var(--dsw-alias-brand-primary,#5686fe);
-}
 .dca-model-controls input[type="checkbox"]:disabled{cursor:default}
 .dca-model-name{
-  display:inline-flex;align-items:baseline;gap:7px;
+  display:inline-flex;align-items:center;gap:7px;flex-wrap:wrap;
   color:var(--dsw-alias-label-primary,#e6e6e6);
   font-size:13px;font-weight:500;line-height:19px;
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
   min-width:0;
 }
-.dca-model-name b{font-size:13px;font-weight:500;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.dca-model-name b{font-size:13px;font-weight:500;min-width:0;overflow-wrap:anywhere}
+.dca-model-signals{display:inline-flex;align-items:center;gap:5px;flex-wrap:wrap}
+.dca-model-promo,.dca-model-busy{
+  display:inline-flex;align-items:center;gap:4px;flex:none;
+  border:1px solid transparent;border-radius:999px;padding:1px 7px;
+  font-size:10px;font-weight:500;line-height:15px;white-space:nowrap;
+}
+.dca-model-promo{color:var(--dsw-alias-state-success-primary,#3fb950);border-color:rgba(63,185,80,.35);background:rgba(63,185,80,.1)}
+.dca-model-promo-half{color:#ef4444;border-color:rgba(239,68,68,.38);background:rgba(239,68,68,.1)}
+.dca-model-promo-info{color:var(--dsw-alias-brand-primary,#5686fe);border-color:rgba(86,134,254,.35);background:rgba(86,134,254,.1)}
+.dca-model-promo-warning{color:var(--dsw-alias-state-warn-primary,#d29922);border-color:rgba(210,153,34,.38);background:rgba(210,153,34,.1)}
+.dca-model-promo-neutral{color:var(--dsw-alias-label-secondary,#b6b8be);border-color:var(--dsw-alias-border-l2,#36373b);background:var(--dsw-alias-bg-layer-1,#1c1d21)}
+.dca-model-busy{color:#f59e0b;border-color:rgba(245,158,11,.34);background:rgba(245,158,11,.08)}
+.dca-model-busy[data-level="busy"]{color:#f97316;border-color:rgba(249,115,22,.38);background:rgba(249,115,22,.1)}
+.dca-model-busy[data-level="congested"]{color:#ef4444;border-color:rgba(239,68,68,.38);background:rgba(239,68,68,.1)}
+.dca-model-busy[data-level="idle"]{color:#10b981;border-color:rgba(16,185,129,.3);background:rgba(16,185,129,.08)}
+.dca-model-busy[data-level="unavailable"]{color:var(--dsw-alias-label-tertiary,#999);border-color:var(--dsw-alias-border-l2,#36373b);background:var(--dsw-alias-bg-layer-1,#1c1d21)}
+.dca-model-busy-icons{display:inline-flex;align-items:center;gap:0}
+.dca-model-busy-icons svg+svg{margin-inline-start:-3px}
+.dca-model-busy svg{display:block;flex:none}
 .dca-effort{display:inline-flex;align-items:center;gap:5px;cursor:pointer}
 /* A quiet pill, not a boxed form control: the row already carries two checkboxes,
    and a third bordered control would make a settings table look like a form. */
@@ -1036,7 +1071,7 @@ window.__ModuleLoader__.load({
 .dca-catalog-meta{display:flex;align-items:center;gap:6px 14px;flex-wrap:wrap;font-size:12px;color:var(--dsw-alias-label-secondary,#c6c9d0)}
 .dca-model-meta{color:var(--dsw-alias-label-secondary,#b6b8be)}
 .dca-model-off .dca-model-controls,.dca-model-off .dca-effort{color:var(--dsw-alias-label-secondary,#b6b8be)}
-.dca-model-controls input:disabled,.dca-effort-select:disabled{opacity:.75}
+.dca-model-controls input:disabled,.dca-effort-select:disabled,.dca-model-off .dca-model-flag{opacity:.75}
 .dca-save-feedback{display:flex;flex-direction:column;gap:4px;flex:1 1 180px;min-width:0;overflow-wrap:anywhere}
 .dca-save-status{font-size:12px;color:var(--dsw-alias-label-secondary,#c6c9d0)}
 .dca-pool-feedback{grid-column:1 / -1;min-width:0;overflow-wrap:anywhere}
@@ -1058,7 +1093,7 @@ window.__ModuleLoader__.load({
 .dca-form{display:flex;flex-direction:column;gap:12px}
 .dca-form .dca-fields{align-items:flex-start}
 .dca-account-menu{position:relative}
-.dca-account-menu > summary{cursor:pointer;list-style:none;padding:3px 10px;border:1px solid var(--dsw-alias-border-l2,#3a3d45);border-radius:8px;font-size:16px;line-height:20px}
+.dca-account-menu > summary{display:flex;align-items:center;justify-content:center;box-sizing:border-box;min-width:30px;min-height:30px;cursor:pointer;list-style:none;padding:3px 8px;border:1px solid var(--dsw-alias-border-l2,#3a3d45);border-radius:8px;font-size:16px;line-height:20px}
 .dca-account-menu > summary::-webkit-details-marker{display:none}
 .dca-menu-actions{position:absolute;inset-inline-end:0;top:calc(100% + 4px);z-index:4;padding:5px;min-width:110px;border:1px solid var(--dsw-alias-border-l2,#3a3d45);border-radius:8px;background:var(--dsw-alias-bg-overlay,#26282e);box-shadow:0 4px 16px rgba(0,0,0,.12)}
 .dca-menu-actions .dca-btn-xs{width:100%;text-align:left;border-color:transparent}
@@ -1073,11 +1108,10 @@ window.__ModuleLoader__.load({
 .dca-section-error{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .dca-section-error .dca-msg{flex:1;min-width:0}
 @container dca-settings (max-width:640px){
-  .dca-model-head{align-items:flex-start;gap:10px}
-  .dca-model-controls{flex:1 1 100%}
+  .dca-model-head{align-items:flex-start;gap:8px}
+  .dca-model-controls{flex:none;margin-inline-start:0;flex-wrap:wrap;gap:6px}
   .dca-toolbar .dca-search{flex-basis:100%}
   .dca-pool-col-actions{max-width:100%}
-  .dca-model-controls{justify-content:flex-start;padding-inline-start:24px}
   .dca-model-actions{gap:8px}
   .dca-model-actions-buttons{margin-inline-start:auto}
   .dca-model-meta{gap:4px 10px}
@@ -1093,7 +1127,8 @@ window.__ModuleLoader__.load({
   }
   .dca-pool-row-head .dca-pool-col-checkin{display:none}
   .dca-pool-col-checkin{justify-self:end;align-self:center}
-  .dca-pool-probe-cell{grid-area:checkin;justify-self:end;text-align:right;align-self:center}
+  .dca-pool-probe-cell{display:flex;grid-area:checkin;justify-self:end;text-align:right;align-self:center;align-items:center;gap:6px}
+  .dca-pool-checkin-label{display:inline-flex;font-size:10px;line-height:16px;color:var(--dsw-alias-label-tertiary,#999)}
   .dca-pool-col-actions{grid-area:actions}
   .dca-pool-actions{justify-content:flex-end}
 }
@@ -1119,11 +1154,6 @@ window.__ModuleLoader__.load({
   .dca-form-field{max-width:100%}
   .dca-preset-tools .dca-preset-row > .dca-input{flex-basis:100%}
 }
-.dca-pin{appearance:none;display:inline-flex;align-items:center;justify-content:center;flex:none;width:28px;height:28px;padding:4px;border:1px solid transparent;border-radius:6px;background:transparent;color:var(--dsw-alias-label-tertiary,#999);cursor:pointer}
-.dca-pin:hover{background:var(--dsw-alias-bg-layer-3,#202126);color:var(--dsw-alias-label-primary,#e6e6e6)}
-.dca-pin-on{color:var(--dsw-alias-brand-primary,#5686fe)}
-.dca-pin:focus-visible{outline:2px solid var(--dsw-alias-brand-primary,#5686fe);outline-offset:2px}
-.dca-pin:disabled{opacity:.5;cursor:default}
 .dca-credit-status{display:block;flex-basis:100%;font-size:11px;line-height:16px;color:var(--dsw-alias-state-warn-primary,#d49937)}
 .dca-pop-notice{margin:6px 0;font-size:12px;line-height:18px;color:var(--dsw-alias-state-warn-primary,#d49937)}
 /* The balance is the one number on the row, but at 16px it outranked the
@@ -1660,6 +1690,9 @@ window.__ModuleLoader__.load({
       /** Which row is being renamed, and its draft text. */
       const [editingId, setEditingId] = useState(null)
       const [draftLabel, setDraftLabel] = useState('')
+      // Keyboard save/cancel also causes a blur. Guard the blur path so one
+      // edit can produce at most one write, and Escape can never save it.
+      const renameFinished = useRef(true)
       const [now, setNow] = useState(Date.now)
       useEffect(() => {
         const timer = setInterval(() => setNow(Date.now()), 30000)
@@ -1668,6 +1701,7 @@ window.__ModuleLoader__.load({
 
 
       const beginRename = useCallback((account) => {
+        renameFinished.current = false
         setEditingId(account.id)
         // Start from the current name, EXCEPT when it is the derived fallback
         // (a masked AK): that is a placeholder, not a name the user chose, and
@@ -1676,11 +1710,14 @@ window.__ModuleLoader__.load({
       }, [])
 
       const cancelRename = useCallback(() => {
+        renameFinished.current = true
         setEditingId(null)
         setDraftLabel('')
       }, [])
 
       const commitRename = useCallback(async (id) => {
+        if (renameFinished.current) return
+        renameFinished.current = true
         const next = draftLabel.trim()
         setEditingId(null)
         setDraftLabel('')
@@ -1779,7 +1816,10 @@ window.__ModuleLoader__.load({
                             placeholder: t('pool.renamePlaceholder'),
                             onChange: (event) => setDraftLabel(event.target.value),
                             onKeyDown: (event) => {
-                              if (event.key === 'Enter') void commitRename(account.id)
+                              if (event.key === 'Enter') {
+                                event.preventDefault()
+                                void commitRename(account.id)
+                              }
                               // Escape must not save: an accidental click into the
                               // field is the common way a user arrives here.
                               else if (event.key === 'Escape') cancelRename()
@@ -1863,7 +1903,8 @@ window.__ModuleLoader__.load({
                         // and a second line would break the fixed row height.
                         ...(checkinTitle(checkin, t) === null ? {} : { title: checkinTitle(checkin, t) }),
                       },
-                      checkinCellText(checkin, t),
+                        h('span', { className: 'dca-pool-checkin-label' }, t('pool.colCheckin')),
+                        h('span', null, checkinCellText(checkin, t)),
                     ),
                   ),
                   h(
@@ -1872,7 +1913,6 @@ window.__ModuleLoader__.load({
                     h(
                       'div',
                       { className: 'dca-pool-actions' },
-                      h('button', { type: 'button', className: 'dca-btn-xs', disabled: rowBusy || anyBusy || busyId !== null, onClick: () => onCheck(account.id) }, rowBusy && rowAction.kind === 'check' ? t('common.loading') : t('health.recheck')),
                       account.health?.state === 'credentials' ? h('button', { type: 'button', className: 'dca-btn-xs', disabled: rowBusy || anyBusy || busyId !== null, onClick: () => onUpdateCredentials(account) }, t('health.update')) : null,
                       account.health?.state === 'insufficient' ? h('span', { className: 'dca-hint' }, t('health.switch')) : null,
                       account.active
@@ -1896,6 +1936,24 @@ window.__ModuleLoader__.load({
                           onClick: (event) => { if (anyBusy || busyId !== null) event.preventDefault() },
                         }, '⋯'),
                         h('div', { className: 'dca-menu-actions' },
+                          h('button', {
+                            type: 'button', className: 'dca-btn-xs',
+                            disabled: rowBusy || anyBusy || busyId !== null,
+                            onClick: (event) => {
+                              const menu = event?.currentTarget?.closest?.('details')
+                              if (menu) menu.open = false
+                              beginRename(account)
+                            },
+                          }, t('pool.rename')),
+                          h('button', {
+                            type: 'button', className: 'dca-btn-xs',
+                            disabled: rowBusy || anyBusy || busyId !== null,
+                            onClick: (event) => {
+                              const menu = event?.currentTarget?.closest?.('details')
+                              if (menu) menu.open = false
+                              void onCheck(account.id)
+                            },
+                          }, rowBusy && rowAction.kind === 'check' ? t('common.loading') : t('health.recheck')),
                           h('button', {
                             type: 'button', className: 'dca-btn-xs dca-danger',
                             disabled: rowBusy || anyBusy || busyId !== null,
@@ -2315,11 +2373,9 @@ window.__ModuleLoader__.load({
     /**
      * The model catalog.
      *
-     * Each row carries its own selection checkbox and its own capability
-     * switches, exactly as the reference does — a model row is where a user
-     * decides what this provider may send, so the controls live on the row
-     * rather than behind an edit dialog. Edits are local until saved; the
-     * reference uses the same save/discard posture for this panel.
+     * Each row carries its own selection checkbox, live activity/load signals,
+     * and capability switches. Edits are local until saved; the panel keeps
+     * selection changes separate from the live catalog refresh.
      */
     function ModelsTab({ models, onRefresh, onSaved }) {
       const [busy, setBusy] = useState(null)
@@ -2332,10 +2388,6 @@ window.__ModuleLoader__.load({
       const [presetName, setPresetName] = useState('')
       const [presetEditorOpen, setPresetEditorOpen] = useState(false)
       const [presetPreview, setPresetPreview] = useState(null)
-      const [savedFavorites, setSavedFavorites] = useState(null)
-      useEffect(() => { setSavedFavorites(null) }, [models.favoriteModelIds])
-      const favoriteIds = savedFavorites ?? models.favoriteModelIds ?? []
-      const favorites = new Set(favoriteIds)
       const [savedPresets, setSavedPresets] = useState(null)
       useEffect(() => { setSavedPresets(null) }, [models.presets])
       const [notice, setNotice] = useState(null)
@@ -2380,21 +2432,6 @@ window.__ModuleLoader__.load({
         visibleModels.sort((left, right) => ratioOf(left) - ratioOf(right))
       } else if (sort === 'name') {
         visibleModels.sort((left, right) => left.name.localeCompare(right.name))
-      }
-
-      // Preserve the chosen sort within the pinned and unpinned groups.
-      visibleModels.sort((left, right) => Number(favorites.has(right.id)) - Number(favorites.has(left.id)))
-      const toggleFavorite = async (id) => {
-        if (busy) return
-        setBusy('favorite'); setNotice(null)
-        try {
-          const next = favorites.has(id) ? favoriteIds.filter((entry) => entry !== id) : [...favoriteIds, id]
-          const result = await postRoute('/preferences/save', { favoriteModelIds: next })
-          if (!result.ok) throw new Error(result.error ?? t('common.retry'))
-          setSavedFavorites(result.preferences.favoriteModelIds)
-          setNotice({ kind: 'success', text: t('models.favoriteSaved') })
-          await onRefresh()
-        } catch (error) { setNotice({ kind: 'error', text: error.message }) } finally { setBusy(null) }
       }
 
       const toggle = useCallback((id, next) => {
@@ -2650,6 +2687,17 @@ window.__ModuleLoader__.load({
                   const strengths = model.strengths ?? []
                   const preferredStrength = override.defaultStrength ?? model.defaultStrength
                   const defaultStrength = strengths.includes(preferredStrength) ? preferredStrength : strengths[0]
+                  const promo = model.promo
+                  const promoTone = ['success', 'info', 'warning', 'neutral'].includes(promo?.tone) ? promo.tone : 'neutral'
+                  const promoIsHalfPrice = promo?.label === '限时半价' || promo?.labelEn === 'Limited-time half price'
+                  const promoLabel = promoIsHalfPrice
+                    ? t('models.promo.halfPrice')
+                    : isChinese() ? promo?.label : (promo?.labelEn || promo?.label)
+                  const busyLevel = ['idle', 'normal', 'busy', 'congested', 'unavailable'].includes(model.busyLevel)
+                    ? model.busyLevel
+                    : null
+                  const peopleCount = busyLevel === 'normal' ? 1 : busyLevel === 'busy' ? 2 : busyLevel === 'congested' ? 3 : busyLevel === 'unavailable' ? 1 : 0
+                  const busyLabel = busyLevel ? t(`models.busy.${busyLevel}`) : ''
                   return h(
                     'div',
                     { key: model.id, className: `dca-model${on ? '' : ' dca-model-off'}` },
@@ -2668,14 +2716,6 @@ window.__ModuleLoader__.load({
                           onChange: (event) => toggle(model.id, event.target.checked),
                         }),
                         h('b', null, model.name),
-                        h('button', {
-                          type: 'button', className: `dca-pin${favorites.has(model.id) ? ' dca-pin-on' : ''}`,
-                          disabled: busy !== null, 'aria-pressed': favorites.has(model.id),
-                          title: t(favorites.has(model.id) ? 'models.unpin' : 'models.pin').replace('{model}', model.name),
-                          'aria-label': t(favorites.has(model.id) ? 'models.unpin' : 'models.pin').replace('{model}', model.name),
-                          onClick: () => void toggleFavorite(model.id),
-                        }, h('svg', { width: 15, height: 15, viewBox: '0 0 24 24', fill: favorites.has(model.id) ? 'currentColor' : 'none', stroke: 'currentColor', strokeWidth: 1.8, 'aria-hidden': true },
-                          h('path', { d: 'm12 3 2.8 5.7 6.3.9-4.6 4.5 1.1 6.3L12 17.4l-5.6 3 1.1-6.3L3 9.6l6.2-.9Z' }))),
                         model.ratio
                           ? h(
                               'span',
@@ -2683,13 +2723,39 @@ window.__ModuleLoader__.load({
                               `x${String(model.ratio).replace(/x$/i, '')}`,
                             )
                           : null,
+                        promo || busyLevel ? h('span', { className: 'dca-model-signals' },
+                          promo ? h('span', {
+                            className: `dca-model-promo dca-model-promo-${promoTone}${promoIsHalfPrice ? ' dca-model-promo-half' : ''}`,
+                            title: promoLabel,
+                          }, promoLabel) : null,
+                          busyLevel ? h('span', {
+                            className: 'dca-model-busy',
+                            'data-level': busyLevel,
+                            title: busyLabel,
+                            role: 'img',
+                            'aria-label': `${t('models.busy.label')}：${busyLabel}`,
+                          },
+                            h('span', { className: 'dca-model-busy-icons', 'aria-hidden': true },
+                              busyLevel === 'idle'
+                                ? h('svg', { width: 13, height: 13, viewBox: '0 0 16 16', fill: 'none', stroke: 'currentColor', strokeWidth: 1.6, strokeLinecap: 'round', strokeLinejoin: 'round' },
+                                    h('path', { d: 'M8.3 1.4c2.4 1.6 3.7 4.2 3.8 7.3l-2.4 2.4H6.4L4 8.7c.1-3.1 1.6-5.7 4.3-7.3Z' }),
+                                    h('path', { d: 'm6.1 10.2-1 3.1 2.3-1.4m2.7-1.7 1 3.1-2.3-1.4M8 4.3v2.3' }))
+                                : Array.from({ length: peopleCount }, (_, index) => h('svg', { key: index, width: 10, height: 13, viewBox: '0 0 12 16', fill: 'currentColor' },
+                                    h('circle', { cx: 6, cy: 3, r: 2 }),
+                                    h('path', { d: 'M3.2 7.2a2.8 2.8 0 0 1 5.6 0v1.5h1.4v5.7H1.8V8.7h1.4V7.2Z' }),
+                                    busyLevel === 'unavailable' ? h('path', { d: 'm2 2 8 12', fill: 'none', stroke: 'var(--dsw-alias-bg-layer-1,#1c1d21)', strokeWidth: 2.4 }) : null,
+                                  )),
+                            ),
+                            busyLabel,
+                          ) : null,
+                        ) : null,
                       ),
                       h(
                         'div',
                         { className: 'dca-model-controls' },
                         h(
                           'label',
-                          { className: 'dca-model-flag' },
+                          { className: `dca-model-flag${images === true ? ' dca-model-flag-on' : ''}` },
                           h('input', {
                             type: 'checkbox',
                             checked: images === true,
@@ -2702,7 +2768,7 @@ window.__ModuleLoader__.load({
                         strengths.length
                           ? h(
                               'label',
-                              { className: 'dca-model-flag' },
+                              { className: `dca-model-flag${(override.allowOff ?? model.allowOff) !== false ? ' dca-model-flag-on' : ''}` },
                               h('input', {
                                 type: 'checkbox',
                                 checked: (override.allowOff ?? model.allowOff) !== false,

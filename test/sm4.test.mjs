@@ -1,8 +1,11 @@
 import assert from 'node:assert/strict';
-import { sm4GcmEncrypt, sm4GcmDecrypt } from '../src/protocol/sm4.js';
+import { test } from 'vitest';
+import { sm4GcmEncrypt, sm4GcmDecrypt } from '../src/protocol/sm4.ts';
 import { createCipheriv, createDecipheriv } from 'node:crypto';
 
 const hex = (u8) => Buffer.from(u8).toString('hex');
+
+test('SM4-GCM encryption and authentication', async () => {
 
 // 1) round-trip over a UTF-8 payload longer than one block
 {
@@ -61,4 +64,4 @@ const hex = (u8) => Buffer.from(u8).toString('hex');
   assert.equal(back.toString(), pt.toString());
   console.log('✓ 码道 AAD shape');
 }
-console.log('sm4: all checks passed');
+})

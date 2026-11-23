@@ -4,21 +4,13 @@
  */
 
 import assert from 'node:assert/strict'
+import { test } from 'vitest'
 import { createHash, createHmac } from 'node:crypto'
-import { canonicalUri, formatSdkDate, signRequest } from '../src/protocol/sign.js'
-import { deriveSessionKey, deriveRequestEnvelope, openChunk } from '../src/protocol/crypto.js'
-import { parseStreamEvent, splitSseEvents } from '../src/protocol/sse.js'
+import { canonicalUri, formatSdkDate, signRequest } from '../src/protocol/sign.ts'
+import { deriveSessionKey, deriveRequestEnvelope, openChunk } from '../src/protocol/crypto.ts'
+import { parseStreamEvent, splitSseEvents } from '../src/protocol/sse.ts'
 
-const results = []
-const check = (name, fn) => {
-  try {
-    fn()
-    results.push(`✓ ${name}`)
-  } catch (error) {
-    results.push(`✗ ${name}\n    ${error.message}`)
-    process.exitCode = 1
-  }
-}
+const check = (name, fn) => test(name, fn)
 
 // ── signing ─────────────────────────────────────────────────────────────────
 
@@ -161,7 +153,3 @@ check('an unrecognised frame yields nothing rather than throwing', () => {
   assert.deepEqual(parseStreamEvent('not json'), {})
   assert.deepEqual(parseStreamEvent('{"unrelated":true}'), {})
 })
-
-console.log(results.join('\n'))
-if (process.exitCode) console.log('\nsome checks failed')
-else console.log('\nprotocol: all checks passed')

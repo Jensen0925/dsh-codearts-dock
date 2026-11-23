@@ -19,7 +19,7 @@ jobs:
         with:
           node-version: 24
 
-      - name: Install the one runtime dependency
+      - name: Install dependencies
         # The lockfile is deliberately not committed (the Host owns resolution),
         # so `npm ci` has nothing to read.
         run: npm install --no-package-lock --no-audit --no-fund

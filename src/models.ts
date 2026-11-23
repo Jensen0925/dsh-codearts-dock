@@ -15,7 +15,9 @@
  * gateway is unreachable on a first start.
  */
 
-import { MODELS_PATH, THINKING_VARIANTS_PATH } from './gateway.js'
+import { MODEL_BUSY_PATH, MODELS_PATH, THINKING_VARIANTS_PATH } from './gateway.js'
+import { errorMessage } from './errors.js'
+import { batchModelIds, parseBusyLevels, type BusyLevel } from './busy.js'
 
 /**
  * How much of a model's output cap is reported to the Host.
@@ -40,6 +42,7 @@ const MAX_OUTPUT_CAP = 32768
  * @property {string[]} strengths accepted thinking levels; empty when none.
  * @property {string} [defaultStrength] the upstream default level.
  * @property {string} [description] one-line description.
+ * @property {BusyLevel} [busyLevel] current upstream congestion; never persisted.
  */
 
 /**
@@ -94,15 +97,18 @@ export async function discoverModels(client) {
     }
 
     let variants = {}
-    try {
-      const reply = await client.postJson(THINKING_VARIANTS_PATH, {
+    let busyLevels = new Map()
+    const [variantResult, busyResult] = await Promise.allSettled([
+      client.postJson(THINKING_VARIANTS_PATH, {
         model_names: list.map((model) => model.model_id).filter(Boolean),
-      })
+      }),
+      fetchBusyLevels(client, list.map((model) => model?.model_id).filter(Boolean)),
+    ])
+    if (variantResult.status === 'fulfilled') {
+      const reply = variantResult.value
       variants = reply?.variants ?? reply?.data?.variants ?? {}
-    } catch {
-      // Thinking levels are an optional capability; their absence must not
-      // remove the models.
     }
+    if (busyResult.status === 'fulfilled') busyLevels = busyResult.value
 
     const models = list
       .filter((model) => model?.model_id && model.enable !== false)
@@ -119,6 +125,10 @@ export async function discoverModels(client) {
           strengths: Array.isArray(variant?.strengths) ? variant.strengths : [],
           defaultStrength: variant?.default_strength || undefined,
           description: model.model_desc,
+          time_slots: model.time_slots,
+          promotion: model.promotion ?? model.promo ?? model.promotion_text ?? model.promo_text,
+          limitedTimeHalfPrice: model.limited_time_half_price === true || model.limitedTimeHalfPrice === true,
+          busyLevel: busyLevels.get(model.model_id) ?? 'unknown',
         }
       })
 
@@ -127,9 +137,31 @@ export async function discoverModels(client) {
     return {
       models: FALLBACK_MODELS,
       source: 'fallback',
-      error: error?.message ?? String(error),
+      error: errorMessage(error),
     }
   }
+}
+
+/**
+ * Read the live load probe without letting an optional endpoint hold catalog
+ * discovery indefinitely. Failed, missing, or unrecognized answers stay
+ * `unknown` at the model level.
+ */
+export async function fetchBusyLevels(client, modelIds: string[]): Promise<Map<string, BusyLevel>> {
+  const levels = new Map<string, BusyLevel>()
+  for (const batch of batchModelIds(modelIds)) {
+    const options = typeof AbortSignal.timeout === 'function'
+      ? { signal: AbortSignal.timeout(5000) }
+      : {}
+    const reply = await client.postJson(MODEL_BUSY_PATH, { models: batch }, options)
+    if (reply?.code !== undefined && Number(reply.code) !== 0) {
+      throw new Error(`模型繁忙度探测失败：${reply.msg ?? reply.message ?? reply.code}`)
+    }
+    for (const [id, level] of parseBusyLevels(reply?.data ?? reply?.models ?? reply)) {
+      levels.set(id, level)
+    }
+  }
+  return levels
 }
 
 /**

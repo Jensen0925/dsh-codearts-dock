@@ -16,6 +16,7 @@
  * could agree with itself while disagreeing with the page that reads it.
  */
 import assert from 'node:assert/strict'
+import { test } from 'vitest'
 import { readFileSync, readdirSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import { createRequire } from 'node:module'
@@ -23,6 +24,8 @@ import { join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const root = fileURLToPath(new URL('../', import.meta.url))
+
+test('market index remains installable and references valid assets', async () => {
 const read = (name) => readFileSync(join(root, name), 'utf8')
 const pkg = JSON.parse(read('package.json'))
 const index = JSON.parse(read('market-index.json'))
@@ -149,3 +152,4 @@ if (iconNames === null) {
 }
 
 console.log('✓ market index: format, version, source and icon reference are consistent')
+})

@@ -1,7 +1,8 @@
 // Adapter-level checks against a fake gateway client: no network involved.
-import assert from 'node:assert/strict';
-import { createCodeArtsAdapter, PROVIDER_ID } from '../src/adapter.js';
-import { Catalog } from '../src/catalog.js';
+import assert from 'node:assert/strict'
+import { test } from 'vitest';
+import { createCodeArtsAdapter, PROVIDER_ID } from '../src/adapter.ts';
+import { Catalog } from '../src/catalog.ts';
 
 function fakeCatalog(models) {
   const c = new Catalog();
@@ -36,11 +37,7 @@ async function collect(adapter, options) {
   return out;
 }
 
-const results = [];
-const check = async (name, fn) => {
-  try { await fn(); results.push(`✓ ${name}`); }
-  catch (e) { results.push(`✗ ${name}\n    ${e.message}`); process.exitCode=1; }
-};
+const check = (name, fn) => test(name, fn);
 
 await check('providerInfo names the route', async () => {
   const { adapter } = adapterWith([]);
@@ -228,7 +225,3 @@ await check('a normal reply is left alone by the reasoning-only guard', async ()
   const text = out.filter((c) => c.type === 'text-delta').map((c) => c.text).join('');
   assert.equal(text, '正常回复');
 });
-
-console.log(results.join('\n'));
-if (process.exitCode) console.log('\nadapter: some checks failed');
-else console.log('\nadapter: all checks passed');

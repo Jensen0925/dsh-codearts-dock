@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * The 码道 (CodeArts Agent) gateway client.
  *
@@ -42,6 +43,8 @@ export const KEY_EXCHANGE_PATH = '/api/v1/security/key-exchange'
 /** Plain (unsealed) JSON reads. */
 export const MODELS_PATH = '/v1/model/builtin'
 export const THINKING_VARIANTS_PATH = '/v1/model/thinking-variants'
+/** Current model congestion levels, returned independently from the roster. */
+export const MODEL_BUSY_PATH = '/v2/chat/busy'
 export const CREDIT_STATISTICS_PATH = '/snap-manager/v1/statistics/plugin'
 export const ROLES_PATH = '/snap-manager/v1/member/roles'
 export const BENEFITS_PATH = '/v1/ops/delivery?channel=IDE'
@@ -227,12 +230,12 @@ export class MadaoClient {
    * @param {unknown} body JSON-serialisable request body.
    * @returns {Promise<any>} the parsed body.
    */
-  async postJson(pathname, body) {
-    return this.#requestJson('POST', pathname, body)
+  async postJson(pathname, body, options = {}) {
+    return this.#requestJson('POST', pathname, body, options)
   }
 
   /** Shared implementation for the unsealed JSON endpoints. */
-  async #requestJson(method, pathname, body) {
+  async #requestJson(method, pathname, body, { signal } = {}) {
     // Sign the path and carry the query separately: the signature covers the
     // canonical path only.
     const [pathOnly, query] = pathname.split('?')
@@ -257,6 +260,7 @@ export class MadaoClient {
         ...this.#identityHeaders(),
       },
       ...(body === undefined ? {} : { body: text }),
+      ...(signal ? { signal } : {}),
     })
 
     const replyText = await response.text()

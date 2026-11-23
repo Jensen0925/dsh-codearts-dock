@@ -11,6 +11,8 @@ assert.notEqual(pkg.private, true)
 assert.equal(pkg.license, 'MIT')
 assert.equal(pkg.repository.url, 'git+https://github.com/Jensen0925/dsh-codearts-dock.git')
 assert.equal(pkg.publishConfig.registry, 'https://registry.npmjs.org/')
+assert.equal(pkg.exports?.['.'], `./${pkg.main}`, 'the package root export must match main')
+assert.ok(pkg.files?.includes('dist'), 'the compiled runtime files must be packed')
 assert.ok(existsSync(resolve(root, pkg.dsh.bundle.patch)))
 for (const name of ['README.md', 'DISCLAIMER.md', 'SECURITY.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md', 'client.js', pkg.main]) assert.ok(existsSync(resolve(root, name)), `Missing ${name}`)
 for (const name of ['README.md', 'DISCLAIMER.md', 'SECURITY.md', 'docs/PUBLISHING.md', 'docs/DETAIL.md', 'docs/DETAIL.zh.md']) {

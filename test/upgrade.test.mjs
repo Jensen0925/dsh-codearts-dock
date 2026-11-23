@@ -14,20 +14,12 @@
  * shadowed by a stale file left behind by the migration.
  */
 import assert from 'node:assert/strict'
+import { test } from 'vitest'
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-const results = []
-const check = async (name, fn) => {
-  try {
-    await fn()
-    results.push(`✓ ${name}`)
-  } catch (error) {
-    results.push(`✗ ${name}\n${error.stack}`)
-    process.exitCode = 1
-  }
-}
+const check = (name, fn) => test(name, fn)
 
 // Point every directory at a scratch home BEFORE importing the modules: they
 // evaluate their path constants at import time, and without this the suite
@@ -45,12 +37,12 @@ const {
   CONFIG_DIR,
   LEGACY_CONFIG_DIR,
   configCandidates,
-} = await import('../src/paths.js')
-const accounts = await import('../src/accounts.js')
-const { readPreferences } = await import('../src/preferences.js')
-const preferences = await import('../src/preferences.js')
-const checkin = await import('../src/checkin.js')
-const { decodeBackup, encodeBackup } = await import('../src/backup.js')
+} = await import('../src/paths.ts')
+const accounts = await import('../src/accounts.ts')
+const { readPreferences } = await import('../src/preferences.ts')
+const preferences = await import('../src/preferences.ts')
+const checkin = await import('../src/checkin.ts')
+const { decodeBackup, encodeBackup } = await import('../src/backup.ts')
 
 assert.ok(CONFIG_DIR.endsWith('dsh-codearts-dock'), `current dir uses the new name: ${CONFIG_DIR}`)
 assert.ok(LEGACY_CONFIG_DIR.endsWith('dsh-connect-codearts'), `legacy dir uses the old name: ${LEGACY_CONFIG_DIR}`)
@@ -90,6 +82,7 @@ await check('preferences written under the old name are still read', () => {
   assert.equal(read.composerChip, false)
   assert.equal(read.refreshIntervalMs, 120000)
   assert.deepEqual(read.favoriteModelIds, ['kept-model'])
+  assert.deepEqual(preferences.validatePreferences(read), { composerChip: false, refreshIntervalMs: 120000 })
 })
 
 await check('the check-in record written under the old name is still read', () => {
@@ -131,7 +124,7 @@ await check('a backup exported under the old format id still decrypts', async ()
     format: 'dsh-connect-codearts-backup',
     version: 1,
     createdAt: '2026-11-20T00:00:00.000Z',
-    preferences: { composerChip: false },
+    preferences: { composerChip: false, favoriteModelIds: ['legacy-pin'] },
     accounts: [{ ak: 'AKFROMOLDBACKUP01', sk: 'sk-backup', label: '备份账号' }],
     // The store's own id derivation: sha256(ak) truncated. Writing any other
     // value would be rejected as an inconsistent file rather than exercising
@@ -165,6 +158,7 @@ await check('a backup exported under the old format id still decrypts', async ()
   assert.equal(decoded.accounts.length, 1, 'the old backup restores its account')
   assert.equal(decoded.accounts[0].ak, 'AKFROMOLDBACKUP01')
   assert.equal(decoded.format, 'dsh-codearts-dock-backup', 'normalised to the new id on the way in')
+  assert.ok(!('favoriteModelIds' in decoded.preferences), 'old pin preferences are ignored during restore')
 
   // The wrong password must still fail: the old-AAD path is not a bypass of the
   // seal, it only names the id that was authenticated.
@@ -182,11 +176,3 @@ await check('a backup exported now uses the new ids and still round-trips', asyn
   const decoded = await decodeBackup(JSON.stringify(exported), 'new-backup-password')
   assert.equal(decoded.accounts[0].ak, 'AKNEWBACKUP000001')
 })
-
-const failed = results.filter((line) => line.startsWith('✗'))
-for (const line of results) console.log(line)
-if (failed.length > 0) {
-  console.error(`\nupgrade: ${failed.length} check(s) failed`)
-} else {
-  console.log('\nupgrade: all checks passed')
-}

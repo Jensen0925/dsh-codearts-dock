@@ -11,28 +11,47 @@
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { discoverModels, FALLBACK_MODELS } from './models.js'
+import { errorMessage } from './errors.js'
+
+type ModelInfo = {
+  id: string
+  name: string
+  context: number
+  maxOutput: number
+  ratio?: string
+  supportsImages: boolean
+  strengths: string[]
+  defaultStrength?: string
+  allowOff?: boolean
+  description?: string
+  busyLevel?: import('./busy.js').BusyLevel
+  time_slots?: Record<string, unknown>
+  promotion?: unknown
+  limitedTimeHalfPrice?: boolean
+}
+
+type ModelOverride = { images?: boolean; allowOff?: boolean; defaultStrength?: string }
 
 export class Catalog {
-  /**
-   * @param {object} [options] catalog options.
-   * @param {(line: string) => void} [options.log] diagnostic sink.
-   */
-  constructor(options = {}) {
+  log: (line: string) => void
+  current: ModelInfo[]
+  source: string
+  lastError: string | undefined
+  refreshedAt: number | undefined
+  pending: Promise<{ changed: boolean; source: string; error?: string }> | null
+  enabledIds: string[] | null
+  overrides: Record<string, ModelOverride>
+  listeners: Set<() => void>
+
+  constructor(options: { log?: (line: string) => void } = {}) {
     this.log = options.log ?? (() => {})
-    /** @type {import('./models.js').ModelInfo[]} */
     this.current = FALLBACK_MODELS
-    /** Where the current catalog came from. */
     this.source = 'fallback'
-    /** The last discovery failure, kept for the diagnostics view. */
     this.lastError = undefined
-    /** Epoch ms of the last successful refresh. */
     this.refreshedAt = undefined
     this.pending = null
-    /** Saved selection; null means "offer everything". */
     this.enabledIds = null
-    /** Per-model capability overrides. */
     this.overrides = {}
-    /** @type {Set<() => void>} */
     this.listeners = new Set()
   }
 
@@ -55,7 +74,9 @@ export class Catalog {
       // file must not replace a working catalog with something unreadable.
       if (models.length === 0) return false
       if (!models.every((model) => typeof model?.id === 'string' && model.id !== '')) return false
-      this.current = models
+      // Congestion is a live, short-lived fact. Old cache entries may contain
+      // it from a prior version; never present that stale value as current.
+      this.current = models.map((model) => ({ ...model, busyLevel: 'unknown' }))
       this.source = 'cache'
       this.refreshedAt = typeof saved.refreshedAt === 'number' ? saved.refreshedAt : undefined
       this.#notify()
@@ -77,13 +98,14 @@ export class Catalog {
     if (this.source === 'fallback') return
     try {
       mkdirSync(dirname(path), { recursive: true })
+      const models = this.current.map(({ busyLevel: _busyLevel, ...model }) => model)
       writeFileSync(
         path,
-        `${JSON.stringify({ version: 1, source: this.source, refreshedAt: this.refreshedAt, models: this.current }, null, 2)}\n`,
+        `${JSON.stringify({ version: 1, source: this.source, refreshedAt: this.refreshedAt, models }, null, 2)}\n`,
         { encoding: 'utf8', mode: 0o600 },
       )
     } catch (error) {
-      this.log(`模型清单落盘失败（不影响使用）：${error?.message ?? error}`)
+      this.log(`模型清单落盘失败（不影响使用）：${errorMessage(error)}`)
     }
   }
 
@@ -248,7 +270,7 @@ export class Catalog {
       try {
         listener()
       } catch (error) {
-        this.log(`目录变更监听器抛错：${error?.message ?? error}`)
+        this.log(`目录变更监听器抛错：${errorMessage(error)}`)
       }
     }
   }
@@ -263,6 +285,7 @@ function sameCatalog(a, b) {
     if (left.id !== right.id || left.name !== right.name) return false
     if (left.ratio !== right.ratio || left.context !== right.context) return false
     if (left.supportsImages !== right.supportsImages) return false
+    if (left.busyLevel !== right.busyLevel) return false
     if (left.strengths.length !== right.strengths.length) return false
   }
   return true

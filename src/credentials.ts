@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Credential resolution and the STS cache.
  *

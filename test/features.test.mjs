@@ -1,5 +1,6 @@
 /** Account health, model presets and encrypted migration against isolated local storage. */
 import assert from 'node:assert/strict'
+import { test } from 'vitest'
 import { mkdtemp, readFile, stat, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -11,24 +12,20 @@ process.env.DSH_CONNECT_CODEARTS_LEGACY_CREDENTIAL = join(scratch, 'no-legacy.js
 delete process.env.CODEARTS_AK
 delete process.env.CODEARTS_SK
 delete process.env.CODEARTS_SECURITY_TOKEN
-const { FEATURE_DEFAULTS, validatePreferences, persistPreferences, readPreferences, portablePreferences } = await import('../src/preferences.js')
-const { encodeBackup, decodeBackup } = await import('../src/backup.js')
-const { accountHealth } = await import('../src/health.js')
-const { readCredit } = await import('../src/account.js')
-const accounts = await import('../src/accounts.js')
-const results = []
-const check = async (name, fn) => {
-  try { await fn(); results.push(`✓ ${name}`) } catch (error) { results.push(`✗ ${name}\n${error.stack}`); process.exitCode = 1 }
-}
+const { FEATURE_DEFAULTS, validatePreferences, persistPreferences, readPreferences, portablePreferences } = await import('../src/preferences.ts')
+const { encodeBackup, decodeBackup } = await import('../src/backup.ts')
+const { accountHealth } = await import('../src/health.ts')
+const { readCredit } = await import('../src/account.ts')
+const accounts = await import('../src/accounts.ts')
+const check = (name, fn) => test(name, fn)
 const settings = { ...FEATURE_DEFAULTS, enabledModelIds: null, modelOverrides: {}, composerChip: true, refreshIntervalMs: 300000 }
 const preferences = portablePreferences(settings)
 const secretAccount = { ak: 'TEST_BACKUP_AK_123456789', sk: 'TEST_BACKUP_SK_987654321', label: 'Example' }
 
-await check('preferences validate retained settings and ignore retired alert and history fields', async () => {
+await check('preferences validate retained settings and ignore retired fields', async () => {
   for (const invalid of [-1, 0, '60000', 86400001]) assert.throws(() => validatePreferences({ refreshIntervalMs: invalid }))
   assert.throws(() => validatePreferences({ composerChip: 'true' }))
-  for (const favoriteModelIds of [null, 'model', [5], ['__proto__'], Array(501).fill('model')]) assert.throws(() => validatePreferences({ favoriteModelIds }))
-  assert.deepEqual(validatePreferences({ favoriteModelIds: ['b', 'a', 'b'] }), { favoriteModelIds: ['b', 'a'] })
+  assert.deepEqual(validatePreferences({ favoriteModelIds: ['legacy-pin'] }), {})
   assert.throws(() => validatePreferences({ enabledModelIds: [], modelOverrides: {} }))
   assert.throws(() => validatePreferences(JSON.parse('{"modelOverrides":{"__proto__":{"images":true}}}')))
   assert.throws(() => validatePreferences({ modelPresets: Array(21).fill({}) }))
@@ -42,6 +39,8 @@ await check('concurrent preference writes are atomic, private, and do not lose o
   await Promise.all([persistPreferences({ refreshIntervalMs: 120000 }), persistPreferences({ composerChip: false }), persistPreferences({ modelPresets: [] })])
   assert.equal(readPreferences().refreshIntervalMs, 120000)
   assert.equal(readPreferences().composerChip, false)
+  await persistPreferences({ favoriteModelIds: ['legacy-pin'] })
+  assert.ok(!('favoriteModelIds' in readPreferences()), 'saving drops the retired pin field from an old config')
   const mode = (await stat(join(scratch, 'dsh-codearts-dock', 'preferences.json'))).mode & 0o777
   assert.equal(mode, 0o600)
 })
@@ -61,7 +60,7 @@ await check('plain backups contain only preferences, encrypted backups round-tri
   assert.equal(plain.accounts, undefined)
   assert.ok(!JSON.stringify(plain).includes(secretAccount.ak))
   assert.deepEqual((await decodeBackup(JSON.stringify(plain))).preferences, preferences)
-  const legacy = { ...plain, preferences: { ...plain.preferences, lowBalanceEnabled: true, lowBalanceThreshold: 500, usageEnabled: true, autoCheckin: true } }
+  const legacy = { ...plain, preferences: { ...plain.preferences, lowBalanceEnabled: true, lowBalanceThreshold: 500, usageEnabled: true, autoCheckin: true, favoriteModelIds: ['legacy-pin'] } }
   assert.deepEqual((await decodeBackup(JSON.stringify(legacy))).preferences, preferences)
   await assert.rejects(encodeBackup({ preferences, accounts: [secretAccount], includeCredentials: true, password: '' }))
   await assert.rejects(encodeBackup({ preferences, accounts: [secretAccount, { ...secretAccount, ak: ` ${secretAccount.ak} ` }], includeCredentials: true, password: 'test-password-123' }), /重复账号/)
@@ -111,7 +110,7 @@ globalThis.fetch = async (input) => {
   throw new Error('Offline test blocked an unexpected gateway request')
 }
 const routes = new Map()
-const plugin = await import('../src/index.js')
+const plugin = await import('../src/index.ts')
 const effect = (fn) => { const dispose = fn(); if (typeof dispose === 'function') disposers.push(dispose); return dispose }
 plugin.apply({ effect, get: () => undefined, emit() {}, inject: (_, callback) => callback({ effect, webServer: { register: (route) => { routes.set(route.path, route.handler); return () => {} } } }) }, { registerProvider: false, autoCheckin: true })
 for (const path of ['/usage', '/usage/clear', '/checkin/auto']) assert.ok(!routes.has(`/plugins/dsh-codearts-dock${path}`), `Retired route registered: ${path}`)
@@ -143,19 +142,20 @@ await check('feature routes enforce POST, validate preferences, and persist pres
   const id = preset.body.presets[0].id
   assert.equal((await request('/presets', { action: 'delete', id })).body.presets.length, 0)
 })
-await check('pinned models persist without changing model selection and travel with backups', async () => {
+await check('retired model pins are ignored by preferences and backups', async () => {
   const before = (await request('/models')).body.enabledIds
   const saved = await request('/preferences/save', { favoriteModelIds: ['test-model', 'temporarily-unavailable'] })
-  assert.deepEqual(saved.body.preferences.favoriteModelIds, ['test-model', 'temporarily-unavailable'])
-  assert.deepEqual(readPreferences().favoriteModelIds, ['test-model', 'temporarily-unavailable'])
-  assert.deepEqual((await request('/models')).body.favoriteModelIds, ['test-model', 'temporarily-unavailable'])
+  assert.ok(!('favoriteModelIds' in saved.body.preferences))
+  assert.ok(!('favoriteModelIds' in readPreferences()))
+  assert.ok(!('favoriteModelIds' in (await request('/models')).body))
   assert.deepEqual((await request('/models')).body.enabledIds, before)
   const exported = await request('/backup/export', {})
-  assert.deepEqual(exported.body.backup.preferences.favoriteModelIds, ['test-model', 'temporarily-unavailable'])
-  await request('/preferences/save', { favoriteModelIds: [] })
-  const restored = await request('/backup/restore', { text: JSON.stringify(exported.body.backup) })
+  assert.ok(!('favoriteModelIds' in exported.body.backup.preferences))
+  const oldBackup = { format: 'dsh-codearts-dock-backup', version: 1, preferences: { ...(await request('/preferences')).body.preferences, favoriteModelIds: ['legacy-pin'] } }
+  const restored = await request('/backup/restore', { text: JSON.stringify(oldBackup) })
   assert.equal(restored.status, 200)
-  assert.deepEqual((await request('/models')).body.favoriteModelIds, ['test-model', 'temporarily-unavailable'])
+  assert.ok(!('favoriteModelIds' in restored.body.preferences))
+  assert.ok(!('favoriteModelIds' in (await request('/models')).body))
 })
 await check('malformed, non-object, oversized and remote feature requests are rejected without mutations', async () => {
   const before = JSON.stringify((await request('/preferences')).body)
@@ -233,9 +233,6 @@ await check('backup preview writes nothing; restore merges accounts, preferences
   assert.equal(accounts.readStore().activeId, accounts.accountIdOf(secretAccount.ak))
 })
 
-for (const dispose of disposers.reverse()) dispose()
-globalThis.fetch = originalFetch
-await rm(scratch, { recursive: true, force: true })
 // ── cross-site fence ────────────────────────────────────────────────────────
 //
 // These routes read credentials and one of them exports them. Loopback is not a
@@ -271,6 +268,9 @@ await check('the export route that returns plaintext keys refuses GET', async ()
   assert.equal(posted.status, 200)
 })
 
-console.log(process.exitCode ? '\nfeatures: checks failed' : '\nfeatures: all checks passed')
 
-console.log(results.join('\n'))
+test('cleanup scratch data', async () => {
+  for (const dispose of disposers.reverse()) dispose()
+  globalThis.fetch = originalFetch
+  await rm(scratch, { recursive: true, force: true })
+})

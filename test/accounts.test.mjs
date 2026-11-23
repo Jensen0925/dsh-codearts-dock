@@ -6,20 +6,12 @@
  */
 
 import assert from 'node:assert/strict'
+import { test } from 'vitest'
 import { mkdtempSync, rmSync, existsSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-const results = []
-const check = async (name, fn) => {
-  try {
-    await fn()
-    results.push(`✓ ${name}`)
-  } catch (error) {
-    results.push(`✗ ${name}\n    ${error.message}`)
-    process.exitCode = 1
-  }
-}
+const check = (name, fn) => test(name, fn)
 
 // Each module reads its directory at import time, so point it at a scratch home
 // before importing.
@@ -40,9 +32,9 @@ process.env.TZ = 'Asia/Shanghai'
 // scratch home. Importing it through another module would evaluate it before
 // the environment was redirected, and the tests would then run against the real
 // config directory.
-const { CONFIG_DIR } = await import('../src/paths.js')
-const accounts = await import('../src/accounts.js')
-const checkin = await import('../src/checkin.js')
+const { CONFIG_DIR } = await import('../src/paths.ts')
+const accounts = await import('../src/accounts.ts')
+const checkin = await import('../src/checkin.ts')
 
 assert.ok(CONFIG_DIR.startsWith(scratch), `config dir escaped the scratch home: ${CONFIG_DIR}`)
 
@@ -439,8 +431,6 @@ await check('an unreadable record does not crash and does not suppress a claim',
 })
 
 // Clean up the scratch home.
-rmSync(scratch, { recursive: true, force: true })
-assert.equal(existsSync(scratch), false)
 
 // ── borrowing the CodeArts client's sign-in ───────────────────────────────
 {
@@ -475,7 +465,7 @@ assert.equal(existsSync(scratch), false)
   process.env.HOME = scratchHome
 
   writeStateDb(scratchHome, blobWith(new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString()))
-  const { readCodeArtsSignIn } = await import('../src/credentials.js')
+  const { readCodeArtsSignIn } = await import('../src/credentials.ts')
   const borrowed = readCodeArtsSignIn()
 
   await check('a live sign-in blob is borrowed from the client state database', () => {
@@ -505,6 +495,8 @@ assert.equal(existsSync(scratch), false)
   else process.env.HOME = savedHome
 }
 
-console.log(results.join('\n'))
-if (process.exitCode) console.log('\naccounts: some checks failed')
-else console.log('\naccounts: all checks passed')
+
+test('cleanup scratch data', () => {
+  rmSync(scratch, { recursive: true, force: true })
+  assert.equal(existsSync(scratch), false)
+})

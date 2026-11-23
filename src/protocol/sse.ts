@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Server-sent-event parsing for the 码道 chat stream.
  *

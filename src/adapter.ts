@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * The 码道 LLM adapter.
  *
@@ -18,6 +19,8 @@
 
 import { GatewayError, MadaoClient } from './gateway.js'
 import { parseIdentity } from './account.js'
+import { resolveModelPromo } from './promo.js'
+import { resolveBusyBadge } from './busy.js'
 
 /**
  * @typedef {object} AdapterDeps
@@ -139,6 +142,20 @@ class CodeArtsAdapter extends LlmAdapter {
   /** Human-readable route metadata. */
   providerInfo(provider) {
     return { id: provider, name: PROVIDER_NAME }
+  }
+
+  /**
+   * Price for an image request; undefined means no separate image pricing.
+   */
+  imageRequestPricing(_provider, _model) {
+    return undefined
+  }
+
+  /**
+   * The target image geometry for this provider.
+   */
+  imageRequestTarget() {
+    return { width: 0, height: 0, maxBytes: 0 }
   }
 
   /**
@@ -452,12 +469,28 @@ class CodeArtsAdapter extends LlmAdapter {
 
   /** Convert one catalog entry into Host model metadata. */
   #modelInfo(provider, model) {
+    const promo = resolveModelPromo(model)
+    const busyBadge = resolveBusyBadge(model.busyLevel ?? 'unknown')
+    const promoBadge = promo
+      ? { text: { zh: promo.label, en: promo.labelEn }, tone: promo.tone }
+      : undefined
+    const badge = promoBadge && busyBadge
+      ? {
+          text: {
+            zh: `${promoBadge.text.zh} · ${busyBadge.text.zh}`,
+            en: `${promoBadge.text.en} · ${busyBadge.text.en}`,
+          },
+          tone: promoBadge.tone,
+        }
+      : promoBadge ?? busyBadge
+
     return {
       provider,
       id: model.id,
       name: model.ratio ? `${model.name} · ${model.ratio}` : model.name,
       ...(model.description ? { description: model.description } : {}),
       ...(model.supportsImages ? { inputModalities: ['text', 'image'] } : { inputModalities: ['text'] }),
+      ...(badge ? { badge } : {}),
     }
   }
 

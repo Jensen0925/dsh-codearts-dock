@@ -1,5 +1,6 @@
 /** Offline interactions for the actual client components; no browser, network, or credentials. */
 import assert from 'node:assert/strict'
+import { test } from 'vitest'
 import { readFileSync } from 'node:fs'
 import vm from 'node:vm'
 
@@ -173,6 +174,7 @@ function harness(surface = 'settings', rootProps = {}) {
   return { render, findAll, one, text, settle, fail, pending, writes, intervals, copied, postResponses, confirmations, controls, downloads, exposed }
 }
 
+test('client components preserve settings and composer interactions', async () => {
 const app = harness()
 assert.deepEqual(app.pending.map((request) => request.path).sort(), ['/account', '/accounts', '/models', '/status'])
 const tab = (id) => app.one((node) => node.props.role === 'tab' && node.props.id.endsWith(`-tab-${id}`))
@@ -490,7 +492,6 @@ assert.equal(otherProvider.render(), null)
 assert.equal(otherProvider.pending.length, 0)
 console.log('✓ composer shows concise health states, keeps raw errors out of row text, and supports account switching')
 
-// Pinned ordering is a preference independent of the unsaved model draft.
 async function flushSettings(instance, responses) {
   await new Promise(setImmediate)
   let turns = 0
@@ -502,53 +503,6 @@ async function flushSettings(instance, responses) {
   assert.equal(instance.pending.length, 0)
   instance.render()
 }
-const pins = harness()
-const pinResponses = { ...fixtures, '/models': { ...fixtures['/models'], favoriteModelIds: ['coder'] } }
-await flushSettings(pins, pinResponses)
-pins.one((node) => node.props.role === 'tab' && node.props.id.endsWith('-tab-models')).props.onClick(); pins.render()
-const modelOrder = () => pins.findAll((node) => node.type === 'div' && /^dca-model(?: |$)/.test(node.props.className ?? '')).map((node) => node.props.key)
-const star = (label) => pins.one((node) => node.type === 'button' && node.props['aria-label'] === label)
-assert.equal(modelOrder()[0], 'coder')
-pins.one((node) => node.type === 'input' && node.props['aria-label'] === 'Reasoner').props.onChange({ target: { checked: false } }); pins.render()
-pins.postResponses.set('/preferences/save', (body) => {
-  pinResponses['/models'] = { ...pinResponses['/models'], favoriteModelIds: body.favoriteModelIds }
-  return { ok: true, preferences: { favoriteModelIds: body.favoriteModelIds } }
-})
-star('置顶 Expensive').props.onClick()
-await flushSettings(pins, pinResponses)
-assert.deepEqual(pins.writes.at(-1), { path: '/preferences/save', body: { favoriteModelIds: ['coder', 'expensive'] } })
-assert.deepEqual(modelOrder(), ['coder', 'expensive', 'reasoner', 'free'])
-assert.equal(pins.one((node) => node.type === 'input' && node.props['aria-label'] === 'Reasoner').props.checked, false)
-assert.ok(!pins.writes.some((entry) => entry.path === '/models/select'), 'pinning must not save the live selection')
-const modelSaveStatus = () => pins.one((node) => node.props.className === 'dca-save-status')
-assert.equal(pins.text(modelSaveStatus()), '有未保存的模型配置', 'pin success must not hide the unsaved settings status')
-assert.match(pins.text(pins.render()), /常用置顶已保存/)
-assert.match(pins.text(pins.render()), /置顶即时保存/)
-assert.equal(pins.one((node) => node.type === 'button' && pins.text(node) === '保存模型配置').props.disabled, false)
-pins.one((node) => node.type === 'select' && node.props['aria-label'] === '模型排序').props.onChange({ target: { value: 'ratio' } }); pins.render()
-assert.deepEqual(modelOrder(), ['coder', 'expensive', 'free', 'reasoner'])
-pins.one((node) => node.type === 'input' && node.props.type === 'search').props.onChange({ target: { value: 'Reasoner' } }); pins.render()
-assert.deepEqual(modelOrder(), ['reasoner'], 'pinned models still obey search filters')
-pins.one((node) => node.type === 'input' && node.props.type === 'search').props.onChange({ target: { value: '' } }); pins.render()
-star('取消置顶 Coder').props.onClick()
-await flushSettings(pins, pinResponses)
-assert.deepEqual(modelOrder(), ['expensive', 'free', 'reasoner', 'coder'])
-pins.postResponses.set('/preferences/save', { ok: false, error: 'Cannot save pinned models' })
-star('置顶 Free').props.onClick()
-await flushSettings(pins, pinResponses)
-assert.equal(star('置顶 Free').props['aria-pressed'], false, 'failed writes must not appear persisted')
-assert.match(pins.text(pins.render()), /Cannot save pinned models/)
-assert.equal(pins.text(modelSaveStatus()), '有未保存的模型配置', 'pin errors must remain separate from the model draft status')
-pins.one((node) => node.type === 'input' && node.props['aria-label'] === 'Coder').props.onChange({ target: { checked: false } })
-pins.one((node) => node.type === 'input' && node.props['aria-label'] === 'Expensive').props.onChange({ target: { checked: false } })
-pins.one((node) => node.type === 'input' && node.props['aria-label'] === 'Free').props.onChange({ target: { checked: false } })
-pins.render()
-star('置顶 Free').props.onClick()
-await flushSettings(pins, pinResponses)
-assert.equal(pins.text(modelSaveStatus()), '请至少启用一个模型后保存', 'favorite errors must not hide the empty-selection guidance')
-assert.equal(pins.one((node) => node.type === 'button' && pins.text(node) === '保存模型配置').props.disabled, true)
-console.log('✓ pinned models lead each sort, obey filters, persist separately, and preserve unsaved drafts on success and failure')
-
 // Deferred writes expose progress before acknowledgement and before the subsequent reload.
 const switching = harness()
 const switchResponses = { ...fixtures, '/accounts': { ok: true, accounts: [
@@ -595,6 +549,37 @@ await accountButton('personal', '切换').props.onClick(); switching.render()
 assert.match(switching.text(accountRow('personal')), /切换到「个人」失败：Offline switch/)
 assert.equal(accountButton('personal', '切换').props.disabled, false)
 console.log('✓ account switches show progress and outcomes on the target row, preserve current state on failure, and allow retry')
+
+// Rename is available from the row menu on touch surfaces. Enter saves once;
+// Escape discards, including the blur that follows either key press.
+const renames = harness()
+await flushSettings(renames, fixtures)
+renames.one((node) => node.props.role === 'tab' && node.props.id.endsWith('-tab-account')).props.onClick()
+renames.render()
+const renameRow = () => renames.one((node) => node.type === 'div' && node.props.key === 'account-1' && node.props.className?.startsWith('dca-pool-row'))
+const renameMenuButton = () => renames.one((node) => node.type === 'button' && renames.text(node) === '账号备注', renameRow())
+const renameEvent = (details) => ({ currentTarget: { closest: () => details } })
+const renameMenu = { open: true }
+renameMenuButton().props.onClick(renameEvent(renameMenu)); renames.render()
+let renameInput = renames.one((node) => node.type === 'input' && node.props['aria-label'] === '账号备注', renameRow())
+renameInput.props.onChange({ target: { value: '工作账号' } }); renames.render()
+renameInput = renames.one((node) => node.type === 'input' && node.props['aria-label'] === '账号备注', renameRow())
+let preventedEnter = false
+renameInput.props.onKeyDown({ key: 'Enter', preventDefault: () => { preventedEnter = true } })
+renameInput.props.onBlur()
+assert.equal(preventedEnter, true)
+assert.equal(renames.writes.filter((entry) => entry.path === '/accounts/rename').length, 1, 'Enter plus blur submits once')
+const renameMenu2 = { open: true }
+renameMenuButton().props.onClick(renameEvent(renameMenu2)); renames.render()
+renameInput = renames.one((node) => node.type === 'input' && node.props['aria-label'] === '账号备注', renameRow())
+renameInput.props.onChange({ target: { value: '误输入的名称' } }); renames.render()
+renameInput = renames.one((node) => node.type === 'input' && node.props['aria-label'] === '账号备注', renameRow())
+renameInput.props.onKeyDown({ key: 'Escape' })
+renameInput.props.onBlur()
+renames.render()
+assert.equal(renames.writes.filter((entry) => entry.path === '/accounts/rename').length, 1, 'Escape plus blur discards without writing')
+assert.equal(renames.one((node) => node.type === 'button' && renames.text(node).includes('Example'), renameRow()).type, 'button')
+console.log('✓ account rename is discoverable and Enter/Escape are safe across the follow-up blur')
 
 // Account import is a read-only preview of the entire confirmed batch.
 const imports = harness()
@@ -860,4 +845,4 @@ assert.equal(await claimAnnounces(1), 1, 'a claim that claimed something announc
 assert.equal(await claimAnnounces(0), 0, 'a claim that claimed nothing announces nothing')
 console.log('✓ a claim announces a credit change, and a claim that claimed nothing stays quiet')
 
-console.log('\nui: all checks passed')
+})

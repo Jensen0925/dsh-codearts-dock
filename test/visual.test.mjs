@@ -12,17 +12,17 @@
  */
 
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { test } from 'vitest'
+import { existsSync, readFileSync } from 'node:fs'
 
-const results = []
-const check = (name, fn) => {
-  try {
-    fn()
-    results.push(`✓ ${name}`)
-  } catch (error) {
-    results.push(`✗ ${name}\n    ${error.message}`)
-    process.exitCode = 1
-  }
+const check = (name, fn) => test(name, fn)
+
+const readSource = (rel) => {
+  const ts = rel.replace(/\.js$/, '.ts')
+  const url = existsSync(new URL(ts, import.meta.url))
+    ? new URL(ts, import.meta.url)
+    : new URL(rel, import.meta.url)
+  return readFileSync(url, 'utf8')
 }
 
 const source = readFileSync(new URL('../client.js', import.meta.url), 'utf8')
@@ -133,6 +133,15 @@ check('the account row is two lines: identity, then a probe line', () => {
   has('justify-self:end;text-align:right;font-variant-numeric:tabular-nums', 'credits hug the right')
 })
 
+check('account actions and check-in status stay clear on narrow and touch layouts', () => {
+  has('.dca-pool-checkin-label{display:none}', 'desktop uses the aligned check-in column label')
+  has('.dca-pool-checkin-label{display:inline-flex', 'narrow rows label the check-in status')
+  has('opacity:.55;transition:opacity .15s', 'rename affordance stays visible without hover')
+  has('min-width:30px;min-height:30px', 'account menu has a touch-sized target')
+  assert.ok(source.includes("}, t('pool.rename'))"), 'rename is available in the row menu')
+  assert.ok(source.includes("}, rowBusy && rowAction.kind === 'check' ? t('common.loading') : t('health.recheck'))"), 'recheck is available in the row menu')
+})
+
 check('narrow settings layouts follow panel width, not viewport width', () => {
   has('.dca-settings{container:dca-settings / inline-size;', 'the settings root defines the query container')
   has('@container dca-settings (max-width:420px)', 'the narrow rules query the panel')
@@ -185,7 +194,7 @@ check('the account pool has no on/off switch: the selected account just serves',
   // The switch was removed on request. Which account serves is not a preference
   // to toggle — the selected account serves every request and a failure is
   // reported as it is, so there is nothing to turn on or off.
-  const host = readFileSync(new URL('../src/index.js', import.meta.url), 'utf8')
+  const host = readSource('../src/index.js')
   assert.ok(!source.includes("postRoute('/pool'"), 'no pool route is called from the card')
   assert.ok(!source.includes('pool.enableHint'), 'its hint is gone too')
   assert.ok(!host.includes("route('/pool'"), 'the host no longer serves that route')
@@ -199,7 +208,7 @@ check('the provider is declared, so Settings → Models renders a card for it', 
   // configurable-provider DIRECTORY. With only an adapter the plugin is
   // half-installed: models selectable, no card in the page where a user manages
   // providers. The two symptoms look unrelated and have one cause.
-  const host = readFileSync(new URL('../src/index.js', import.meta.url), 'utf8')
+  const host = readSource('../src/index.js')
   assert.ok(host.includes('registerConfigurableProviders'), 'the directory entry is declared')
   assert.ok(host.includes('registerModelDiscovery'), 'discovery is offered to that page')
   assert.ok(
@@ -220,7 +229,7 @@ check('a model row carries its own selection and capability switches', () => {
 check('an unticked model leaves the picker, a reset restores everything', () => {
   // `null` is "offer everything" and is NOT the same as an empty array, which
   // would empty the picker with no way back.
-  const host = readFileSync(new URL('../src/index.js', import.meta.url), 'utf8')
+  const host = readSource('../src/index.js')
   assert.ok(host.includes("route('/models/select'"), 'a save route exists')
   assert.ok(host.includes('enabledIds === null'), 'null is distinguished from an empty list')
   assert.ok(host.includes("emit('llm/models-updated'"), 'the picker is told to reload, without a restart')
@@ -380,7 +389,7 @@ check('the default thinking level is chosen, not captioned', () => {
 check('an override the model cannot honour is ignored, not sent upstream', () => {
   // A stale preference, or one hand-edited in preferences.json, must not become
   // a request the gateway rejects.
-  const catalog = readFileSync(new URL('../src/catalog.js', import.meta.url), 'utf8')
+  const catalog = readSource('../src/catalog.js')
   assert.ok(catalog.includes("(model.strengths ?? []).includes(override.defaultStrength)"), 'the level is validated')
   assert.ok(catalog.includes(': model.defaultStrength'), 'and falls back to upstream')
 })
@@ -388,7 +397,7 @@ check('an override the model cannot honour is ignored, not sent upstream', () =>
 check('the model page reports the EFFECTIVE default, not upstream\'s', () => {
   // Showing one value while the adapter sends another is the "shows A, bills B"
   // trap this plugin keeps guarding against.
-  const host = readFileSync(new URL('../src/index.js', import.meta.url), 'utf8')
+  const host = readSource('../src/index.js')
   assert.ok(host.includes('deps.catalog.effective(model)'), 'the row is the effective model')
 })
 
@@ -418,7 +427,3 @@ check('settings routes populate independently and can be retried', () => {
   assert.ok(source.includes('onSaved: loadModels'), 'model saves reload only the model catalog')
   assert.ok(source.includes("t('common.retry')"), 'a failed read can be retried in place')
 })
-
-console.log(results.join('\n'))
-if (process.exitCode) console.log('\nvisual: some checks failed')
-else console.log('\nvisual: all checks passed')

@@ -4,16 +4,18 @@
   "displayName": "CodeArts Dock · 码道驿站",
   "description": "为 DeepSeek Harness 接入华为云码道模型的非官方插件，提供多账号、积分概览、模型预设与加密配置备份。",
   "type": "module",
-  "main": "src/index.js",
+  "packageManager": "pnpm@10.0.0",
+  "main": "dist/index.js",
   "icon": "icons/dsh-codearts-dock-128.png",
   "exports": {
-    ".": "./src/index.js",
+    ".": "./dist/index.js",
     "./client": "./client.js",
     "./cordis.patch.yml": "./cordis.patch.yml",
     "./locale/*.json": "./locale/*.json",
     "./package.json": "./package.json"
   },
   "files": [
+    "dist",
     "src",
     "client.js",
     "cordis.patch.yml",
@@ -71,12 +73,23 @@
     "test": "npm run check:legal && node scripts/test.mjs",
     "test:live": "node --no-warnings test/live-probe.mjs",
     "check:legal": "bash scripts/check-legal.sh",
-    "check:release": "node scripts/check-release.mjs",
+    "check:release": "npm run build && node scripts/check-release.mjs",
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
     "release:prepare": "node scripts/release.mjs",
     "release:repin": "node scripts/release.mjs --repin",
-    "prepublishOnly": "npm test && npm run check:release"
+    "prepare": "husky",
+    "prepublishOnly": "npm test && npm run check:release",
+    "prepack": "npm run build"
   },
   "author": "Jensen0925",
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "husky": "^9.0.0",
+    "tsx": "^4.23.15",
+    "typescript": "^5.5.0",
+    "vitest": "^4.1.11"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Jensen0925/dsh-codearts-dock.git"

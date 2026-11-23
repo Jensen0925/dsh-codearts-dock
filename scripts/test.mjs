@@ -24,7 +24,7 @@ const once = process.argv.includes('--once')
 
 const files = readdirSync(new URL('../test/', import.meta.url)).filter((name) => name.endsWith('.test.mjs')).sort()
 const run = (file, env) =>
-  spawnSync(process.execPath, ['--no-warnings', `test/${file}`], { cwd: root, stdio: 'inherit', env: { ...process.env, ...env } })
+  spawnSync(process.execPath, ['node_modules/vitest/vitest.mjs', 'run', `test/${file}`, '--reporter=dot'], { cwd: root, stdio: 'inherit', env: { ...process.env, ...env } })
 
 for (const file of files) {
   const result = run(file, {})
