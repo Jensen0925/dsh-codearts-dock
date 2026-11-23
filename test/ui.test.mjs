@@ -20,6 +20,7 @@ function harness(surface = 'settings', rootProps = {}) {
   let cursor = 0
   let SettingsPage
   let ComposerChip
+  const exposed = {}
   let currentTree
   const instances = new Map()
   const effects = []
@@ -102,6 +103,7 @@ function harness(surface = 'settings', rootProps = {}) {
     },
     window: { setTimeout: (fn) => fn(), confirm: (text) => { confirmations.push(text); return controls.confirmAnswer }, __ModuleLoader__: { load: (definition) => {
       const module = definition.factory(() => React)
+      exposed.module = module
       module.apply({ effect() {}, slots: {
         inject: (_, fn) => fn(),
         register: (seat, component) => {
@@ -168,7 +170,7 @@ function harness(surface = 'settings', rootProps = {}) {
     render()
   }
   render()
-  return { render, findAll, one, text, settle, fail, pending, writes, intervals, copied, postResponses, confirmations, controls, downloads }
+  return { render, findAll, one, text, settle, fail, pending, writes, intervals, copied, postResponses, confirmations, controls, downloads, exposed }
 }
 
 const app = harness()
@@ -783,5 +785,79 @@ const autoLine = dual.findAll((node) => typeof node.props.title === 'string' && 
 assert.ok(autoLine.length > 0, 'an auto-granted campaign is named too')
 assert.match(autoLine[0].props.title, /系统自动发放/)
 console.log('✓ the check-in cell reports per-campaign progress and explains ineligible ones')
+
+
+// ── a claimed bonus must not leave the composer showing the old balance ─────
+//
+// Two separate slots: the check-in button on the settings page, the reading beside
+// the composer, each with its own polling. Claiming moves the balance upstream, so
+// without a notification the reading keeps the pre-claim figure until its
+// five-minute poll — and the moment a user claims is exactly when they look.
+//
+// Asserted through the exported notification pair rather than by mounting both
+// slots: this harness re-runs every effect on each render (a real host does not),
+// so a subscription made by one component cannot survive another's render. That
+// would test the harness. The pair is what both components actually use, so its
+// semantics are the thing worth pinning down.
+const notifier = harness().exposed.module.__credits
+
+let reads = 0
+const stopReading = notifier.onCreditsChanged(() => { reads += 1 })
+notifier.creditsChanged()
+assert.equal(reads, 1, 'a notification reaches a subscriber')
+notifier.creditsChanged()
+assert.equal(reads, 2, 'and every later notification reaches it too')
+stopReading()
+notifier.creditsChanged()
+assert.equal(reads, 2, 'an unsubscribed reader is not called again')
+
+// Slots mount in either order, so a change can land before a reader subscribes.
+// Dropping it would leave the reading stale until the poll — the same bug with a
+// rarer trigger, which is why the module remembers it.
+notifier.creditsChanged()
+let lateReads = 0
+notifier.onCreditsChanged(() => { lateReads += 1 })
+assert.equal(lateReads, 1, 'a late subscriber reads once for the change it missed')
+notifier.creditsChanged()
+assert.equal(lateReads, 2, 'then keeps receiving notifications')
+
+// One broken reader must not stop the others, nor make the claim look failed.
+let survivorReads = 0
+notifier.onCreditsChanged(() => { throw new Error('subscriber exploded') })
+notifier.onCreditsChanged(() => { survivorReads += 1 })
+const beforeThrow = survivorReads
+notifier.creditsChanged()
+assert.equal(survivorReads, beforeThrow + 1, 'a throwing subscriber does not block the rest')
+
+// A successful claim is what announces; a claim that claimed nothing is silent,
+// because re-reading would flash a load on every click for a change that did not
+// happen. Driven through the real settings component and its real button; POST
+// routes answer from postResponses, so the reply is registered up front.
+async function claimAnnounces(claimedCount) {
+  const instance = harness()
+  const at = instance.controls.now
+  instance.postResponses.set('/checkin/claim-all', {
+    ok: true, summary: { claimed: claimedCount, failures: [], today: { claimed: claimedCount, total: 1 } },
+  })
+  await flushSettings(instance, { ...fixtures,
+    '/accounts': { ok: true, accounts: [
+      { id: 'primary', creditIdentity: 'primary-key', active: true, label: 'Primary', credit: { remain: 100 }, creditCheckedAt: at, checkin: { available: true, claimable: true, claimedToday: 0, campaigns: [] } },
+    ] },
+  })
+  const button = instance.one((node) => typeof node.props.className === 'string' && node.props.className.includes('dca-btn') && /一键签到|签到/.test(instance.text(node)) && typeof node.props.onClick === 'function')
+
+  // Subscribe immediately before the click and do not render in between: this
+  // harness re-runs every effect on each render, so a render would drop the
+  // subscription before the claim gets to announce.
+  let reads = 0
+  instance.exposed.module.__credits.onCreditsChanged(() => { reads += 1 })
+  void button.props.onClick()
+  for (let i = 0; i < 6; i += 1) await new Promise(setImmediate)
+  return reads
+}
+
+assert.equal(await claimAnnounces(1), 1, 'a claim that claimed something announces a credit change')
+assert.equal(await claimAnnounces(0), 0, 'a claim that claimed nothing announces nothing')
+console.log('✓ a claim announces a credit change, and a claim that claimed nothing stays quiet')
 
 console.log('\nui: all checks passed')

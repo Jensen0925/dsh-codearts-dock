@@ -35,6 +35,63 @@ window.__ModuleLoader__.load({
     const PROVIDER_ID = 'codearts'
 
     /**
+     * Notifications that a credit reading became stale.
+     *
+     * The check-in runs on the settings page while the reading sits beside the
+     * composer, in a different slot with its own polling. Claiming a bonus
+     * changes the balance server-side, but nothing connected the two, so the
+     * composer kept showing the pre-claim figure until its next five-minute
+     * poll — the one moment the user is most likely to look at it is the moment
+     * it is wrong.
+     *
+     * A module-level fan-out rather than a Host event: both halves already run
+     * in this one module scope, so this needs no slot contract, survives hosts
+     * that publish no event bus, and cannot outlive the bundle.
+     */
+    const creditListeners = new Set()
+
+    /**
+     * A change that happened before anyone subscribed.
+     *
+     * The two slots mount independently, so a claim can land before the
+     * composer's effect has subscribed. Dropping the event would leave the
+     * reading stale until its poll — the original bug, just harder to trigger.
+     */
+    let creditChangePending = false
+
+    /** Subscribe a reader; returns the unsubscribe for a cleanup function. */
+    function onCreditsChanged(fn) {
+      creditListeners.add(fn)
+      // A late subscriber still owes a read for the change it missed.
+      if (creditChangePending) {
+        creditChangePending = false
+        try {
+          fn()
+        } catch (error) {
+          console.error('[dsh-connect-codearts] credit listener failed', error)
+        }
+      }
+      return () => { creditListeners.delete(fn) }
+    }
+
+    /** Tell every reader to re-read. Listeners are isolated from each other. */
+    function creditsChanged() {
+      if (creditListeners.size === 0) {
+        creditChangePending = true
+        return
+      }
+      for (const fn of [...creditListeners]) {
+        try {
+          fn()
+        } catch (error) {
+          // One broken subscriber must not stop the others, and must not make
+          // the action that changed the balance look like it failed.
+          console.error('[dsh-connect-codearts] credit listener failed', error)
+        }
+      }
+    }
+
+    /**
      * The settings-nav glyph.
      *
      * Embedded as a data URL rather than fetched from the package's icon file:
@@ -1888,6 +1945,10 @@ window.__ModuleLoader__.load({
         try {
           const result = await postRoute('/accounts/activate', { id: account.id })
           if (!result.ok) throw new Error(result.error ?? t('common.retryHint'))
+          // The composer's reading belongs to whichever account serves, so
+          // switching accounts makes it show the previous account's balance —
+          // a different number that looks like a stale one.
+          creditsChanged()
           await reload()
           setRowNotice({ id: account.id, kind: 'success', text: t('pool.switched').replace('{account}', account.label) })
         } catch (error) {
@@ -1921,6 +1982,11 @@ window.__ModuleLoader__.load({
                 .replace('{claimed}', summary.claimed)
                 .replace('{failed}', summary.failures.length),
             })
+            // A claimed bonus moves the balance, so the reading beside the
+            // composer is stale from here on. Announce only when something was
+            // actually claimed: a run that claimed nothing changed no credits,
+            // and re-reading anyway would show a spinner for no reason.
+            if (summary.claimed > 0) creditsChanged()
           } else if (result.error) {
             report({ kind: 'error', text: result.error })
           }
@@ -3055,7 +3121,14 @@ window.__ModuleLoader__.load({
         if (!ownsSelection) return undefined
         void load()
         const timer = setInterval(() => void load(), 5 * 60 * 1000)
-        return () => { clearInterval(timer); loadSequence.current += 1 }
+        // Claiming a bonus on the settings page changes the balance; without
+        // this the figure here would stay wrong until the next poll.
+        const unsubscribe = onCreditsChanged(() => { void load() })
+        return () => {
+          clearInterval(timer)
+          unsubscribe()
+          loadSequence.current += 1
+        }
       }, [load, ownsSelection])
 
       useEffect(() => {
@@ -3616,6 +3689,9 @@ window.__ModuleLoader__.load({
     exports.inject = inject
     exports.apply = apply
     exports.STRINGS = STRINGS
+    // The credit-notification pair, exported so a test can assert the semantics
+    // the two slots rely on without depending on how a host mounts them.
+    exports.__credits = { onCreditsChanged, creditsChanged }
     return module.exports
   },
 })
