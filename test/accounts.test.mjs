@@ -30,6 +30,11 @@ process.env.XDG_CONFIG_HOME = scratch
 // is absent. Without redirecting it too, these tests would read the developer's
 // real credential and every isolation assertion would be meaningless.
 process.env.DSH_CONNECT_CODEARTS_LEGACY_CREDENTIAL = join(scratch, 'legacy-credentials.json')
+// `todayKey` reads the local calendar, so every `+08:00` instant below would give
+// a different day on a runner in another zone — this suite passed only on the
+// machine it was written on, and CI (UTC) caught it. Pin the zone the fixtures
+// assume rather than making the assertions zone-dependent.
+process.env.TZ = 'Asia/Shanghai'
 
 // Import paths FIRST so its module-level constants are evaluated against the
 // scratch home. Importing it through another module would evaluate it before
