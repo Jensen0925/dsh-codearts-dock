@@ -63,7 +63,11 @@ try {
       'If you just pushed the tag, the release run must have failed; a successful publish\n' +
       'would have put the version there. Check it before repinning:\n' +
       '  gh run list --workflow=release.yml --limit 1\n' +
-      '  gh run view <id> --log-failed\n',
+      '  gh run view <id> --log-failed\n\n' +
+      'A `404 Not Found - PUT ...` there means the registry did not accept the run as\n' +
+      'the trusted publisher, not that the package is missing. Confirm the binding:\n' +
+      `  npm trust list ${pkg.name} --registry=https://registry.npmjs.org/\n` +
+      'The --registry flag is required whenever the configured registry is a mirror.\n',
   )
   process.exit(1)
 }

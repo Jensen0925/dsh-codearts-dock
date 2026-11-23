@@ -76,5 +76,15 @@ assert.match(
   /npm trust github dsh-codearts-dock --file release\.yml/,
   'docs/PUBLISHING.md must name release.yml (the bare filename) in the npm trust command',
 )
+// The registry flag is not optional on a machine whose configured registry is a
+// mirror: `npm trust` posts to whatever `npm config get registry` returns, so
+// without it the binding is attempted against the mirror, which answers 400 and
+// leaves no trust entry behind. `npm login --registry` does not change that
+// default, so "I logged in to npmjs" is not enough.
+assert.match(
+  publishingDoc,
+  /npm trust github dsh-codearts-dock --file release\.yml --allow-publish --registry=https:\/\/registry\.npmjs\.org\//,
+  'docs/PUBLISHING.md: the npm trust command must pass --registry, or a configured mirror receives the request',
+)
 
 console.log('release: package metadata, bundle, locale, index and documentation links passed')

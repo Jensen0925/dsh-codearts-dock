@@ -46,21 +46,28 @@ https://raw.githubusercontent.com/Jensen0925/dsh-codearts-dock/main/market-index
 
 ```bash
 npm login --registry=https://registry.npmjs.org/
-npm trust github dsh-codearts-dock --file release.yml --allow-publish
-npm trust list dsh-codearts-dock   # 确认已绑定，permissions 应为 publish
+npm trust github dsh-codearts-dock --file release.yml --allow-publish --registry=https://registry.npmjs.org/
+npm trust list dsh-codearts-dock --registry=https://registry.npmjs.org/   # 确认已绑定，permissions 应为 publish
 ```
 
-两个参数容易写错，都会直接失败：
+三个参数容易写错，都会直接失败：
 
 - `--file` 只写**文件名**（`release.yml`），不能写 `.github/workflows/release.yml` 这样的路径，
   否则报 `GitHub Actions workflow must be just a file not a path`；
 - `--allow-publish` 必填，否则报 `At least one permission flag is required`。
   漏掉权限标志时**绑定不会建立**，之后 CI 发布会以匿名身份被拒（`404 Not Found - PUT`）。
+- `--registry=https://registry.npmjs.org/` 必须显式写。国内常用内网镜像
+  （如 `registry=http://10.x.x.x/.../npm-group/`），`npm config` 的默认值会直接接管，
+  于是 `npm trust` 把这些请求**发给镜像**——镜像不支持 trusted publishing，回
+  `400 Bad Request - POST http://10.x.x.x/.../trust`。注意 `npm login` 带了 `--registry`
+  并不会改变后续命令的默认值：登录状态是对的，但 `npm trust` 仍会走镜像。
 
-先加 `--dry-run` 可以只校验、不落盘：
+先加 `--dry-run` 可以只校验、不落盘。**看输出末尾的链接判断打到了哪个 registry**：
+正确时显示 `https://www.npmjs.com/package/dsh-codearts-dock`，
+打到镜像时会出现 `may not support trusted publishing` 警告：
 
 ```bash
-npm trust github dsh-codearts-dock --file release.yml --allow-publish --dry-run
+npm trust github dsh-codearts-dock --file release.yml --allow-publish --dry-run --registry=https://registry.npmjs.org/
 ```
 
 绑定之后，`.github/workflows/release.yml` 用 OIDC 短时令牌发布，并附带 provenance 签名。这是 npm 正在推进的方向：绕过 2FA 的长期令牌将在 2027 年 1 月起不再能直接发布。绑定完成后可以删掉 `~/.npmrc` 里的 `//registry.npmjs.org/:_authToken=`。
