@@ -119,7 +119,7 @@ const request = (path, body, method = body === undefined ? 'GET' : 'POST', optio
   const handler = routes.get(`/plugins/dsh-connect-codearts${path}`)
   if (!handler) return reject(new Error(`Unknown route ${path}`))
   const req = Readable.from(options.raw !== undefined ? [Buffer.from(options.raw)] : body === undefined ? [] : [Buffer.from(JSON.stringify(body))])
-  Object.assign(req, { method, url: `/plugins/dsh-connect-codearts${path}`, socket: { remoteAddress: options.remoteAddress ?? '127.0.0.1' } })
+  Object.assign(req, { method, url: `/plugins/dsh-connect-codearts${path}`, socket: { remoteAddress: options.remoteAddress ?? '127.0.0.1' }, headers: options.headers ?? {} })
   let status
   handler(req, { setHeader() {}, writeHead: (value) => { status = value }, end: (text) => resolve({ status, body: JSON.parse(text) }) })
 })
@@ -236,5 +236,41 @@ await check('backup preview writes nothing; restore merges accounts, preferences
 for (const dispose of disposers.reverse()) dispose()
 globalThis.fetch = originalFetch
 await rm(scratch, { recursive: true, force: true })
-console.log(results.join('\n'))
+// ── cross-site fence ────────────────────────────────────────────────────────
+//
+// These routes read credentials and one of them exports them. Loopback is not a
+// fence: a page on any site can fetch http://127.0.0.1:PORT/... and the request
+// arrives over the loopback socket. The Host half ships no server-side
+// authentication, so a plugin route has to refuse cross-site callers itself.
+await check('cross-site requests are refused even over loopback', async () => {
+  const blocked = [
+    { headers: { 'sec-fetch-site': 'cross-site' } },
+    { headers: { origin: 'https://evil.example' } },
+    { headers: { referer: 'https://evil.example/page' } },
+    { headers: { origin: 'null' } },
+    // A different port on loopback is this machine but not this Host.
+    { headers: { origin: 'http://127.0.0.1:1' } },
+  ]
+  for (const options of blocked) {
+    const result = await request('/status', undefined, 'GET', options)
+    assert.equal(result.status, 403, `expected 403 for ${JSON.stringify(options.headers)}`)
+  }
+
+  // The Host's own page is allowed, and so is a non-browser client that sends
+  // no origin at all (the user on their own machine).
+  const own = await request('/status', undefined, 'GET', { headers: { host: '127.0.0.1:52427', origin: 'http://127.0.0.1:52427', 'sec-fetch-site': 'same-origin' } })
+  assert.equal(own.status, 200)
+  const bare = await request('/status', undefined, 'GET', { headers: { host: '127.0.0.1:52427' } })
+  assert.equal(bare.status, 200)
+})
+await check('the export route that returns plaintext keys refuses GET', async () => {
+  // It answers data, not a mutation, but a GET can be triggered by a link, a
+  // prefetch, or an <img> and would hand over every account's AK/SK.
+  assert.equal((await request('/accounts/export')).status, 405)
+  const posted = await request('/accounts/export', {})
+  assert.equal(posted.status, 200)
+})
+
 console.log(process.exitCode ? '\nfeatures: checks failed' : '\nfeatures: all checks passed')
+
+console.log(results.join('\n'))

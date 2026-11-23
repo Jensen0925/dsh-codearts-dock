@@ -929,6 +929,62 @@ class HttpError extends Error {
 }
 
 /**
+ * Whether a request came from this Host's own page rather than from another site.
+ *
+ * `isLoopback` alone does not answer this: a page on any site can send
+ * `fetch('http://127.0.0.1:PORT/plugins/...')`, and the request then arrives over
+ * loopback carrying that page's credentials — same loopback socket, someone
+ * else's code. These routes read and can export credentials, so the browser has
+ * to say where the request came from and it has to be this Host.
+ *
+ * The Host half ships no server-side authentication (DSH's webserver documents
+ * that route owners enforce their own request policy), so this is the only fence
+ * a plugin route has. It stops the cross-site case, which is the one that turns
+ * "any page you have open" into "your exported AK/SK". It does not establish
+ * identity and does not replace the Host's own authentication.
+ *
+ * Signals, in order of authority:
+ *   - `Sec-Fetch-Site: cross-site` — a cross-site caller is refused outright.
+ *   - `Origin`, else `Referer` — must name exactly the Host header's authority.
+ *   - Neither header — allowed: a browser fetch always sends at least one, so
+ *     this is a non-browser client (curl, a script), which is the user's own
+ *     action on their own machine and outside what this fence covers.
+ */
+function isSameOrigin(req) {
+  const site = String(req.headers?.['sec-fetch-site'] ?? '').toLowerCase()
+  if (site === 'cross-site') return false
+
+  /** `host:port` for a URL string, or null when it does not parse. */
+  const authorityOf = (value) => {
+    try {
+      const parsed = new URL(value)
+      // Default ports collapse, so `http://h:80` equals `http://h`.
+      const port = parsed.port || (parsed.protocol === 'https:' ? '443' : '80')
+      return `${parsed.hostname.toLowerCase()}:${port}`
+    } catch {
+      return null
+    }
+  }
+
+  const host = String(req.headers?.host ?? '')
+  const own = host === '' ? null : authorityOf(`http://${host}`)
+
+  for (const header of ['origin', 'referer']) {
+    const value = req.headers?.[header]
+    if (typeof value !== 'string' || value === '') continue
+    // 'null' is the opaque origin of a sandboxed frame or a `file://` page.
+    if (value === 'null') return false
+    const seen = authorityOf(value)
+    if (seen === null) return false
+    // A browser always sends Host, so an absent Host plus an Origin is not a
+    // same-page request; refuse it rather than skipping the comparison.
+    if (own === null) return false
+    if (seen !== own) return false
+  }
+  return true
+}
+
+/**
  * Run one handler and answer in JSON.
  *
  * Every route is loopback-only: the settings surface reads credentials and
@@ -940,6 +996,9 @@ async function handleRoute(req, res, handler) {
   try {
     if (!isLoopback(req)) {
       return json(res, 403, { ok: false, error: '只接受本机请求' })
+    }
+    if (!isSameOrigin(req)) {
+      return json(res, 403, { ok: false, error: '拒绝跨站请求' })
     }
 
     const path = resolveHandlerPath(url.pathname)
@@ -970,6 +1029,9 @@ const MUTATING_PATHS = new Set([
   '/clear',
   '/claim',
   '/accounts/add',
+  // Returns every account's plaintext AK/SK, so it must not answer a GET: a
+  // link, a prefetch, or an <img src> must never be able to pull credentials.
+  '/accounts/export',
   '/accounts/import',
   '/accounts/remove',
   '/accounts/activate',

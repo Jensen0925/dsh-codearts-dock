@@ -1937,7 +1937,8 @@ window.__ModuleLoader__.load({
       const doExport = useCallback(async () => {
         setBusy('export')
         try {
-          const result = await getRoute('/accounts/export')
+          // POST: this route returns plaintext credentials, so it refuses GET.
+          const result = await postRoute('/accounts/export', {})
           if (!result.ok || typeof result.text !== 'string') {
             report({ kind: 'error', text: result.error ?? t('pool.exportFailed') })
             return
