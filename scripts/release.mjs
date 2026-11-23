@@ -43,23 +43,45 @@ if (requested) {
 
 const version = JSON.parse(readFileSync(manifestPath, 'utf8')).version
 
-// Rebuild the index in npm mode. This fails loudly when the version is not on the
-// registry yet, which is the correct state for a release commit: run --repin
-// after the publish, so the index carries the real publish time.
+// Rebuild the index in npm mode. The index records the registry's publish time,
+// so this can only succeed once the version is actually published.
+//
+// The failure is reported, not thrown: `--repin` is normally run right after a
+// release, and the failure it hits is not a bug in this script but the fact that
+// the publish did not land. A stack trace buries that.
 try {
   execFileSync(process.execPath, ['scripts/build-market-index.mjs', '--npm'], {
     cwd: root,
     stdio: 'inherit',
   })
-} catch (error) {
-  if (requested) {
-    console.log(
-      `\n${version} is not on npm yet, so the index cannot record its publish time.\n` +
-        'Expected order: commit, tag, push (CI publishes), then `node scripts/release.mjs --repin`.',
-    )
-    process.exit(error.status ?? 1)
+} catch {
+  const listed = await registryVersions(version)
+  console.error(
+    `\n${pkg.name}@${version} is not on the registry, so the index cannot record its publish time.${
+      listed ? `\n  published versions: ${listed.join(', ')}` : ''
+    }\n\n` +
+      'If you just pushed the tag, the release run must have failed; a successful publish\n' +
+      'would have put the version there. Check it before repinning:\n' +
+      '  gh run list --workflow=release.yml --limit 1\n' +
+      '  gh run view <id> --log-failed\n',
+  )
+  process.exit(1)
+}
+
+/** Versions already on the registry, or undefined when it cannot be read. */
+async function registryVersions(version) {
+  try {
+    const response = await fetch(`https://registry.npmjs.org/${encodeURIComponent(pkg.name)}`, {
+      headers: { accept: 'application/json' },
+      signal: AbortSignal.timeout(10000),
+    })
+    if (!response.ok) return undefined
+    const body = await response.json()
+    const versions = Object.keys(body.versions ?? {}).sort()
+    return versions.includes(version) ? undefined : versions
+  } catch {
+    return undefined
   }
-  throw error
 }
 
 console.log(

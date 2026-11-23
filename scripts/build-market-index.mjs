@@ -61,9 +61,12 @@ const source =
 
 const fromRegistry = await publishedAt(pkg.version)
 if (mode === 'npm' && fromRegistry === undefined) {
-  throw new Error(
+  // Printed, not thrown: this is the ordinary state right before a release, and
+  // a stack trace makes it look like the generator is broken.
+  console.error(
     `${pkg.name}@${pkg.version} is not on ${registry}. Publish it first, or build a git-pinned index with --git <commit>.`,
   )
+  process.exit(1)
 }
 const publishTimestamp = fromRegistry ?? Math.floor(Date.now() / 1000)
 

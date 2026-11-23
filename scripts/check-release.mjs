@@ -64,5 +64,17 @@ assert.ok(existsSync(resolve(root, '.github/workflows/release.yml')), 'Missing .
 const release = read('.github/workflows/release.yml')
 assert.match(release, /id-token: write/, 'the release job needs id-token: write for trusted publishing')
 assert.match(release, /npm publish --access public/, 'the release job publishes the package')
+assert.match(release, /^name: Release$/m, 'the release workflow keeps the name')
+
+// The published filename is what `npm trust --file` must name. A renamed workflow
+// silently breaks publishing: the trust entry still points at the old name, the
+// registry refuses the OIDC exchange, and npm falls back to an anonymous publish
+// that fails with a bare 404. Keep the documented command naming this exact file.
+const publishingDoc = read('docs/PUBLISHING.md')
+assert.match(
+  publishingDoc,
+  /npm trust github dsh-codearts-dock --file release\.yml/,
+  'docs/PUBLISHING.md must name release.yml (the bare filename) in the npm trust command',
+)
 
 console.log('release: package metadata, bundle, locale, index and documentation links passed')

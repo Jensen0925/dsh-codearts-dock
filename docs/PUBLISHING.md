@@ -46,8 +46,21 @@ https://raw.githubusercontent.com/Jensen0925/dsh-codearts-dock/main/market-index
 
 ```bash
 npm login --registry=https://registry.npmjs.org/
-npm trust github dsh-codearts-dock --file .github/workflows/release.yml
-npm trust list dsh-codearts-dock   # 确认已绑定
+npm trust github dsh-codearts-dock --file release.yml --allow-publish
+npm trust list dsh-codearts-dock   # 确认已绑定，permissions 应为 publish
+```
+
+两个参数容易写错，都会直接失败：
+
+- `--file` 只写**文件名**（`release.yml`），不能写 `.github/workflows/release.yml` 这样的路径，
+  否则报 `GitHub Actions workflow must be just a file not a path`；
+- `--allow-publish` 必填，否则报 `At least one permission flag is required`。
+  漏掉权限标志时**绑定不会建立**，之后 CI 发布会以匿名身份被拒（`404 Not Found - PUT`）。
+
+先加 `--dry-run` 可以只校验、不落盘：
+
+```bash
+npm trust github dsh-codearts-dock --file release.yml --allow-publish --dry-run
 ```
 
 绑定之后，`.github/workflows/release.yml` 用 OIDC 短时令牌发布，并附带 provenance 签名。这是 npm 正在推进的方向：绕过 2FA 的长期令牌将在 2027 年 1 月起不再能直接发布。绑定完成后可以删掉 `~/.npmrc` 里的 `//registry.npmjs.org/:_authToken=`。
@@ -65,12 +78,17 @@ npm trust list dsh-codearts-dock   # 确认已绑定
    ```
 
    tag 触发 `.github/workflows/release.yml`：它先校验 tag 与 `package.json` 版本一致、离线测试全绿、该版本尚未存在，然后发布。
+   **确认它真的成功了再往下走**（`gh run list --workflow=release.yml --limit 1`）。
+   tag 一旦推出就不会因为发布失败而回滚，重跑同一个 run 即可；
+   若 tag 指向的提交本身有问题，就修好、升版本、再打新 tag——已存在的版本号不能复用。
 4. 发布完成后重钉索引，让「发现」页指向刚发布的版本及真实发布时间：
 
    ```bash
    node scripts/release.mjs --repin
    git commit -am "chore: repin index for v1.1.0" && git push
    ```
+
+   这步在版本尚未出现在 registry 时会拒绝并列出已发布版本——那说明第 3 步没成功，不是索引脚本的问题。
 
 5. 核实 npm 上的具体版本和索引里的安装目标，并按需提交社区目录收录申请。
 
