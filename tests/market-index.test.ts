@@ -24,6 +24,14 @@ import { join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const root = fileURLToPath(new URL('../', import.meta.url))
+type MarketVersion = {
+  version: string
+  source: { type: 'npm' } | { type: 'git'; commit: string; url: string }
+}
+type MarketIndexModule = {
+  parseMarketIndex(index: unknown, sourceUrl: string): { plugins: Array<{ name: string; versions: MarketVersion[] }> }
+  marketInstallTarget(name: string, version: MarketVersion): { spec: string }
+}
 
 test('market index remains installable and references valid assets', async () => {
 const read = (name) => readFileSync(join(root, name), 'utf8')
@@ -36,12 +44,12 @@ const index = JSON.parse(read('market-index.json'))
 // a plain Node reading the archive) can see it. Any failure just downgrades this
 // suite to the structural checks below instead of failing the run.
 const installDir = process.env.DSH_INSTALL_DIR
-let market = null
+let market: MarketIndexModule | null = null
 if (installDir) {
   try {
     const require = createRequire(import.meta.url)
     const entry = require.resolve('@deepseek-ai/dsh-plugin-market-index', { paths: [installDir] })
-    market = await import(pathToFileURL(entry).href)
+    market = await import(pathToFileURL(entry).href) as unknown as MarketIndexModule
   } catch {
     market = null
   }

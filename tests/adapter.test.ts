@@ -4,21 +4,61 @@ import { test } from 'vitest';
 import { createCodeArtsAdapter, PROVIDER_ID } from '../src/adapter.ts';
 import { Catalog } from '../src/catalog.ts';
 
-function fakeCatalog(models) {
+type CatalogModel = {
+  id: string;
+  name: string;
+  context: number;
+  maxOutput: number;
+  ratio: string;
+  supportsImages: boolean;
+  strengths: string[];
+  defaultStrength?: string;
+};
+
+type GatewayEvent = {
+  done?: boolean;
+  text?: string;
+  reasoning?: string;
+  finish?: string;
+  usage?: { inputTokens: number; outputTokens: number; totalTokens: number };
+  toolCalls?: Array<{
+    index: number;
+    id?: string;
+    function?: { name?: string; arguments?: string };
+  }>;
+};
+
+type GatewayMessage = {
+  role: string;
+  content?: string;
+  tool_calls?: Array<{ id: string }>;
+  tool_call_id?: string;
+};
+
+type StreamChunk =
+  | { type: 'block-start'; blockType: string }
+  | { type: 'block-end'; index: number }
+  | { type: 'reasoning-delta'; text: string }
+  | { type: 'text-delta'; text: string }
+  | { type: 'tool-call-delta'; id: string; name: string; argumentsDelta: string }
+  | { type: 'usage'; usage: { inputTokens: number; outputTokens: number; totalTokens: number } }
+  | { type: 'finish'; reason: { kind: string; failure?: { message: string } } };
+
+function fakeCatalog(models: CatalogModel[]) {
   const c = new Catalog();
   c.current = models; c.source = 'gateway';
   return c;
 }
 
-const models = [
+const models: CatalogModel[] = [
   { id:'m1', name:'Model One', context:100000, maxOutput:8192, ratio:'0.1x', supportsImages:true, strengths:[] },
   { id:'m2', name:'Model Two', context:200000, maxOutput:8192, ratio:'0.2x', supportsImages:false, strengths:['high','max'], defaultStrength:'high' },
 ];
 
 // Build an adapter whose gateway client is a stub, so no request leaves the
 // process while the real stream() logic runs.
-function adapterWith(chunks, credential = { key:{ ak:'AK', sk:'SK', securityToken:'TOKEN' } }) {
-  const sent = [];
+function adapterWith(chunks: GatewayEvent[], credential = { key:{ ak:'AK', sk:'SK', securityToken:'TOKEN' } }) {
+  const sent: unknown[] = [];
   const adapter = createCodeArtsAdapter({
     credentials: { resolve: async () => credential },
     catalog: fakeCatalog(models),
@@ -31,13 +71,36 @@ function adapterWith(chunks, credential = { key:{ ak:'AK', sk:'SK', securityToke
 }
 
 // The adapter caches clients behind #client; drive stream with a stubbed one.
-async function collect(adapter, options) {
-  const out = [];
-  for await (const chunk of adapter.stream(options)) out.push(chunk);
+async function collect(adapter: ReturnType<typeof createCodeArtsAdapter>, options: Record<string, unknown>): Promise<StreamChunk[]> {
+  const out: StreamChunk[] = [];
+  for await (const chunk of adapter.stream(options)) out.push(chunk as StreamChunk);
   return out;
 }
 
-const check = (name, fn) => test(name, fn);
+function last<T>(items: readonly T[]): T {
+  const item = items.at(-1);
+  assert.ok(item, 'expected at least one item');
+  return item;
+}
+
+function textDeltas(items: readonly StreamChunk[]): Extract<StreamChunk, { type: 'text-delta' }>[] {
+  return items.filter((chunk): chunk is Extract<StreamChunk, { type: 'text-delta' }> => chunk.type === 'text-delta');
+}
+
+function finishChunk(items: readonly StreamChunk[]): Extract<StreamChunk, { type: 'finish' }> {
+  const finish = items.find((chunk): chunk is Extract<StreamChunk, { type: 'finish' }> => chunk.type === 'finish');
+  assert.ok(finish, 'expected a finish chunk');
+  return finish;
+}
+
+function messagesFrom(request: unknown): GatewayMessage[] {
+  assert.ok(request && typeof request === 'object' && 'messages' in request);
+  const messages = request.messages;
+  assert.ok(Array.isArray(messages));
+  return messages as GatewayMessage[];
+}
+
+const check = (name: string, fn: () => void | Promise<void>) => test(name, fn);
 
 await check('providerInfo names the route', async () => {
   const { adapter } = adapterWith([]);
@@ -58,6 +121,8 @@ await check('listModels renders the credit ratio into the name', async () => {
 await check('resolveModel declares context, output cap, and reasoning', async () => {
   const { adapter } = adapterWith([]);
   const model = await adapter.resolveModel(PROVIDER_ID, 'm2');
+  assert.ok('context' in model, 'known models include context metadata');
+  assert.ok(model.context, 'known models expose their context window');
   assert.equal(model.context.contextWindow, 200000);
   assert.equal(model.defaultMaxTokens, 8192);
   assert.ok(model.reasoning, 'm2 declares thinking levels');
@@ -69,7 +134,7 @@ await check('resolveModel declares context, output cap, and reasoning', async ()
 await check('a model with no levels declares no reasoning', async () => {
   const { adapter } = adapterWith([]);
   const model = await adapter.resolveModel(PROVIDER_ID, 'm1');
-  assert.equal(model.reasoning, undefined);
+  assert.equal('reasoning' in model, false);
 });
 
 await check('text and reasoning deltas emit block lifecycle and a stop finish', async () => {
@@ -83,9 +148,9 @@ await check('text and reasoning deltas emit block lifecycle and a stop finish', 
   const out = await collect(adapter, { provider: PROVIDER_ID, model:'m1', messages:[{role:'user',content:[{type:'text',text:'hi'}]}] });
   const kinds = out.filter(c => c.type!=='block-end').map(c => c.type);
   assert.deepEqual(kinds, ['block-start','reasoning-delta','block-start','text-delta','text-delta','usage','finish']);
-  const text = out.filter(c=>c.type==='text-delta').map(c=>c.text).join('');
+  const text = textDeltas(out).map((chunk) => chunk.text).join('');
   assert.equal(text, 'Hello world');
-  const finish = out.at(-1);
+  const finish = finishChunk(out);
   assert.equal(finish.reason.kind, 'stop');
 });
 
@@ -96,15 +161,15 @@ await check('tool-call deltas accumulate into one block and finish as tool-calls
     { finish:'tool_calls' },
   ]);
   const out = await collect(adapter, { provider: PROVIDER_ID, model:'m1', messages:[{role:'user',content:[{type:'text',text:'weather'}]}] });
-  const starts = out.filter(c=>c.type==='block-start');
+  const starts = out.filter((c): c is Extract<StreamChunk, { type: 'block-start' }> => c.type === 'block-start');
   assert.equal(starts.length, 1);
-  assert.equal(starts[0].blockType, 'tool-call');
-  const deltas = out.filter(c=>c.type==='tool-call-delta');
+  assert.equal(last(starts).blockType, 'tool-call');
+  const deltas = out.filter((c): c is Extract<StreamChunk, { type: 'tool-call-delta' }> => c.type === 'tool-call-delta');
   assert.equal(deltas.length, 2);
-  assert.equal(deltas[0].id, 'call_1');
-  assert.equal(deltas[0].name, 'get_weather');
-  assert.equal(deltas[1].argumentsDelta, '{"city":"BJ"}');
-  assert.equal(out.at(-1).reason.kind, 'tool-calls');
+  assert.equal(deltas[0]?.id, 'call_1');
+  assert.equal(deltas[0]?.name, 'get_weather');
+  assert.equal(deltas[1]?.argumentsDelta, '{"city":"BJ"}');
+  assert.equal(finishChunk(out).reason.kind, 'tool-calls');
 });
 
 await check('developer messages become system, and tool results become tool messages', async () => {
@@ -120,12 +185,13 @@ await check('developer messages become system, and tool results become tool mess
       { role:'tool', toolCallId:'c1', content:[{type:'text',text:'result'}] },
     ],
   });
-  const msgs = sent[0].messages;
+  const msgs = messagesFrom(sent[0]);
   assert.equal(msgs[0].role, 'system');
   assert.equal(msgs[0].content, 'be brief');
   assert.equal(msgs[1].role, 'user');
   assert.equal(msgs[2].role, 'assistant');
-  assert.equal(msgs[2].tool_calls[0].id, 'c1');
+  assert.ok(msgs[2].tool_calls, 'assistant message includes tool calls');
+  assert.equal(msgs[2].tool_calls[0]?.id, 'c1');
   assert.equal(msgs[3].role, 'tool');
   assert.equal(msgs[3].tool_call_id, 'c1');
   assert.equal(msgs[3].content, 'result');
@@ -134,8 +200,9 @@ await check('developer messages become system, and tool results become tool mess
 await check('system prompt is sent as the leading system message', async () => {
   const { adapter, sent } = adapterWith([{ finish:'stop' }]);
   await collect(adapter, { provider: PROVIDER_ID, model:'m1', system:'SYS', messages:[] });
-  assert.equal(sent[0].messages[0].role, 'system');
-  assert.equal(sent[0].messages[0].content, 'SYS');
+  const messages = messagesFrom(sent[0]);
+  assert.equal(messages[0]?.role, 'system');
+  assert.equal(messages[0]?.content, 'SYS');
 });
 
 await check('a gateway failure becomes an error finish, not a throw', async () => {
@@ -148,15 +215,16 @@ await check('a gateway failure becomes an error finish, not a throw', async () =
     }),
   });
   const out = await collect(a, { provider: PROVIDER_ID, model:'m1', messages:[] });
-  const finish = out.at(-1);
+  const finish = finishChunk(out);
   assert.equal(finish.reason.kind, 'error');
+  assert.ok(finish.reason.failure, 'error finish includes the upstream failure');
   assert.match(finish.reason.failure.message, /exploded/);
 });
 
 await check('max-tokens maps through', async () => {
   const { adapter } = adapterWith([{ finish:'length' }]);
   const out = await collect(adapter, { provider: PROVIDER_ID, model:'m1', messages:[] });
-  assert.equal(out.at(-1).reason.kind, 'max-tokens');
+  assert.equal(finishChunk(out).reason.kind, 'max-tokens');
 });
 
 await check('usage arriving after finish is still reported, in stream order', async () => {
@@ -172,10 +240,11 @@ await check('usage arriving after finish is still reported, in stream order', as
   const types = out.map(c=>c.type);
   assert.ok(types.indexOf('usage') >= 0, 'usage must be emitted');
   assert.equal(types.at(-1), 'finish', 'finish is last');
-  const usage = out.find(c=>c.type==='usage');
+  const usage = out.find((c): c is Extract<StreamChunk, { type: 'usage' }> => c.type === 'usage');
+  assert.ok(usage, 'usage must be emitted');
   assert.equal(usage.usage.inputTokens, 17);
   assert.equal(usage.usage.outputTokens, 600);
-  assert.equal(out.at(-1).reason.kind, 'max-tokens');
+  assert.equal(finishChunk(out).reason.kind, 'max-tokens');
 });
 
 await check('exactly one finish chunk is emitted', async () => {
@@ -187,14 +256,13 @@ await check('exactly one finish chunk is emitted', async () => {
 await check('a done frame without a finish reason still settles as stop', async () => {
   const { adapter } = adapterWith([{ text:'x' }, { done:true }]);
   const out = await collect(adapter, { provider: PROVIDER_ID, model:'m1', messages:[] });
-  assert.equal(out.at(-1).type, 'finish');
-  assert.equal(out.at(-1).reason.kind, 'stop');
+  assert.equal(last(out).type, 'finish');
+  assert.equal(finishChunk(out).reason.kind, 'stop');
 });
 
 await check('a display name is resolved to the gateway model id', async () => {
   // The gateway answers `GLM-5.2 · 0.7x` with HTTP 200 and an empty body, so a
   // display string must never reach the wire.
-  const { catalogModels } = globalThis.__dcaTest ?? {};
   const cat = new Catalog();
   cat.current = [{ id:'GLM-5.2', name:'GLM-5.2', context:1, maxOutput:1, ratio:'0.7x', supportsImages:false, strengths:[] }];
   cat.source = 'gateway';
@@ -213,15 +281,15 @@ await check('a reasoning-only reply explains itself instead of coming back empty
     { done: true },
   ]);
   const out = await collect(adapter, { provider: PROVIDER_ID, model: 'm1', messages: [], maxTokens: 60 });
-  const text = out.filter((c) => c.type === 'text-delta').map((c) => c.text).join('');
+  const text = textDeltas(out).map((chunk) => chunk.text).join('');
   assert.ok(text.length > 0, 'a note must be emitted');
   assert.match(text, /max_tokens/);
-  assert.equal(out.at(-1).reason.kind, 'stop');
+  assert.equal(finishChunk(out).reason.kind, 'stop');
 });
 
 await check('a normal reply is left alone by the reasoning-only guard', async () => {
   const { adapter } = adapterWith([{ text: '正常回复' }, { finish: 'stop' }, { done: true }]);
   const out = await collect(adapter, { provider: PROVIDER_ID, model: 'm1', messages: [] });
-  const text = out.filter((c) => c.type === 'text-delta').map((c) => c.text).join('');
+  const text = textDeltas(out).map((chunk) => chunk.text).join('');
   assert.equal(text, '正常回复');
 });

@@ -3,7 +3,7 @@
 # No npm token exists in this repository: the runner proves its identity to the
 # registry with a short-lived OIDC token, and the registry only hands one out to
 # the workflow a maintainer configured as this package's trusted publisher.
-# Set that up once with `npm trust github dsh-codearts-dock --file .github/workflows/release.yml`
+# Set that up once with `npm trust github dsh-codearts-dock --file release.yml`
 # (interactive, needs 2FA); it replaces the `//registry.npmjs.org/:_authToken=`
 # line that a long-lived token used to supply.
 #
@@ -33,10 +33,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.0.0
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 24.9.0
+          cache: pnpm
           registry-url: https://registry.npmjs.org
 
       - name: Confirm the tag matches package.json
@@ -54,14 +61,24 @@ jobs:
           fi
           echo "publishing $pkg"
 
+      - name: Check release commit version
+        if: github.event_name == 'push' || inputs.dry_run == false
+        run: node scripts/check-version-bump.mjs --range "HEAD^..HEAD" --release
+
       - name: Install dependencies
-        run: npm install --no-package-lock --no-audit --no-fund
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Typecheck
+        run: pnpm run typecheck
 
       - name: Offline suites
-        run: npm test
+        run: pnpm test
 
       - name: Release metadata
-        run: npm run check:release
+        run: pnpm run check:release
+
+      - name: Package privacy and entry checks
+        run: pnpm run check:package
 
       - name: Refuse to republish an existing version
         run: |
@@ -82,4 +99,8 @@ jobs:
 
       - name: Pack instead of publish
         if: github.event_name == 'workflow_dispatch' && inputs.dry_run != false
-        run: npm pack --dry-run
+        run: |
+          pack_dir="$RUNNER_TEMP/dsh-codearts-pack"
+          mkdir -p "$pack_dir"
+          pnpm pack --pack-destination "$pack_dir"
+          tar -tzf "$pack_dir"/*.tgz

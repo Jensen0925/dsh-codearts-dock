@@ -15,20 +15,33 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.0.0
+
       - uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 24.9.0
+          cache: pnpm
 
       - name: Install dependencies
-        # The lockfile is deliberately not committed (the Host owns resolution),
-        # so `npm ci` has nothing to read.
-        run: npm install --no-package-lock --no-audit --no-fund
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Typecheck
+        run: pnpm run typecheck
 
       - name: Offline suites
-        run: npm test
+        run: pnpm test
 
       - name: Release metadata
-        run: npm run check:release
+        run: pnpm run check:release
+
+      - name: Package privacy and entry checks
+        run: pnpm run check:package
 
       - name: Packed file list
-        run: npm pack --dry-run
+        run: |
+          pack_dir="$RUNNER_TEMP/dsh-codearts-pack"
+          mkdir -p "$pack_dir"
+          pnpm pack --pack-destination "$pack_dir"
+          tar -tzf "$pack_dir"/*.tgz

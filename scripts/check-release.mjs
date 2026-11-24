@@ -11,10 +11,11 @@ assert.notEqual(pkg.private, true)
 assert.equal(pkg.license, 'MIT')
 assert.equal(pkg.repository.url, 'git+https://github.com/Jensen0925/dsh-codearts-dock.git')
 assert.equal(pkg.publishConfig.registry, 'https://registry.npmjs.org/')
+assert.equal(pkg.engines?.node, '^22.19.0 || >=24.9.0', 'package.json must declare the supported Node.js range')
 assert.equal(pkg.exports?.['.'], `./${pkg.main}`, 'the package root export must match main')
 assert.ok(pkg.files?.includes('dist'), 'the compiled runtime files must be packed')
 assert.ok(existsSync(resolve(root, pkg.dsh.bundle.patch)))
-for (const name of ['README.md', 'DISCLAIMER.md', 'SECURITY.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md', 'client.js', pkg.main]) assert.ok(existsSync(resolve(root, name)), `Missing ${name}`)
+for (const name of ['README.md', 'CHANGELOG.md', 'DISCLAIMER.md', 'SECURITY.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md', 'docs/compatibility.md', 'client.js', pkg.main]) assert.ok(existsSync(resolve(root, name)), `Missing ${name}`)
 for (const name of ['README.md', 'DISCLAIMER.md', 'SECURITY.md', 'docs/PUBLISHING.md', 'docs/DETAIL.md', 'docs/DETAIL.zh.md']) {
   const content = read(name)
   for (const match of content.matchAll(/\]\(([^\s)]+)(?:\s+"[^"]*")?\)/g)) {
@@ -64,6 +65,13 @@ if (!listed.includes(pkg.version)) {
 // whatever a maintainer runs by hand, which is the situation this file guards.
 assert.ok(existsSync(resolve(root, '.github/workflows/release.yml')), 'Missing .github/workflows/release.yml')
 const release = read('.github/workflows/release.yml')
+const ci = read('.github/workflows/ci.yml')
+assert.ok(existsSync(resolve(root, 'pnpm-lock.yaml')), 'pnpm-lock.yaml must be committed for reproducible installs')
+assert.doesNotMatch(read('.gitignore'), /^pnpm-lock\.yaml$/m, '.gitignore must not hide pnpm-lock.yaml')
+for (const [name, workflow] of [['CI', ci], ['release', release]]) {
+  assert.match(workflow, /pnpm install --frozen-lockfile/, `${name} must install from the frozen pnpm lockfile`)
+  assert.doesNotMatch(workflow, /(?:^|\s)npm install(?:\s|$)/m, `${name} must not resolve dependencies with npm install`)
+}
 assert.match(release, /id-token: write/, 'the release job needs id-token: write for trusted publishing')
 assert.match(release, /npm publish --access public/, 'the release job publishes the package')
 assert.match(release, /^name: Release$/m, 'the release workflow keeps the name')

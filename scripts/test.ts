@@ -8,8 +8,8 @@
  * the behaviour. Running one extra pass under UTC turns that class of failure
  * into something visible locally, before a push.
  *
- *   node scripts/test.mjs            # each suite once, then once under each zone
- *   node scripts/test.mjs --once     # skip the extra zone passes
+ *   node --import tsx/esm scripts/test.ts            # each suite once, then once under each zone
+ *   node --import tsx/esm scripts/test.ts --once     # skip the extra zone passes
  */
 import { readdirSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'
@@ -22,9 +22,9 @@ const root = fileURLToPath(new URL('../', import.meta.url))
 const ZONES = ['UTC', 'Pacific/Kiritimati']
 const once = process.argv.includes('--once')
 
-const files = readdirSync(new URL('../test/', import.meta.url)).filter((name) => name.endsWith('.test.mjs')).sort()
-const run = (file, env) =>
-  spawnSync(process.execPath, ['node_modules/vitest/vitest.mjs', 'run', `test/${file}`, '--reporter=dot'], { cwd: root, stdio: 'inherit', env: { ...process.env, ...env } })
+const files = readdirSync(new URL('../tests/', import.meta.url)).filter((name) => name.endsWith('.test.ts')).sort()
+const run = (file: string, env: NodeJS.ProcessEnv) =>
+  spawnSync(process.execPath, ['node_modules/vitest/vitest.mjs', 'run', `tests/${file}`, '--reporter=dot', '--silent=passed-only'], { cwd: root, stdio: 'inherit', env: { ...process.env, ...env } })
 
 for (const file of files) {
   const result = run(file, {})

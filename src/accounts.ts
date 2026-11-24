@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * The account store: many credential pairs, one of them active.
  *
@@ -30,6 +29,8 @@ import {
   LEGACY_CONFIG_CREDENTIAL_PATH,
   LEGACY_CREDENTIAL_PATH,
 } from './paths.js'
+
+type AccountInput = { ak: string; sk: string; label?: string }
 
 /** Current on-disk schema version. */
 export const STORE_VERSION = 2
@@ -197,18 +198,19 @@ async function writeStore(document) {
 }
 
 // Account checks and imports can overlap; serialize the complete read-modify-write.
-let accountMutation = Promise.resolve()
-function mutateAccounts(operation) {
-  const result = accountMutation.then(operation)
+let accountMutation: Promise<unknown> = Promise.resolve()
+function mutateAccounts<T>(operation: () => Promise<T>): Promise<T> {
+  const result = accountMutation.then(operation) as Promise<T>
   accountMutation = result.catch(() => {})
   return result
 }
-export const addAccount = (...args) => mutateAccounts(() => addAccountUnlocked(...args))
-export const addAccounts = (...args) => mutateAccounts(() => addAccountsUnlocked(...args))
-export const removeAccount = (...args) => mutateAccounts(() => removeAccountUnlocked(...args))
-export const setActiveAccount = (...args) => mutateAccounts(() => setActiveAccountUnlocked(...args))
-export const renameAccount = (...args) => mutateAccounts(() => renameAccountUnlocked(...args))
-export const rememberAccountName = (...args) => mutateAccounts(() => rememberAccountNameUnlocked(...args))
+export const addAccount = (input: AccountInput) => mutateAccounts(() => addAccountUnlocked(input))
+export const addAccounts = (entries: AccountInput[]) => mutateAccounts(() => addAccountsUnlocked(entries))
+export const removeAccount = (id: string) => mutateAccounts(() => removeAccountUnlocked(id))
+export const setActiveAccount = (id: string) => mutateAccounts(() => setActiveAccountUnlocked(id))
+export const renameAccount = (id: string, label: string) => mutateAccounts(() => renameAccountUnlocked(id, label))
+export const rememberAccountName = (id: string, accountName: string) =>
+  mutateAccounts(() => rememberAccountNameUnlocked(id, accountName))
 
 /**
  * Add one account, or update it when the AK is already present.
@@ -218,7 +220,7 @@ export const rememberAccountName = (...args) => mutateAccounts(() => rememberAcc
  * @param {string} [input.label] display name.
  * @returns {Promise<{account: Account, added: boolean, store: StoreDocument}>} the outcome.
  */
-async function addAccountUnlocked({ ak, sk, label }) {
+async function addAccountUnlocked({ ak, sk, label }: AccountInput) {
   const candidate = accountFrom({ ak, sk, label, addedAt: Date.now() })
   if (!candidate) throw new Error('Access Key ID 和 Secret Access Key 都要填。')
 
@@ -247,7 +249,7 @@ async function addAccountUnlocked({ ak, sk, label }) {
  * @param {Array<object>} entries raw pairs, in the order supplied.
  * @returns {Promise<{added: number, updated: number, skipped: number, store: StoreDocument}>} the outcome.
  */
-async function addAccountsUnlocked(entries) {
+async function addAccountsUnlocked(entries: AccountInput[]) {
   const store = readStore()
   let added = 0
   let updated = 0
@@ -360,7 +362,7 @@ export function activeAccount(store = readStore()) {
  * @param {string} text the pasted or uploaded text.
  * @returns {{accounts: Array<{ak: string, sk: string, label?: string}>, skipped: number}} parsed pairs and how many lines were unusable.
  */
-export function parseImport(text) {
+export function parseImport(text: string) {
   const raw = String(text ?? '').trim()
   if (raw === '') return { accounts: [], skipped: 0 }
 
@@ -406,7 +408,7 @@ export function parseImport(text) {
     }
   }
 
-  const accounts = []
+  const accounts: AccountInput[] = []
   let skipped = 0
   for (const line of lines.slice(start)) {
     const cells = splitLine(line)
@@ -423,11 +425,11 @@ export function parseImport(text) {
 }
 
 /** Split one delimiter-separated line, honouring simple quoting. */
-function splitLine(line) {
+function splitLine(line: string): string[] {
   const text = String(line)
   if (text.includes('\t')) return text.split('\t')
   if (text.includes(',')) {
-    const cells = []
+    const cells: string[] = []
     let current = ''
     let quoted = false
     for (let i = 0; i < text.length; i += 1) {

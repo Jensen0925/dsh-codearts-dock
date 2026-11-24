@@ -573,14 +573,29 @@ async function inspectAccount(account, deps, force = false) {
     if (deps.healthChecks.get(account.id)?.promise === operation) deps.healthChecks.delete(account.id)
   }
 }
+/** Keep pool reads responsive while limiting the burst sent to the upstream gateway. */
+const READ_ONLY_ACCOUNT_CONCURRENCY = 3
+
+async function mapAccountsWithConcurrency(accounts, worker) {
+  const results = new Array(accounts.length)
+  let next = 0
+  const workers = Array.from({ length: Math.min(READ_ONLY_ACCOUNT_CONCURRENCY, accounts.length) }, async () => {
+    while (true) {
+      const index = next++
+      if (index >= accounts.length) return
+      results[index] = await worker(accounts[index])
+    }
+  })
+  await Promise.all(workers)
+  return results
+}
+
 async function handleAccounts(deps) {
   const store = readStore()
-  const accounts = []
-  for (const account of store.accounts) {
+  const accounts = await mapAccountsWithConcurrency(store.accounts, async (account) => {
     const cached = deps.healthCache.get(account.id)
-    const entry = cached && Date.now() - cached.health.checkedAt < 60000 ? { ...cached, ...publicAccount(account, store) } : await inspectAccount(account, deps)
-    accounts.push(entry)
-  }
+    return cached && Date.now() - cached.health.checkedAt < 60000 ? { ...cached, ...publicAccount(account, store) } : inspectAccount(account, deps)
+  })
   return {
     ok: true, version: STORE_VERSION, activeId: store.activeId, accounts,
     today: todaySummary(accounts.map(({ id, label }) => ({ id, label })), new Date()),
@@ -771,17 +786,17 @@ async function handleCheckinStatus(deps) {
   const store = readStore()
   const now = new Date()
   const state = readCheckinState()
-  const accounts = []
-  for (const account of store.accounts) {
+  const accounts = await mapAccountsWithConcurrency(store.accounts, async (account) => {
     const entry = { id: account.id, label: account.label ?? defaultLabel(account.ak), state: null, error: null }
     try {
       const client = new MadaoClient({ credentials: await tripleOf(account), gateway: deps.settings.gateway })
       entry.state = await readCheckin(client, { now, state, accountId: account.id })
     } catch (error) {
+      // Keep one account's gateway/credential failure isolated from the pool.
       entry.error = error?.message ?? String(error)
     }
-    accounts.push(entry)
-  }
+    return entry
+  })
   return {
     ok: true,
     accounts,

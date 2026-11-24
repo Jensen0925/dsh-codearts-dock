@@ -72,16 +72,21 @@ npm trust github dsh-codearts-dock --file release.yml --allow-publish --dry-run 
 
 绑定之后，`.github/workflows/release.yml` 用 OIDC 短时令牌发布，并附带 provenance 签名。这是 npm 正在推进的方向：绕过 2FA 的长期令牌将在 2027 年 1 月起不再能直接发布。绑定完成后可以删掉 `~/.npmrc` 里的 `//registry.npmjs.org/:_authToken=`。
 
+### 版本号与 npm 发布
+
+普通提交不修改版本号，也不会发布 npm。版本号只在准备发行时升级；发布提交使用 `chore: release vX.Y.Z`，并把 `package.json` 更新到同一个版本。推送匹配的 `vX.Y.Z` 标签后，`.github/workflows/release.yml` 才会运行发布任务；推送 `main` 只运行 CI。手动运行 Release workflow 默认是 dry run。
+
+版本规则见 [提交与版本规则](COMMITS.md)。这套流程与参考项目一致：发布动作由维护者明确发起，普通开发提交不会变成 npm 版本。
+
 ### 每次发布
 
-1. `node scripts/release.mjs 1.1.0`：改版本号并尝试用 registry 的发布时间重建索引。
-   版本还没发布时这步会明确报错并打印后续命令——这是预期行为，不是故障。
-2. 检查 `npm test`、`npm run check:release`、`npm pack --dry-run` 的输出，确认包内不含账号、令牌、本机笔记、导出或备份。
+1. 将 `CHANGELOG.md` 的 `[Unreleased]` 内容整理到新版本条目，再运行 `node scripts/release.mjs 1.4.0` 更新 `package.json`。版本号必须高于当前版本。
+2. 检查 `pnpm test`、`pnpm run check:release`、`pnpm run check:package` 和 `pnpm pack` 的输出，确认包内不含账号、令牌、本机笔记、导出或备份。
 3. 提交并推 tag：
 
    ```bash
-   git add -A && git commit -m "chore: release v1.1.0"
-   git tag -a v1.1.0 -m "v1.1.0" && git push origin main --follow-tags
+   git add package.json CHANGELOG.md && git commit -m "chore: release v1.4.0"
+   git tag -a v1.4.0 -m "v1.4.0" && git push origin main --follow-tags
    ```
 
    tag 触发 `.github/workflows/release.yml`：它先校验 tag 与 `package.json` 版本一致、离线测试全绿、该版本尚未存在，然后发布。
@@ -92,13 +97,13 @@ npm trust github dsh-codearts-dock --file release.yml --allow-publish --dry-run 
 
    ```bash
    node scripts/release.mjs --repin
-   git commit -am "chore: repin index for v1.1.0" && git push
+   git add market-index.json && git commit -m "chore: repin index for v1.4.0" && git push
    ```
 
-   这步在版本尚未出现在 registry 时会拒绝并列出已发布版本——那说明第 3 步没成功，不是索引脚本的问题。
+   这步在版本尚未出现在 registry 时会拒绝并列出已发布版本——那说明第 3 步没成功，不是索引脚本的问题。索引重钉提交沿用已发布版本号，不会再次触发 npm 发布。
 
 5. 核实 npm 上的具体版本和索引里的安装目标，并按需提交社区目录收录申请。
 
-`main` 分支的每次推送都会跑 `.github/workflows/ci.yml`（离线测试 + 发布前检查 + 打包清单），它不发布任何东西。
+`main` 分支的每次推送都会跑 `.github/workflows/ci.yml`（冻结依赖安装、类型检查、离线测试、入口与隐私检查、发布元数据和打包清单），它不发布任何东西。
 
 1.1.0 及更早版本的包名是 `dsh-connect-codearts`，配置目录与内部标识也是这个名字。从 1.2.0 起统一为 `dsh-codearts-dock`：配置目录、loader 行 id、HTTP 路由前缀、客户端槽位 id 和备份格式 id 全部改名，读取侧保留对旧目录、旧设置命名空间与旧备份格式的兼容，升级不丢账号和偏好。模型 provider 仍为 `codearts`。不要同时启用新旧两个包——两者会注册同一个 provider 路由。

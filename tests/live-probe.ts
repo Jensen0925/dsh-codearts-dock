@@ -4,11 +4,11 @@
  * Not part of `npm test`: it spends real credit and needs working credentials.
  * Run it after a protocol change to confirm the whole chain still holds:
  *
- *   CODEARTS_AK=... CODEARTS_SK=... node --no-warnings test/live-probe.mjs
+ *   CODEARTS_AK=... CODEARTS_SK=... node --import tsx/esm test/live-probe.ts
  */
 
-import { getSts } from '../src/sts.js'
-import { MadaoClient } from '../src/gateway.js'
+import { getSts } from '../src/sts.ts'
+import { MadaoClient } from '../src/gateway.ts'
 
 const ak = process.env.CODEARTS_AK
 const sk = process.env.CODEARTS_SK

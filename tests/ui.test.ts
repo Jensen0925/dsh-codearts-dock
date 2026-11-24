@@ -5,6 +5,20 @@ import { readFileSync } from 'node:fs'
 import vm from 'node:vm'
 
 const source = readFileSync(new URL('../client.js', import.meta.url), 'utf8')
+type TestNode = { type: any; props: Record<string, any> }
+type PendingRequest = {
+  path: string
+  options: { method?: string; body?: string; signal?: AbortSignal }
+  resolve(body: unknown): void
+  reject(reason?: unknown): void
+}
+type Write = { path: string; body: any }
+type Download = { name: string; blob: Blob | undefined }
+function latest<T>(items: T[]): T {
+  const item = items.at(-1)
+  assert.ok(item, 'expected at least one recorded item')
+  return item
+}
 const initialModels = {
   ok: true, source: 'cache', enabledIds: null, refreshedAt: 1,
   models: [
@@ -14,26 +28,26 @@ const initialModels = {
 }
 
 function harness(surface = 'settings', rootProps = {}) {
-  const postResponses = new Map()
-  const confirmations = []
+  const postResponses = new Map<string, unknown>()
+  const confirmations: string[] = []
   const controls = { confirmAnswer: true, now: Date.now() }
-  let active
+  let active: { type: any; hooks: any[] } | undefined
   let cursor = 0
-  let SettingsPage
-  let ComposerChip
-  const exposed = {}
-  let currentTree
-  const instances = new Map()
-  const effects = []
-  const intervals = []
-  const pending = []
-  const writes = []
-  const copied = []
-  const downloads = []
-  const blobs = new Map()
+  let SettingsPage: any
+  let ComposerChip: any
+  const exposed: Record<string, any> = {}
+  let currentTree: any
+  const instances = new Map<string, { type: any; hooks: any[] }>()
+  const effects: Array<() => void> = []
+  const intervals: Array<() => void> = []
+  const pending: PendingRequest[] = []
+  const writes: Write[] = []
+  const copied: string[] = []
+  const downloads: Download[] = []
+  const blobs = new Map<string, Blob>()
   const state = () => {
     const index = cursor++
-    return [active, index]
+    return [active!, index] as const
   }
   const React = {
     Fragment: Symbol('Fragment'),
@@ -82,17 +96,22 @@ function harness(surface = 'settings', rootProps = {}) {
     document: {
       documentElement: { lang: 'zh-CN' }, body: { appendChild() {} },
       addEventListener() {}, removeEventListener() {},
-      createElement: (tag) => {
+      createElement: (tag: string) => {
         assert.equal(tag, 'a')
-        return { click() { downloads.push({ name: this.download, blob: blobs.get(this.href) }) }, remove() {} }
+        return {
+          download: '',
+          href: '',
+          click() { downloads.push({ name: this.download, blob: blobs.get(this.href) }) },
+          remove() {},
+        }
       },
     },
     navigator: { language: 'zh-CN', clipboard: { writeText: async (text) => copied.push(text) } },
     setInterval: (fn) => { intervals.push(fn); return intervals.length }, clearInterval() {},
-    fetch: async (url, options = {}) => {
+    fetch: async (url: string, options: { method?: string; body?: string; signal?: AbortSignal } = {}) => {
       const path = url.replace('/plugins/dsh-codearts-dock', '')
       if (options.method === 'POST') {
-        const body = JSON.parse(options.body)
+        const body = JSON.parse(options.body ?? '{}')
         writes.push({ path, body })
         const reply = postResponses.get(path)
         const result = await (typeof reply === 'function' ? reply(body) : reply ?? { ok: true, enabled: 1 })
@@ -150,8 +169,8 @@ function harness(surface = 'settings', rootProps = {}) {
     if (!node || typeof node !== 'object') return []
     return [...(predicate(node) ? [node] : []), ...node.props.children.flatMap((child) => findAll(predicate, child))]
   }
-  function one(predicate) {
-    const matches = findAll(predicate)
+  function one(predicate, node = currentTree) {
+    const matches = findAll(predicate, node)
     assert.equal(matches.length, 1, `Expected one node, got ${matches.length}`)
     return matches[0]
   }
@@ -241,12 +260,13 @@ await new Promise(setImmediate)
 // The refresh route is deliberately a normal pending read in this harness.
 await app.settle('/refresh', { ok: true })
 const oldRequest = app.pending.find((request) => request.path === '/models')
+assert.ok(oldRequest, 'the foreground model request remains pending')
 app.intervals[0]()
 await new Promise(setImmediate)
 assert.equal(app.pending.filter((request) => request.path === '/models').length, 1, 'background polling does not abort a foreground refresh')
 await app.settle('/models', { ...initialModels, source: 'gateway', enabledIds: ['coder'] })
 await refreshPromise
-assert.equal(oldRequest.options.signal.aborted, false)
+assert.equal(oldRequest.options.signal?.aborted, false)
 console.log('✓ background polling leaves a foreground model refresh in progress')
 
 
@@ -351,8 +371,8 @@ const presetName = features.one((node) => node.type === 'input' && node.props.ma
 presetName.props.onChange({ target: { value: 'My draft' } }); features.render()
 features.postResponses.set('/presets', (body) => ({ ok: true, presets: [{ ...body, id: 'custom-1' }] }))
 await act(() => features.one((node) => node.type === 'form' && features.findAll((child) => child.type === 'input' && child.props.maxLength === 48, node).length === 1).props.onSubmit({ preventDefault() {} }))
-assert.equal(features.writes.at(-1).path, '/presets')
-assert.equal(features.writes.at(-1).body.modelOverrides.reasoner.allowOff, false)
+assert.equal(latest(features.writes).path, '/presets')
+assert.equal(latest(features.writes).body.modelOverrides.reasoner.allowOff, false)
 assert.ok(!features.writes.slice(writesBeforePreview).some((entry) => entry.path === '/models/select'))
 console.log('✓ capability filters and presets preserve drafts, include zero-cost models, and never auto-save the live selection')
 
@@ -379,11 +399,13 @@ const backupForm = () => features.one((node) => node.type === 'form' && features
 const exportedEnvelope = { format: 'dsh-codearts-dock-encrypted', version: 1, data: 'fake-test-ciphertext' }
 features.postResponses.set('/backup/export', { ok: true, backup: exportedEnvelope })
 await act(() => backupForm().props.onSubmit({ preventDefault() {} }))
-assert.equal(features.writes.at(-1).body.includeCredentials, true)
-assert.equal(features.writes.at(-1).body.password, 'password-123')
+assert.equal(latest(features.writes).body.includeCredentials, true)
+assert.equal(latest(features.writes).body.password, 'password-123')
 assert.equal(features.downloads.length, 1)
-assert.match(features.downloads[0].name, /^codearts-backup-\d{4}-\d{2}-\d{2}\.json$/)
-assert.deepEqual(JSON.parse(await features.downloads[0].blob.text()), exportedEnvelope)
+const download = latest(features.downloads)
+assert.match(download.name, /^codearts-backup-\d{4}-\d{2}-\d{2}\.json$/)
+assert.ok(download.blob, 'the download references the generated backup')
+assert.deepEqual(JSON.parse(await download.blob.text()), exportedEnvelope)
 assert.equal(labelled('加密密码').props.value, '')
 assert.equal(labelled('确认加密密码').props.value, '')
 fb('恢复配置').props.onClick(); features.render()
@@ -399,16 +421,16 @@ assert.equal(fb('读取并预览').props.disabled, true, 'encrypted files requir
 labelled('解密密码').props.onChange({ target: { value: 'password-123' } }); features.render()
 features.postResponses.set('/backup/preview', { ok: true, changes: ['composerChip'], preferences: { composerChip: false }, accounts: { added: 1, updated: 0 } })
 await act(() => fb('读取并预览').props.onClick())
-assert.equal(features.writes.at(-1).path, '/backup/preview')
+assert.equal(latest(features.writes).path, '/backup/preview')
 assert.ok(!features.writes.some((entry) => entry.path === '/backup/restore'))
 labelled('解密密码').props.onChange({ target: { value: 'new-password' } }); features.render()
 assert.equal(features.findAll((node) => node.type === 'button' && features.text(node) === '确认恢复').length, 0)
 await act(() => fb('读取并预览').props.onClick())
 features.postResponses.set('/backup/restore', { ok: true, added: 1, updated: 0 })
 await act(() => fb('确认恢复').props.onClick())
-assert.equal(features.writes.at(-1).path, '/backup/restore')
-assert.equal(features.writes.at(-1).body.text, backupText)
-assert.equal(features.writes.at(-1).body.password, 'new-password')
+assert.equal(latest(features.writes).path, '/backup/restore')
+assert.equal(latest(features.writes).body.text, backupText)
+assert.equal(latest(features.writes).body.password, 'new-password')
 assert.equal(labelled('备份内容（也可粘贴 JSON）', 'textarea').props.value, '')
 assert.equal(features.findAll((node) => node.type === 'input' && node.props.autoComplete === 'off' && node.props.type === 'password', backupRoot()).length, 0)
 console.log('✓ backup modes reveal only relevant forms; encryption, file selection, restore preview and input clearing work')
@@ -433,7 +455,7 @@ labelled('备份内容（也可粘贴 JSON）', 'textarea').props.onChange({ tar
 assert.equal(features.findAll((node) => node.type === 'input' && node.props.autoComplete === 'off' && node.props.type === 'password', backupRoot()).length, 0)
 features.postResponses.set('/backup/preview', { ok: true, changes: [], preferences: {}, accounts: { added: 0, updated: 0 } })
 await act(() => fb('读取并预览').props.onClick())
-assert.equal(features.writes.at(-1).body.password, '')
+assert.equal(latest(features.writes).body.password, '')
 fb('导出配置').props.onClick(); features.render()
 fb('恢复配置').props.onClick(); features.render()
 assert.equal(features.findAll((node) => node.type === 'button' && features.text(node) === '确认恢复').length, 0, 'changing modes invalidates the preview')
@@ -621,7 +643,7 @@ console.log('✓ account import previews a plain list with the confirmed batch c
 
 const balances = harness()
 const checkedAt = balances.controls.now - 300000
-const balanceResponses = { ...fixtures,
+const balanceResponses: Record<string, any> = { ...fixtures,
   '/account': { ok: true, accountId: 'primary', creditIdentity: 'primary-key', credit: { remain: 20 }, creditCheckedAt: checkedAt },
   '/accounts': { ok: true, accounts: [
     { id: 'primary', creditIdentity: 'primary-key', label: 'Primary', credit: { remain: 20 }, creditCheckedAt: checkedAt },

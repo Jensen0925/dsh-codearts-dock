@@ -15,11 +15,11 @@
  */
 import assert from 'node:assert/strict'
 import { test } from 'vitest'
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync } from 'node:fs'
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-const check = (name, fn) => test(name, fn)
+const check = (name: string, fn: () => void | Promise<void>) => test(name, fn)
 
 // Point every directory at a scratch home BEFORE importing the modules: they
 // evaluate their path constants at import time, and without this the suite
@@ -41,12 +41,48 @@ const {
 const accounts = await import('../src/accounts.ts')
 const { readPreferences } = await import('../src/preferences.ts')
 const preferences = await import('../src/preferences.ts')
-const checkin = await import('../src/checkin.ts')
-const { decodeBackup, encodeBackup } = await import('../src/backup.ts')
+const checkinModule = await import('../src/checkin.ts')
+const checkin = checkinModule as unknown as {
+  readCheckinState(): { accounts: Record<string, Record<string, { claimed: boolean }>> }
+}
+type BackupAccount = { ak: string; sk: string; label?: string }
+type BackupPreferences = Record<string, unknown>
+type EncodedBackup = {
+  format: string
+  version: number
+  createdAt?: string
+  preferences: BackupPreferences
+  accounts?: BackupAccount[]
+  activeAccountId?: string
+  cipher?: string
+  kdf?: string
+  salt?: string
+  iv?: string
+  tag?: string
+  data?: string
+}
+type DecodedBackup = {
+  format: string
+  version: number
+  preferences: BackupPreferences
+  accounts?: BackupAccount[]
+  activeAccountId?: string
+}
+const backupModule = await import('../src/backup.ts')
+const encodeBackup = backupModule.encodeBackup as unknown as (input: {
+  preferences: BackupPreferences
+  accounts?: BackupAccount[]
+  includeCredentials?: boolean
+  activeAccountId?: string
+  password?: string
+}) => Promise<EncodedBackup>
+const decodeBackup = backupModule.decodeBackup as unknown as (text: string, password?: string) => Promise<DecodedBackup>
 
-assert.ok(CONFIG_DIR.endsWith('dsh-codearts-dock'), `current dir uses the new name: ${CONFIG_DIR}`)
-assert.ok(LEGACY_CONFIG_DIR.endsWith('dsh-connect-codearts'), `legacy dir uses the old name: ${LEGACY_CONFIG_DIR}`)
-assert.ok(!existsSync(CONFIG_DIR), 'the scratch home starts with no current directory at all')
+await check('configuration paths prefer the current name and include the legacy fallback', () => {
+  assert.ok(CONFIG_DIR.endsWith('dsh-codearts-dock'), `current dir uses the new name: ${CONFIG_DIR}`)
+  assert.ok(LEGACY_CONFIG_DIR.endsWith('dsh-connect-codearts'), `legacy dir uses the old name: ${LEGACY_CONFIG_DIR}`)
+  assert.ok(!existsSync(CONFIG_DIR), 'the scratch home starts with no current directory at all')
+})
 
 await check('the candidates list states the migration order once', () => {
   const candidates = configCandidates('preferences.json')
@@ -119,7 +155,13 @@ await check('a backup exported under the old format id still decrypts', async ()
   // would test the new path against itself and prove nothing.
   const { randomBytes, scrypt, createCipheriv } = await import('node:crypto')
   const { promisify } = await import('node:util')
-  const derive = promisify(scrypt)
+  const derive = (password: string, salt: Buffer, length: number, options: { N: number; r: number; p: number; maxmem: number }) =>
+    new Promise<Buffer>((resolve, reject) => {
+      scrypt(password, salt, length, options, (error, key) => {
+        if (error) reject(error)
+        else resolve(key)
+      })
+    })
   const payload = {
     format: 'dsh-connect-codearts-backup',
     version: 1,
@@ -155,6 +197,7 @@ await check('a backup exported under the old format id still decrypts', async ()
   }
 
   const decoded = await decodeBackup(JSON.stringify(envelope), password)
+  assert.ok(decoded.accounts)
   assert.equal(decoded.accounts.length, 1, 'the old backup restores its account')
   assert.equal(decoded.accounts[0].ak, 'AKFROMOLDBACKUP01')
   assert.equal(decoded.format, 'dsh-codearts-dock-backup', 'normalised to the new id on the way in')
@@ -174,5 +217,10 @@ await check('a backup exported now uses the new ids and still round-trips', asyn
   })
   assert.equal(exported.format, 'dsh-codearts-dock-encrypted')
   const decoded = await decodeBackup(JSON.stringify(exported), 'new-backup-password')
+  assert.ok(decoded.accounts)
   assert.equal(decoded.accounts[0].ak, 'AKNEWBACKUP000001')
+})
+
+test('cleanup scratch data', () => {
+  rmSync(scratch, { recursive: true, force: true })
 })

@@ -19,7 +19,7 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-const check = (name, fn) => test(name, fn)
+const check = (name: string, fn: () => void | Promise<void>) => test(name, fn)
 
 const scratch = mkdtempSync(join(tmpdir(), 'dca-reg-'))
 process.env.APPDATA = scratch
@@ -27,9 +27,23 @@ process.env.DSH_CONNECT_CODEARTS_LEGACY_CREDENTIAL = join(scratch, 'legacy.json'
 
 const plugin = await import('../src/index.ts')
 
+type ModelInfo = { id: string; contextWindow?: number; inputModalities?: string[] }
+type TestAdapter = { listModels(provider: string): Promise<ModelInfo[]> }
+type ProviderEntry = { provider: string; displayName: string; settingsNs: string; settingsPath: unknown[] }
+type Discovery = { ns: string; discover(options: object): Promise<ModelInfo[]> }
+type Recorder = {
+  adapters: Array<{ providers: string[]; adapter: TestAdapter }>
+  directories: ProviderEntry[][]
+  discoveries: Discovery[]
+}
+
+function createRecorder(): Recorder {
+  return { adapters: [], directories: [], discoveries: [] }
+}
+
 /** Apply the plugin against a recording context. */
 function activate() {
-  const recorder = { adapters: [], directories: [], discoveries: [] }
+  const recorder = createRecorder()
   const ctx = {
     effect: (fn) => {
       const disposer = fn()
@@ -37,15 +51,15 @@ function activate() {
     },
     get: () => undefined,
     llm: {
-      registerAdapter(providers, adapter) {
+      registerAdapter(providers: string[], adapter: TestAdapter) {
         recorder.adapters.push({ providers, adapter })
         return () => {}
       },
-      registerConfigurableProviders(entries) {
+      registerConfigurableProviders(entries: ProviderEntry[]) {
         recorder.directories.push(entries)
         return () => {}
       },
-      registerModelDiscovery(ns, discover) {
+      registerModelDiscovery(ns: string, discover: Discovery['discover']) {
         recorder.discoveries.push({ ns, discover })
         return () => {}
       },
@@ -62,7 +76,7 @@ function activate() {
  * real Loader-mounted row does.
  */
 function activateUnderEntryId(entryId) {
-  const recorder = { adapters: [], directories: [], discoveries: [] }
+  const recorder = createRecorder()
   const ctx = {
     fiber: { entry: { options: { id: entryId } } },
     effect: (fn) => {
@@ -71,15 +85,15 @@ function activateUnderEntryId(entryId) {
     },
     get: () => undefined,
     llm: {
-      registerAdapter(providers, adapter) {
+      registerAdapter(providers: string[], adapter: TestAdapter) {
         recorder.adapters.push({ providers, adapter })
         return () => {}
       },
-      registerConfigurableProviders(entries) {
+      registerConfigurableProviders(entries: ProviderEntry[]) {
         recorder.directories.push(entries)
         return () => {}
       },
-      registerModelDiscovery(ns, discover) {
+      registerModelDiscovery(ns: string, discover: Discovery['discover']) {
         recorder.discoveries.push({ ns, discover })
         return () => {}
       },
@@ -160,8 +174,8 @@ await check('every route is registered exact, so paths cannot shadow each other'
   // `{ ok: true, models: [...] }` — the client sees success and nothing was
   // written. `exact` makes a missing route answer 404 instead of a neighbour's
   // payload.
-  const kinds = new Set()
-  const seen = []
+  const kinds = new Set<string>()
+  const seen: string[] = []
   const ctx = {
     effect: (fn) => {
       const d = fn()
@@ -180,7 +194,7 @@ await check('every route is registered exact, so paths cannot shadow each other'
           return () => {}
         },
         webServer: {
-          register(route) {
+          register(route: { kind: string; path: string }) {
             kinds.add(route.kind)
             seen.push(route.path)
             return () => {}
@@ -252,11 +266,11 @@ await check('the adapter carries every method the Host calls unconditionally', a
 await check('the last good catalog survives a restart', async () => {
   // Without this a restart begins on the static fallback table and the picker is
   // wrong until the first refresh lands.
-  const { mkdtempSync, writeFileSync } = await import('node:fs')
-  const { tmpdir } = await import('node:os')
-  const { join } = await import('node:path')
+  const { mkdirSync, writeFileSync } = await import('node:fs')
   const { Catalog } = await import('../src/catalog.ts')
-  const cache = join(mkdtempSync(join(tmpdir(), 'dca-cat-')), 'catalog.json')
+  const cacheDir = join(scratch, 'catalog-cache')
+  mkdirSync(cacheDir, { recursive: true })
+  const cache = join(cacheDir, 'catalog.json')
 
   const first = new Catalog({})
   first.current = [{ id: 'saved-model', name: 'S', context: 1000, maxOutput: 10, supportsImages: false, strengths: [] }]
@@ -271,13 +285,15 @@ await check('the last good catalog survives a restart', async () => {
   // A corrupt file must not replace a working catalog with nothing.
   writeFileSync(cache, '{ not json')
   const third = new Catalog({})
-  third.current = [{ id: 'keep' }]
+  third.current = [{ id: 'keep', name: 'Keep', context: 1000, maxOutput: 10, supportsImages: false, strengths: [] }]
   assert.equal(third.loadPersisted(cache), false, 'a corrupt cache is refused')
   assert.deepEqual(third.models().map((m) => m.id), ['keep'], 'and leaves the catalog intact')
 
   // A fallback catalog is never persisted: it is not worth restoring.
   const fourth = new Catalog({})
-  fourth.persist(join(mkdtempSync(join(tmpdir(), 'dca-cat2-')), 'never.json'))
+  const fallbackDir = join(scratch, 'fallback-cache')
+  mkdirSync(fallbackDir, { recursive: true })
+  fourth.persist(join(fallbackDir, 'never.json'))
 })
 
 await check('the status route reports both settings gates', async () => {

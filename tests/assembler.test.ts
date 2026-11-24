@@ -3,26 +3,28 @@
 import { test } from 'vitest'
 
 const base = process.env.DSH_INSTALL_DIR
+let BlockAssembler
+let skipReason
 
 if (!base) {
-  test.skip('BlockAssembler integration (DSH_INSTALL_DIR unavailable)', () => {})
+  skipReason = 'DSH_INSTALL_DIR unavailable'
 } else {
-  test('adapter chunks survive the Host BlockAssembler', async () => {
+  try {
     const { createRequire } = await import('node:module')
     const req = createRequire(base + '/package.json')
-    let mod
-    try {
-      mod = await import(req.resolve('@deepseek-ai/dsh-llm'))
-    } catch (error) {
-      test.skip(`BlockAssembler integration (${error.code ?? 'package unavailable'})`)
-      return
-    }
-    const { BlockAssembler } = mod
-    if (!BlockAssembler) {
-      test.skip('BlockAssembler is not exported by the installed host')
-      return
-    }
+    const host = await import(req.resolve('@deepseek-ai/dsh-llm'))
+    BlockAssembler = host.BlockAssembler
+    if (!BlockAssembler) skipReason = 'BlockAssembler is not exported by the installed host'
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error)
+    skipReason = `host package unavailable (${detail})`
+  }
+}
 
+if (skipReason) {
+  test.skip(`BlockAssembler integration: ${skipReason}`, () => {})
+} else {
+  test('adapter chunks survive the Host BlockAssembler', async () => {
     const { createCodeArtsAdapter } = await import(new URL('../src/adapter.ts', import.meta.url).href)
     const chunks = [
       { reasoning: '让我想想' },

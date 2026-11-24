@@ -5,6 +5,9 @@
   "description": "为 DeepSeek Harness 接入华为云码道模型的非官方插件，提供多账号、积分概览、模型预设与加密配置备份。",
   "type": "module",
   "packageManager": "pnpm@10.0.0",
+  "engines": {
+    "node": "^22.19.0 || >=24.9.0"
+  },
   "main": "dist/index.js",
   "icon": "icons/dsh-codearts-dock-128.png",
   "exports": {
@@ -22,7 +25,8 @@
     "locale",
     "docs",
     "icons",
-    "test",
+    "tests",
+    "CHANGELOG.md",
     "README.md",
     "LICENSE",
     "THIRD_PARTY_NOTICES.md",
@@ -70,17 +74,19 @@
   ],
   "license": "MIT",
   "scripts": {
-    "test": "npm run check:legal && node scripts/test.mjs",
-    "test:live": "node --no-warnings test/live-probe.mjs",
+    "test": "pnpm run check:legal && node --import tsx/esm scripts/test.ts",
+    "test:live": "node --import tsx/esm tests/live-probe.ts",
     "check:legal": "bash scripts/check-legal.sh",
-    "check:release": "npm run build && node scripts/check-release.mjs",
+    "check:release": "pnpm run build && node scripts/check-release.mjs && pnpm run verify:entry",
+    "check:package": "node scripts/check-package.mjs",
+    "verify:entry": "node scripts/verify-entry.mjs",
     "build": "tsc -p tsconfig.build.json",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.tests.json",
     "release:prepare": "node scripts/release.mjs",
     "release:repin": "node scripts/release.mjs --repin",
     "prepare": "husky",
-    "prepublishOnly": "npm test && npm run check:release",
-    "prepack": "npm run build"
+    "prepublishOnly": "pnpm test && pnpm run check:release && pnpm run check:package",
+    "prepack": "pnpm run build && pnpm run check:package"
   },
   "author": "Jensen0925",
   "devDependencies": {

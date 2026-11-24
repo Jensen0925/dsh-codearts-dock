@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Credential resolution and the STS cache.
  *
@@ -31,6 +30,26 @@ import {
   LEGACY_CREDENTIAL_PATH,
 } from './paths.js'
 
+type StoredKey = {
+  ak: string
+  sk: string
+  securityToken?: string
+  expiresAt?: string | number
+  account?: string
+}
+type CredentialCandidate = {
+  key: StoredKey
+  source: 'env' | 'file' | 'legacy-file' | 'codearts' | 'config'
+  label: string
+  accountId?: string
+}
+type ResolvedCredential = {
+  key: StoredKey
+  source: CredentialCandidate['source']
+  label: string
+  expiresAtMs?: number
+}
+
 // Re-exported so callers that imported these from here keep working.
 export {
   CONFIG_DIR,
@@ -44,7 +63,7 @@ export {
 
 /** A user-facing credential failure with actionable text. */
 export class CredentialError extends Error {
-  constructor(message) {
+  constructor(message: string) {
     super(message)
     this.name = 'CredentialError'
   }
@@ -88,7 +107,7 @@ export function readSavedCredentials(path = CREDENTIAL_PATH) {
 }
 
 /** Accept the field spellings a user may paste from the Huawei console. */
-function normaliseKey(parsed) {
+function normaliseKey(parsed: any): StoredKey | null {
   if (parsed === null || typeof parsed !== 'object') return null
   const ak = parsed.ak ?? parsed.accessKeyId ?? parsed.access_key_id ?? parsed['Access Key Id']
   const sk = parsed.sk ?? parsed.secretAccessKey ?? parsed.secret_access_key ?? parsed['Secret Access Key']
@@ -104,9 +123,8 @@ function normaliseKey(parsed) {
 }
 
 /** Which sources exist, most durable first. */
-export function listCandidates() {
-  /** @type {CredentialCandidate[]} */
-  const candidates = []
+export function listCandidates(): CredentialCandidate[] {
+  const candidates: CredentialCandidate[] = []
 
   const envAk = process.env[ENV_AK]?.trim()
   const envSk = process.env[ENV_SK]?.trim()
@@ -167,7 +185,11 @@ export function listCandidates() {
  * @param {number} [minRemainingMs] treat a token that expires sooner as absent.
  * @returns {{key: StoredKey, where: string, expiresAtMs: number|null}|null} the borrowed credential.
  */
-export function readCodeArtsSignIn(minRemainingMs = 5 * 60 * 1000) {
+export function readCodeArtsSignIn(minRemainingMs = 5 * 60 * 1000): {
+  key: StoredKey
+  where: string
+  expiresAtMs: number | null
+} | null {
   for (const path of candidateStateFiles()) {
     if (!existsSync(path)) continue
     let raw
@@ -228,7 +250,7 @@ function parseSignInBlob(raw, where) {
 }
 
 /** The locations the CodeArts client has used for its state database. */
-function candidateStateFiles() {
+function candidateStateFiles(): string[] {
   const home = homedir()
   const appData = process.env.APPDATA ?? join(home, 'AppData', 'Roaming')
   const roots = [
@@ -238,7 +260,7 @@ function candidateStateFiles() {
     join(home, 'AppData', 'Roaming'),
   ]
   const names = ['codearts-agent', 'CodeArts Agent', 'codearts']
-  const files = []
+  const files: string[] = []
   for (const root of roots) {
     for (const name of names) {
       files.push(join(root, name, 'User', 'globalStorage', 'state.vscdb'))
@@ -253,7 +275,7 @@ function candidateStateFiles() {
  * @param {string} sk secret access key.
  * @returns {Promise<StoredKey>} the saved key.
  */
-export async function saveCredentials(ak, sk) {
+export async function saveCredentials(ak: string, sk: string): Promise<StoredKey> {
   const trimmedAk = (ak ?? '').trim()
   const trimmedSk = (sk ?? '').trim()
   if (!trimmedAk || !trimmedSk) {
@@ -292,11 +314,17 @@ export function maskKey(value) {
  * expiry, so a long session never signs with a dead token.
  */
 export class CredentialProvider {
+  private renewMarginMs: number
+  private cached: ResolvedCredential | null
+  private resolvedFrom: CredentialCandidate | null
+  private pending: Promise<ResolvedCredential> | null
+  private renewTimer: NodeJS.Timeout | null
+  private lastError: string | null
   /**
    * @param {object} [options] provider options.
    * @param {number} [options.renewMarginMs] renew this early; 10 minutes default.
    */
-  constructor(options = {}) {
+  constructor(options: { renewMarginMs?: number } = {}) {
     this.renewMarginMs = options.renewMarginMs ?? 600_000
     this.cached = null
     this.resolvedFrom = null
@@ -310,7 +338,7 @@ export class CredentialProvider {
    * Concurrent callers share one resolution.
    * @returns {Promise<{key: StoredKey, source: string, label: string}>} the credential.
    */
-  async resolve() {
+  async resolve(): Promise<ResolvedCredential> {
     if (this.cached && this.#isFresh()) return this.cached
     if (this.pending) return this.pending
     this.pending = this.#resolveUncached().finally(() => {
@@ -327,7 +355,7 @@ export class CredentialProvider {
   }
 
   /** Try each source in order, adopting the first that verifies. */
-  async #resolveUncached() {
+  async #resolveUncached(): Promise<ResolvedCredential> {
     const candidates = listCandidates()
     if (candidates.length === 0) {
       throw new CredentialError(
@@ -339,7 +367,7 @@ export class CredentialProvider {
       )
     }
 
-    const failures = []
+    const failures: string[] = []
     for (const candidate of candidates) {
       try {
         const resolved = await this.#verify(candidate)
@@ -349,7 +377,7 @@ export class CredentialProvider {
         this.#scheduleRenewal()
         return resolved
       } catch (error) {
-        failures.push(`${candidate.label} → ${error?.message ?? error}`)
+        failures.push(`${candidate.label} → ${error instanceof Error ? error.message : String(error)}`)
       }
     }
 
@@ -358,7 +386,7 @@ export class CredentialProvider {
   }
 
   /** Exchange (or accept) one candidate's credentials. */
-  async #verify(candidate) {
+  async #verify(candidate: CredentialCandidate): Promise<ResolvedCredential> {
     const key = candidate.key
 
     // A pre-exchanged triple is used as-is; nothing to verify offline.

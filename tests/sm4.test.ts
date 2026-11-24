@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'vitest';
 import { sm4GcmEncrypt, sm4GcmDecrypt } from '../src/protocol/sm4.ts';
-import { createCipheriv, createDecipheriv } from 'node:crypto';
+import { createCipheriv } from 'node:crypto';
 
 const hex = (u8) => Buffer.from(u8).toString('hex');
 
@@ -27,14 +27,18 @@ test('SM4-GCM encryption and authentication', async () => {
   const aad = Buffer.from('aad');
   const mine = sm4GcmEncrypt(key, iv, pt, aad);
   try {
-    const c = createCipheriv('sm4-gcm', key, iv);
+    const c = createCipheriv('sm4-gcm', key, iv) as ReturnType<typeof createCipheriv> & {
+      setAAD(buffer: Uint8Array): void;
+      getAuthTag(): Buffer;
+    };
     c.setAAD(aad);
     const ct = Buffer.concat([c.update(pt), c.final()]);
     assert.equal(hex(ct), hex(mine.ciphertext), 'ciphertext');
     assert.equal(hex(c.getAuthTag()), hex(mine.tag), 'tag');
     console.log('✓ byte-identical to native sm4-gcm');
   } catch (e) {
-    if (e.code === 'ERR_CRYPTO_UNKNOWN_CIPHER' || /Unknown cipher/.test(e.message)) {
+    const error = e instanceof Error ? e : new Error(String(e));
+    if (('code' in error && error.code === 'ERR_CRYPTO_UNKNOWN_CIPHER') || /Unknown cipher/.test(error.message)) {
       console.log('- native sm4-gcm unavailable, cross-check skipped');
     } else throw e;
   }

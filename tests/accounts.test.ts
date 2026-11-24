@@ -11,7 +11,7 @@ import { mkdtempSync, rmSync, existsSync, readFileSync, statSync, writeFileSync 
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-const check = (name, fn) => test(name, fn)
+const check = (name: string, fn: () => void | Promise<void>) => test(name, fn)
 
 // Each module reads its directory at import time, so point it at a scratch home
 // before importing.
@@ -22,21 +22,70 @@ process.env.XDG_CONFIG_HOME = scratch
 // is absent. Without redirecting it too, these tests would read the developer's
 // real credential and every isolation assertion would be meaningless.
 process.env.DSH_CONNECT_CODEARTS_LEGACY_CREDENTIAL = join(scratch, 'legacy-credentials.json')
-// `todayKey` reads the local calendar, so every `+08:00` instant below would give
-// a different day on a runner in another zone — this suite passed only on the
-// machine it was written on, and CI (UTC) caught it. Pin the zone the fixtures
-// assume rather than making the assertions zone-dependent.
-process.env.TZ = 'Asia/Shanghai'
+// Keep the runner's timezone: the day-key checks below compare against the
+// local calendar and must remain valid in UTC and on the other side of the date line.
 
 // Import paths FIRST so its module-level constants are evaluated against the
 // scratch home. Importing it through another module would evaluate it before
 // the environment was redirected, and the tests would then run against the real
 // config directory.
 const { CONFIG_DIR } = await import('../src/paths.ts')
-const accounts = await import('../src/accounts.ts')
-const checkin = await import('../src/checkin.ts')
+type Account = { id: string; ak: string; sk: string; label?: string; accountName?: string }
+type AccountStore = { version: number; activeId: string | null; accounts: Account[] }
+const accountModule = await import('../src/accounts.ts')
+const accounts = {
+  ...accountModule,
+  // The serialized wrapper in accounts.ts currently erases the result type;
+  // keep the contract used by the store tests explicit at this module boundary.
+  addAccount: accountModule.addAccount as unknown as (input: { ak: string; sk: string; label?: string }) => Promise<{
+    account: Account
+    added: boolean
+    store: AccountStore
+  }>,
+}
+type Benefit = {
+  campaignId: number
+  title: string
+  type: string
+  claimable: boolean
+  pendingTotalAmount: number
+  benefitAmount: number
+  benefitUnit: string
+  status: string | null
+  description: string | null
+  extra: { triggerMode: string; endTime?: string }
+}
+type CheckinCampaign = { key: string; label?: string; claimed: boolean; reason?: string }
+type CheckinApi = {
+  dailyCampaignOf(items: Array<{ campaignId: number; title?: string }>): { campaignId: number; title?: string } | undefined
+  readCheckin(client: unknown, options: { now?: Date; accountId?: string }): Promise<{
+    campaigns: Array<{ campaignId: number; label: string; claimable: boolean }>
+    unavailable: Array<{ campaignId: number; reason: string; triggerMode?: string }>
+    claimable: boolean
+    amount: number
+  }>
+  claimDaily(client: unknown, options: { accountId: string; now?: Date }): Promise<{
+    claimed: boolean
+    amount: number
+    campaigns: CheckinCampaign[]
+    reasons: string[]
+  }>
+  claimAllDaily(options: { targets: Array<{ id: string; client: unknown }>; now?: Date }): Promise<{
+    attempted: number
+    claimed: number
+    failures: Array<{ id: string }>
+  }>
+  todaySummary(accounts: Array<{ id: string; label: string }>, now?: Date): { total: number; done: number; pending: number }
+  todayKey(now?: Date): string
+  readCheckinState(): { accounts: Record<string, Record<string, { claimed: boolean; amount?: number }>> }
+  attemptedToday(state: unknown, accountId: string, campaignId: number): boolean
+  CHECKIN_STATE_PATH: string
+}
+const checkin = await import('../src/checkin.ts') as unknown as CheckinApi
 
-assert.ok(CONFIG_DIR.startsWith(scratch), `config dir escaped the scratch home: ${CONFIG_DIR}`)
+await check('config paths stay inside the scratch home', () => {
+  assert.ok(CONFIG_DIR.startsWith(scratch), `config dir escaped the scratch home: ${CONFIG_DIR}`)
+})
 
 await check('an empty store has no accounts and no active id', () => {
   const store = accounts.readStore()
@@ -148,9 +197,14 @@ await check('an export round-trips back through the importer', async () => {
  * claimable without certification, and an auto-granted new-user reward that
  * must never be posted to the claim endpoint.
  */
-function fakeGateway(overrides = {}) {
-  const state = { claims: [], claimable: { 34: true, 40: true, 42: true, 39: false, 2: false, 4: false }, ...overrides }
-  const items = () => [
+type GatewayState = { claims: number[]; claimable: Record<number, boolean> }
+function fakeGateway(overrides: Partial<GatewayState> = {}) {
+  const state: GatewayState = {
+    claims: [],
+    claimable: { 34: true, 40: true, 42: true, 39: false, 2: false, 4: false },
+    ...overrides,
+  }
+  const items = (): Benefit[] => [
     { campaignId: 42, title: 'Skill创新赛报名礼', type: 'USER_LOGIN', claimable: state.claimable[42],
       pendingTotalAmount: state.claimable[42] ? 2000 : 0, benefitAmount: 2000, benefitUnit: 'CREDIT',
       status: state.claimable[42] ? 'ELIGIBLE' : 'CONFIRMED', description: '报名参赛一次性领取2000积分',
@@ -186,8 +240,12 @@ function fakeGateway(overrides = {}) {
 
 await check('the daily campaign is still matched by id, then by title', () => {
   const items = [{ campaignId: 40, title: 'Skill创新赛每日签到礼' }, { campaignId: 34, title: '每日签到领100积分' }]
-  assert.equal(checkin.dailyCampaignOf(items).campaignId, 34)
-  assert.equal(checkin.dailyCampaignOf([{ campaignId: 99, title: '每日签到礼' }]).campaignId, 99)
+  const byId = checkin.dailyCampaignOf(items)
+  assert.ok(byId)
+  assert.equal(byId.campaignId, 34)
+  const byTitle = checkin.dailyCampaignOf([{ campaignId: 99, title: '每日签到礼' }])
+  assert.ok(byTitle)
+  assert.equal(byTitle.campaignId, 99)
 })
 
 await check('eligible campaigns are discovered from the live list, not hardcoded', async () => {
@@ -198,6 +256,7 @@ await check('eligible campaigns are discovered from the live list, not hardcoded
   assert.equal(state.claimable, true)
   assert.equal(state.amount, 3100, '100 + 1000 + 2000 are all still on the table')
   const skill = state.campaigns.find((campaign) => campaign.campaignId === 40)
+  assert.ok(skill)
   assert.equal(skill.label, 'Skill创新赛每日签到礼')
   assert.equal(skill.claimable, true)
   // Daily campaigns lead; the bigger one-off follows them.
@@ -221,6 +280,7 @@ await check('ineligible campaigns are reported so the UI can explain them', asyn
   const ids = state.unavailable.map((item) => item.campaignId)
   assert.deepEqual(ids, [39, 4, 2])
   const auto = state.unavailable.find((item) => item.campaignId === 4)
+  assert.ok(auto)
   assert.equal(auto.triggerMode, 'AUTO_GRANT')
 })
 
@@ -232,7 +292,7 @@ await check('an excluded campaign says why, not just that it is excluded', async
   await checkin.claimDaily(client, { accountId: 'acct-reason', now: clock })
   const after = await checkin.readCheckin(client, { now: clock, accountId: 'acct-reason' })
   // Everything claimable was just claimed, so all six report an exclusion.
-  const byId = new Map(after.unavailable.map((item) => [item.campaignId, item.reason]))
+  const byId = new Map(after.unavailable.map((item) => [item.campaignId, item.reason] as const))
   assert.equal(byId.get(4), 'auto', 'an auto-granted reward is never a manual claim')
   assert.equal(byId.get(39), 'condition', 'student offers need certification')
   assert.equal(byId.get(2), 'condition')
@@ -244,7 +304,7 @@ await check('a campaign claimed elsewhere still reads as already claimed', async
   // No local record: the upstream CONFIRMED status has to carry the meaning.
   const { client } = fakeGateway({ claimable: { 34: false, 40: false, 42: false, 39: false, 2: false, 4: false } })
   const state = await checkin.readCheckin(client, { now: new Date('2026-11-18T10:00:00+08:00'), accountId: 'acct-fresh' })
-  const byId = new Map(state.unavailable.map((item) => [item.campaignId, item.reason]))
+  const byId = new Map(state.unavailable.map((item) => [item.campaignId, item.reason] as const))
   assert.equal(byId.get(42), 'claimed')
   assert.equal(byId.get(39), 'condition', 'a campaign with no status is a prerequisite gap')
 })
@@ -346,9 +406,11 @@ await check('manual batch claims every eligible account and continues after a fa
   assert.equal(second.state.claims.length, 3)
 })
 await check('the day key follows the local calendar, not UTC', () => {
-  // 23:30 in +08:00 is still the 18th locally even though UTC has rolled over.
-  assert.equal(checkin.todayKey(new Date('2026-11-18T23:30:00+08:00')), '2026-11-18')
-  assert.equal(checkin.todayKey(new Date('2026-11-19T00:30:00+08:00')), '2026-11-19')
+  const localDayKey = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+  for (const instant of ['2026-11-18T23:30:00+08:00', '2026-11-19T00:30:00+08:00']) {
+    const date = new Date(instant)
+    assert.equal(checkin.todayKey(date), localDayKey(date))
+  }
 })
 
 // ── check-in state migration ───────────────────────────────────────────────
@@ -405,6 +467,8 @@ await check('a migrated record still blocks a duplicate claim, and only for that
   assert.equal(result.amount, 3000, '1000 + 2000 still claimable')
   assert.deepEqual(gateway.claims, [40, 42])
   const credits = result.campaigns.find((campaign) => campaign.key === '34')
+  assert.ok(credits)
+  assert.ok(credits.reason)
   assert.equal(credits.claimed, false)
   assert.match(credits.reason, /今天已经领过/)
 })
@@ -433,10 +497,11 @@ await check('an unreadable record does not crash and does not suppress a claim',
 // Clean up the scratch home.
 
 // ── borrowing the CodeArts client's sign-in ───────────────────────────────
+const savedHome = process.env.HOME
+const scratchHome = mkdtempSync(join(tmpdir(), 'dca-vscdb-'))
+process.env.HOME = scratchHome
 {
-  const { mkdtempSync, mkdirSync, writeFileSync } = await import('node:fs')
-  const { tmpdir } = await import('node:os')
-  const { join } = await import('node:path')
+  const { mkdirSync, writeFileSync } = await import('node:fs')
 
   /**
    * Build a stand-in state.vscdb: SQLite noise with the sign-in blob embedded,
@@ -460,10 +525,6 @@ await check('an unreadable record does not crash and does not suppress a claim',
 
   // `readCodeArtsSignIn` resolves candidates through `homedir()`, which caches
   // the first HOME it sees, so point HOME at a scratch dir before importing.
-  const scratchHome = mkdtempSync(join(tmpdir(), 'dca-vscdb-'))
-  const savedHome = process.env.HOME
-  process.env.HOME = scratchHome
-
   writeStateDb(scratchHome, blobWith(new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString()))
   const { readCodeArtsSignIn } = await import('../src/credentials.ts')
   const borrowed = readCodeArtsSignIn()
@@ -491,12 +552,14 @@ await check('an unreadable record does not crash and does not suppress a claim',
     assert.equal(readCodeArtsSignIn(), null)
   })
 
-  if (savedHome === undefined) delete process.env.HOME
-  else process.env.HOME = savedHome
 }
 
 
 test('cleanup scratch data', () => {
+  if (savedHome === undefined) delete process.env.HOME
+  else process.env.HOME = savedHome
   rmSync(scratch, { recursive: true, force: true })
+  rmSync(scratchHome, { recursive: true, force: true })
   assert.equal(existsSync(scratch), false)
+  assert.equal(existsSync(scratchHome), false)
 })

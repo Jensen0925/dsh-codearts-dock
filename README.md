@@ -25,7 +25,7 @@
 
 ## 安装
 
-需要已安装、支持第三方组合包（bundle）的 DeepSeek Harness，以及可访问码道服务的账号。
+需要已安装、支持第三方组合包（bundle）的 DeepSeek Harness，以及可访问码道服务的账号。Node.js 与 Harness 的声明范围、验证方式见[兼容范围](docs/compatibility.md)。
 
 ### 从 GitHub 安装
 
@@ -156,13 +156,13 @@ Token 用量与上下文分析可通过 `dsh-context` 插件查看。本插件�
 宿主侧插件源码位于 `src/`，通过 TypeScript 编译器输出为 `dist/` 中的 JavaScript ES 模块，由 Harness 加载。设置界面与输入框积分胶囊的代码位于 `client.js`，无需单独构建。开发环境使用 Node.js 和 pnpm：
 
 ```bash
-pnpm install
+pnpm install --frozen-lockfile
 pnpm test
 pnpm run typecheck
 pnpm run build
 ```
 
-离线测试覆盖协议、账号、注册、适配器和设置页交互。宿主 `BlockAssembler` 集成测试需要提供 `DSH_INSTALL_DIR`；真实网关测试单独通过 `pnpm run test:live` 运行，可能消耗真实账号的额度。
+离线测试覆盖协议、账号、注册、适配器和设置页交互。宿主 `BlockAssembler` 集成测试需要提供 `DSH_INSTALL_DIR`；真实网关测试单独通过 `pnpm run test:live` 运行，可能消耗真实账号的额度。发布前检查还会验证构建入口可导入，并扫描源码、文档、测试样例和最终 npm 包中的凭证特征与本机绝对路径。
 
 ```text
 src/          宿主侧插件源码：适配器、网关协议、账号、配置与备份
@@ -171,7 +171,7 @@ client.js     Harness 设置页与输入框积分胶囊
 locale/       插件市场元数据
 icons/        插件图标
 docs/         详细介绍与发布说明
-test/         离线测试及可选集成测试
+tests/        离线测试及可选集成测试
 ```
 
 ## 许可与声明

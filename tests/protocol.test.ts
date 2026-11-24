@@ -10,7 +10,19 @@ import { canonicalUri, formatSdkDate, signRequest } from '../src/protocol/sign.t
 import { deriveSessionKey, deriveRequestEnvelope, openChunk } from '../src/protocol/crypto.ts'
 import { parseStreamEvent, splitSseEvents } from '../src/protocol/sse.ts'
 
-const check = (name, fn) => test(name, fn)
+const check = (name: string, fn: () => void | Promise<void>) => test(name, fn)
+
+type ParsedEvent = {
+  text?: string;
+  reasoning?: string;
+  toolCalls?: Array<{ id?: string }>;
+  finish?: string;
+  usage?: { inputTokens: number; outputTokens: number; totalTokens: number };
+  error?: string;
+  done?: boolean;
+}
+
+const parse = (data: string): ParsedEvent => parseStreamEvent(data) as ParsedEvent
 
 // ── signing ─────────────────────────────────────────────────────────────────
 
@@ -121,31 +133,32 @@ check('the splitter leaves a partial trailing block', () => {
 })
 
 check('a plain OpenAI chunk yields text, finish reason, and usage', () => {
-  const text = parseStreamEvent('{"choices":[{"delta":{"content":"hi"},"finish_reason":null}]}')
+  const text = parse('{"choices":[{"delta":{"content":"hi"},"finish_reason":null}]}')
   assert.equal(text.text, 'hi')
 
-  const finish = parseStreamEvent('{"choices":[{"delta":{},"finish_reason":"stop"}]}')
+  const finish = parse('{"choices":[{"delta":{},"finish_reason":"stop"}]}')
   assert.equal(finish.finish, 'stop')
 
-  const usage = parseStreamEvent('{"choices":[],"usage":{"prompt_tokens":3,"completion_tokens":4,"total_tokens":7}}')
+  const usage = parse('{"choices":[],"usage":{"prompt_tokens":3,"completion_tokens":4,"total_tokens":7}}')
   assert.deepEqual(usage.usage, { inputTokens: 3, outputTokens: 4, totalTokens: 7 })
 })
 
 check('reasoning and tool calls survive parsing', () => {
-  const reasoning = parseStreamEvent('{"choices":[{"delta":{"reasoning_content":"think"}}]}')
+  const reasoning = parse('{"choices":[{"delta":{"reasoning_content":"think"}}]}')
   assert.equal(reasoning.reasoning, 'think')
 
-  const toolCall = parseStreamEvent('{"choices":[{"delta":{"tool_calls":[{"index":0,"id":"c1","function":{"name":"f","arguments":"{}"}}]}}]}')
+  const toolCall = parse('{"choices":[{"delta":{"tool_calls":[{"index":0,"id":"c1","function":{"name":"f","arguments":"{}"}}]}}]}')
+  assert.ok(toolCall.toolCalls, 'tool-call deltas are exposed');
   assert.equal(toolCall.toolCalls.length, 1)
   assert.equal(toolCall.toolCalls[0].id, 'c1')
 })
 
 check('[DONE] is recognised as the terminal sentinel', () => {
-  assert.deepEqual(parseStreamEvent('[DONE]'), { done: true })
+  assert.deepEqual(parse('[DONE]'), { done: true })
 })
 
 check('an upstream error frame is surfaced', () => {
-  const event = parseStreamEvent('{"error":{"message":"quota"}}')
+  const event = parse('{"error":{"message":"quota"}}')
   assert.equal(event.error, 'quota')
 })
 

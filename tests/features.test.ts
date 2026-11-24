@@ -13,11 +13,29 @@ delete process.env.CODEARTS_AK
 delete process.env.CODEARTS_SK
 delete process.env.CODEARTS_SECURITY_TOKEN
 const { FEATURE_DEFAULTS, validatePreferences, persistPreferences, readPreferences, portablePreferences } = await import('../src/preferences.ts')
-const { encodeBackup, decodeBackup } = await import('../src/backup.ts')
+type BackupAccount = { ak: string; sk: string; label?: string }
+type BackupPreferences = Record<string, unknown>
+type PlainBackup = { format: string; version: number; createdAt: string; preferences: BackupPreferences; accounts?: BackupAccount[]; activeAccountId?: string }
+type SealedBackup = { format: string; version: number; cipher: string; kdf: string; salt: string; iv: string; tag: string; data: string }
+type DecodedBackup = { preferences: BackupPreferences; accounts?: BackupAccount[]; activeAccountId?: string }
+const backupModule = await import('../src/backup.ts')
+const encodeBackup = backupModule.encodeBackup as unknown as (input: {
+  preferences: BackupPreferences
+  accounts?: BackupAccount[]
+  activeAccountId?: string
+  includeCredentials?: boolean
+  password?: string
+}) => Promise<PlainBackup | SealedBackup>
+const decodeBackup = backupModule.decodeBackup as unknown as (text: string, password?: string) => Promise<DecodedBackup>
 const { accountHealth } = await import('../src/health.ts')
 const { readCredit } = await import('../src/account.ts')
-const accounts = await import('../src/accounts.ts')
-const check = (name, fn) => test(name, fn)
+const accountModule = await import('../src/accounts.ts')
+type TestAccount = { id: string; ak: string; sk: string; label?: string; accountName?: string }
+const accounts = {
+  ...accountModule,
+  addAccount: accountModule.addAccount as unknown as (input: { ak: string; sk: string; label?: string }) => Promise<{ account: TestAccount; added: boolean }>,
+}
+const check = (name: string, fn: () => void | Promise<void>) => test(name, fn)
 const settings = { ...FEATURE_DEFAULTS, enabledModelIds: null, modelOverrides: {}, composerChip: true, refreshIntervalMs: 300000 }
 const preferences = portablePreferences(settings)
 const secretAccount = { ak: 'TEST_BACKUP_AK_123456789', sk: 'TEST_BACKUP_SK_987654321', label: 'Example' }
@@ -57,6 +75,7 @@ await check('account health separates credentials, throttling, quota, network, a
 })
 await check('plain backups contain only preferences, encrypted backups round-trip credentials and reject tampering', async () => {
   const plain = await encodeBackup({ preferences, accounts: [secretAccount] })
+  assert.ok(!('cipher' in plain), 'a backup without credentials is plain JSON')
   assert.equal(plain.accounts, undefined)
   assert.ok(!JSON.stringify(plain).includes(secretAccount.ak))
   assert.deepEqual((await decodeBackup(JSON.stringify(plain))).preferences, preferences)
@@ -65,8 +84,10 @@ await check('plain backups contain only preferences, encrypted backups round-tri
   await assert.rejects(encodeBackup({ preferences, accounts: [secretAccount], includeCredentials: true, password: '' }))
   await assert.rejects(encodeBackup({ preferences, accounts: [secretAccount, { ...secretAccount, ak: ` ${secretAccount.ak} ` }], includeCredentials: true, password: 'test-password-123' }), /重复账号/)
   const encrypted = await encodeBackup({ preferences, accounts: [secretAccount], activeAccountId: accounts.accountIdOf(secretAccount.ak), includeCredentials: true, password: 'test-password-123' })
+  assert.ok('data' in encrypted, 'credential backups are encrypted envelopes')
   assert.ok(!JSON.stringify(encrypted).includes(secretAccount.sk))
   const decoded = await decodeBackup(JSON.stringify(encrypted), 'test-password-123')
+  assert.ok(decoded.accounts)
   assert.deepEqual(decoded.accounts, [secretAccount])
   assert.equal(decoded.activeAccountId, accounts.accountIdOf(secretAccount.ak))
   await assert.rejects(decodeBackup(JSON.stringify(encrypted), 'wrong-password'), /密码错误/)
@@ -83,10 +104,10 @@ await check('concurrent account imports and name discovery cannot overwrite othe
 })
 
 const originalFetch = globalThis.fetch
-const disposers = []
+const disposers: Array<() => void> = []
 let creditStatus = 200
 let creditReads = 0
-let creditGate = null
+let creditGate: Promise<void> | null = null
 let creditRemain = 50
 let iamReads = 0
 let benefitReads = 0
@@ -109,17 +130,50 @@ globalThis.fetch = async (input) => {
   if (url.includes('/member/roles')) return jsonResponse([])
   throw new Error('Offline test blocked an unexpected gateway request')
 }
-const routes = new Map()
+type JsonBody = Record<string, any>
+type RouteResponse = { status: number | undefined; body: JsonBody }
+type TestRequest = AsyncIterable<Buffer> & {
+  method: string
+  url: string
+  socket: { remoteAddress: string }
+  headers: Record<string, string>
+}
+type TestResponse = {
+  setHeader(name: string, value: string): void
+  writeHead(status: number): void
+  end(text: string): void
+}
+type TestRoute = { path: string; handler(request: TestRequest, response: TestResponse): void }
+type InjectedContext = {
+  effect(fn: () => unknown): () => void
+  webServer: { register(route: TestRoute): () => void }
+}
+const routes = new Map<string, TestRoute['handler']>()
 const plugin = await import('../src/index.ts')
-const effect = (fn) => { const dispose = fn(); if (typeof dispose === 'function') disposers.push(dispose); return dispose }
-plugin.apply({ effect, get: () => undefined, emit() {}, inject: (_, callback) => callback({ effect, webServer: { register: (route) => { routes.set(route.path, route.handler); return () => {} } } }) }, { registerProvider: false, autoCheckin: true })
-for (const path of ['/usage', '/usage/clear', '/checkin/auto']) assert.ok(!routes.has(`/plugins/dsh-codearts-dock${path}`), `Retired route registered: ${path}`)
-const request = (path, body, method = body === undefined ? 'GET' : 'POST', options = {}) => new Promise((resolve, reject) => {
+const effect = (fn: () => unknown): (() => void) => {
+  const dispose = fn()
+  if (typeof dispose === 'function') {
+    const cleanup = dispose as () => void
+    disposers.push(cleanup)
+    return cleanup
+  }
+  return () => {}
+}
+plugin.apply({ effect, get: () => undefined, emit() {}, inject: (_deps: unknown, callback: (ctx: InjectedContext) => void) => callback({ effect, webServer: { register: (route: TestRoute) => { routes.set(route.path, route.handler); return () => {} } } }) }, { registerProvider: false, autoCheckin: true })
+await check('retired routes are not registered', () => {
+  for (const path of ['/usage', '/usage/clear', '/checkin/auto']) assert.ok(!routes.has(`/plugins/dsh-codearts-dock${path}`), `Retired route registered: ${path}`)
+})
+type RequestOptions = { raw?: string; remoteAddress?: string; headers?: Record<string, string> }
+const request = (path: string, body?: unknown, method = body === undefined ? 'GET' : 'POST', options: RequestOptions = {}): Promise<RouteResponse> => new Promise((resolve, reject) => {
   const handler = routes.get(`/plugins/dsh-codearts-dock${path}`)
   if (!handler) return reject(new Error(`Unknown route ${path}`))
-  const req = Readable.from(options.raw !== undefined ? [Buffer.from(options.raw)] : body === undefined ? [] : [Buffer.from(JSON.stringify(body))])
-  Object.assign(req, { method, url: `/plugins/dsh-codearts-dock${path}`, socket: { remoteAddress: options.remoteAddress ?? '127.0.0.1' }, headers: options.headers ?? {} })
-  let status
+  const req = Object.assign(Readable.from(options.raw !== undefined ? [Buffer.from(options.raw)] : body === undefined ? [] : [Buffer.from(JSON.stringify(body))]), {
+    method,
+    url: `/plugins/dsh-codearts-dock${path}`,
+    socket: { remoteAddress: options.remoteAddress ?? '127.0.0.1' },
+    headers: options.headers ?? {},
+  })
+  let status: number | undefined
   handler(req, { setHeader() {}, writeHead: (value) => { status = value }, end: (text) => resolve({ status, body: JSON.parse(text) }) })
 })
 await check('legacy automatic check-in settings cause no background benefit requests', async () => {
@@ -240,7 +294,7 @@ await check('backup preview writes nothing; restore merges accounts, preferences
 // arrives over the loopback socket. The Host half ships no server-side
 // authentication, so a plugin route has to refuse cross-site callers itself.
 await check('cross-site requests are refused even over loopback', async () => {
-  const blocked = [
+  const blocked: RequestOptions[] = [
     { headers: { 'sec-fetch-site': 'cross-site' } },
     { headers: { origin: 'https://evil.example' } },
     { headers: { referer: 'https://evil.example/page' } },

@@ -15,7 +15,7 @@ import assert from 'node:assert/strict'
 import { test } from 'vitest'
 import { existsSync, readFileSync } from 'node:fs'
 
-const check = (name, fn) => test(name, fn)
+const check = (name: string, fn: () => void | Promise<void>) => test(name, fn)
 
 const readSource = (rel) => {
   const ts = rel.replace(/\.js$/, '.ts')
@@ -118,7 +118,7 @@ check('every class the markup uses has a rule in the stylesheet', () => {
   // because they asked whether a class was *named*, never whether it was
   // *styled*.
   const css = source.slice(source.indexOf('const CSS = `'), source.indexOf('`\n\n    /**'))
-  const used = new Set()
+  const used = new Set<string>()
   for (const m of source.matchAll(/className: '([^']+)'/g)) {
     for (const cls of m[1].split(/\s+/)) if (cls) used.add(cls)
   }
