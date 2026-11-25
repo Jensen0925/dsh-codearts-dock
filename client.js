@@ -403,6 +403,7 @@ window.__ModuleLoader__.load({
       'pool.checkinDone': ['今日已签', 'Checked in'],
       'pool.checkinUnavailable': ['不可领取', 'Unavailable'],
       'pool.checkinNone': ['无活动', 'No campaign'],
+      'pool.checkinFailedRead': ['读取失败', 'Read failed'],
       'pool.checkinUnknown': ['未读取', 'Not read'],
       'pool.checkinAll': ['一键签到', 'Check in now'],
       'pool.checkinAllHint': ['立刻为所有可签到的账号领取一次', 'Claim once for every eligible account'],
@@ -1627,6 +1628,9 @@ window.__ModuleLoader__.load({
       // and two dashes side by side read as a rendering fault rather than as
       // "there is nothing to say". Every "nothing" state says what it means.
       if (!checkin) return t('pool.checkinUnknown')
+      // A failed read is a failure, not "no campaign": misreporting it as one
+      // hides the reason and invites a pointless "nothing to sign" conclusion.
+      if (checkin.reason) return t('pool.checkinFailedRead')
       const campaigns = checkinCampaignsOf(checkin)
       if (campaigns.length === 0) {
         return checkin.claimedToday
@@ -1648,6 +1652,9 @@ window.__ModuleLoader__.load({
 
     /** The tooltip listing each campaign, so the count is never a mystery. */
     function checkinTitle(checkin, t) {
+      // Why a read failed is the one fact the cell cannot fit; keep it in the
+      // tooltip so "读取失败" is never a dead end.
+      if (checkin?.reason) return String(checkin.reason)
       const campaigns = checkinCampaignsOf(checkin)
       const unavailable = Array.isArray(checkin?.unavailable) ? checkin.unavailable : []
       if (campaigns.length <= 1 && unavailable.length === 0) return null

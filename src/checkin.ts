@@ -53,8 +53,55 @@ const KNOWN_DAILY_CAMPAIGNS = [
   { campaignId: 40, label: 'Skill创新赛每日签到礼', hint: 'Skill创新赛' },
 ]
 
+/** Known daily campaigns by display rank, used for ordering and detection. */
+const DAILY_RANKS = new Map(KNOWN_DAILY_CAMPAIGNS.map((campaign, index) => [campaign.campaignId, index]))
+
 /** Backwards-compatible name for the primary daily campaign. */
 const DAILY_CAMPAIGN_HINT = KNOWN_DAILY_CAMPAIGNS[0].hint
+
+/**
+ * Whether a campaign is one of the recurring daily check-ins.
+ *
+ * The row's signed / not-signed answer is about the dailies: a one-off
+ * reward, once consumed, is gone for good and must not keep reappearing as
+ * an unsigned campaign day after day. The id is the stable match; the title
+ * hint catches a renumbered successor the same way {@link dailyCampaignOf}
+ * already does, and an id that vanishes upstream simply stops matching.
+ */
+function isDailyCampaign(item) {
+  if (DAILY_RANKS.has(item?.campaignId)) return true
+  return typeof item?.title === 'string' && item.title.includes(DAILY_CAMPAIGN_HINT)
+}
+
+/** Whether upstream's status says this reward is already gone. */
+function isRewardGone(item) {
+  // `CONFIRMED` / `CLAIMED` / `CONSUMED` all mean the reward is gone.
+  return ['CONFIRMED', 'CLAIMED', 'CONSUMED'].includes(item?.status)
+}
+
+/** Whether a campaign's declared expiry has already passed. */
+function isExpired(item, now) {
+  if (!item?.expireAt) return false
+  const at = Date.parse(item.expireAt)
+  return Number.isFinite(at) && at < now.getTime()
+}
+
+/**
+ * Whether a campaign counts as signed for today.
+ *
+ * The upstream `claimable` flag is authoritative, but it stops saying anything
+ * once a reward is claimed: the campaign drops out of the claimable set and the
+ * row used to collapse to "no campaign". A daily campaign resets every day, so
+ * its "reward gone" status means signed *today* — including a claim made on the
+ * web console, which leaves no local record. A one-off's "reward gone" means
+ * consumed for good, which is not today's answer, so only a local same-day
+ * record counts there.
+ */
+function signedToday(item, state, accountId, now) {
+  const attempt = accountId ? attemptToday(state, accountId, item.campaignId, now) : undefined
+  if (attempt?.claimed === true) return true
+  return isDailyCampaign(item) && isRewardGone(item) && !isExpired(item, now)
+}
 
 /**
  * @typedef {object} CheckinAttempt
@@ -221,6 +268,11 @@ export function dailyCampaignOf(items) {
 /**
  * Read one account's claim state for every eligible campaign, claiming nothing.
  *
+ * The breakdown lists what an account could still claim, plus the daily
+ * campaigns it has already signed today — "已签 1/2" needs the signed half as
+ * much as the unsigned one. Consumed one-off rewards stay out of it: they are
+ * not part of today's answer and are explained through `unavailable`.
+ *
  * @param {import('./gateway.js').MadaoClient} client an authenticated client.
  * @param {object} [options] read options.
  * @param {Date} [options.now] clock, for tests.
@@ -240,11 +292,31 @@ export async function readCheckin(client, options = {}) {
   }
 
   const eligible = claimableCampaigns(items)
-  const campaigns = eligible.map((item) => {
-    const attempt = options.accountId ? attemptToday(state, options.accountId, item.campaignId, now) : undefined
+  // Daily campaigns signed today — here or anywhere else — plus everything still
+  // claimable, so the count answers "signed or not" instead of collapsing to
+  // "no campaign" the moment the last one is claimed.
+  const roster = [...eligible]
+  for (const item of Array.isArray(items) ? items : []) {
+    if (roster.some((entry) => entry.campaignId === item.campaignId)) continue
+    if (signedToday(item, state, options.accountId, now)) roster.push(item)
+  }
+  // Claimable first (nothing to do yet), then today's signed campaigns.
+  roster.sort((a, b) => {
+    const aSigned = signedToday(a, state, options.accountId, now)
+    const bSigned = signedToday(b, state, options.accountId, now)
+    if (aSigned !== bSigned) return aSigned ? 1 : -1
+    const rankA = DAILY_RANKS.get(a.campaignId)
+    const rankB = DAILY_RANKS.get(b.campaignId)
+    if (rankA !== undefined && rankB !== undefined) return rankA - rankB
+    if (rankA !== undefined) return -1
+    if (rankB !== undefined) return 1
+    return (b.pendingAmount || b.amount || 0) - (a.pendingAmount || a.amount || 0)
+  })
+  const campaigns = roster.map((item) => {
     // The upstream flag is authoritative about *today*; the local record only
     // covers the window between a successful claim and upstream catching up.
-    const locallyClaimed = attempt?.claimed === true
+    const claimedToday = signedToday(item, state, options.accountId, now)
+    const claimable = isManuallyClaimable(item) && !claimedToday
     return {
       key: campaignKey(item.campaignId),
       campaignId: item.campaignId,
@@ -252,17 +324,28 @@ export async function readCheckin(client, options = {}) {
       type: item.type,
       description: item.description,
       available: true,
-      claimable: !locallyClaimed,
+      claimable,
       status: item.status ?? null,
       amount: item.pendingAmount || item.amount || 0,
       title: item.title,
-      claimedToday: locallyClaimed,
+      claimedToday,
       expireAt: item.expireAt,
     }
   })
 
   // Everything left on the table, so the pool row matches the button beside it.
   const pendingTotal = campaigns.reduce((sum, campaign) => sum + (campaign.claimable ? campaign.amount : 0), 0)
+  const unavailable = (Array.isArray(items) ? items : [])
+    // Campaigns already listed in the signed roster are accounted for above;
+    // only the rest need an explanation here.
+    .filter((item) => !campaigns.some((campaign) => campaign.campaignId === item.campaignId))
+    .map((item) => ({
+      campaignId: item.campaignId,
+      label: item.title,
+      status: item.status ?? null,
+      triggerMode: item.triggerMode,
+      reason: exclusionReason(item, state, options.accountId, now),
+    }))
   return {
     available: campaigns.length > 0,
     claimable: campaigns.some((campaign) => campaign.claimable),
@@ -272,15 +355,7 @@ export async function readCheckin(client, options = {}) {
     campaigns,
     // Campaigns that exist but are not claimable right now. Surfaced so the UI
     // can say why they are missing instead of silently dropping them.
-    unavailable: (Array.isArray(items) ? items : [])
-      .filter((item) => !isManuallyClaimable(item))
-      .map((item) => ({
-        campaignId: item.campaignId,
-        label: item.title,
-        status: item.status ?? null,
-        triggerMode: item.triggerMode,
-        reason: exclusionReason(item, state, options.accountId, now),
-      })),
+    unavailable,
   }
 }
 
@@ -300,8 +375,7 @@ function exclusionReason(item, state, accountId, now) {
   if (item.triggerMode === 'AUTO_GRANT') return 'auto'
   const attempt = accountId ? attemptToday(state, accountId, item.campaignId, now) : undefined
   if (attempt?.claimed === true) return 'claimed'
-  // `CONFIRMED` / `CLAIMED` / `CONSUMED` upstream all mean the reward is gone.
-  if (['CONFIRMED', 'CLAIMED', 'CONSUMED'].includes(item.status)) return 'claimed'
+  if (isRewardGone(item)) return 'claimed'
   return 'condition'
 }
 

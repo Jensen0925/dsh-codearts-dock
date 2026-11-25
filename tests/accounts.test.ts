@@ -59,10 +59,13 @@ type CheckinCampaign = { key: string; label?: string; claimed: boolean; reason?:
 type CheckinApi = {
   dailyCampaignOf(items: Array<{ campaignId: number; title?: string }>): { campaignId: number; title?: string } | undefined
   readCheckin(client: unknown, options: { now?: Date; accountId?: string }): Promise<{
-    campaigns: Array<{ campaignId: number; label: string; claimable: boolean }>
+    campaigns: Array<{ campaignId: number; label: string; claimable: boolean; claimedToday: boolean }>
     unavailable: Array<{ campaignId: number; reason: string; triggerMode?: string }>
     claimable: boolean
+    claimedToday: boolean
+    available: boolean
     amount: number
+    reason?: string
   }>
   claimDaily(client: unknown, options: { accountId: string; now?: Date }): Promise<{
     claimed: boolean
@@ -291,22 +294,44 @@ await check('an excluded campaign says why, not just that it is excluded', async
   const clock = new Date('2026-11-18T10:00:00+08:00')
   await checkin.claimDaily(client, { accountId: 'acct-reason', now: clock })
   const after = await checkin.readCheckin(client, { now: clock, accountId: 'acct-reason' })
-  // Everything claimable was just claimed, so all six report an exclusion.
-  const byId = new Map(after.unavailable.map((item) => [item.campaignId, item.reason] as const))
-  assert.equal(byId.get(4), 'auto', 'an auto-granted reward is never a manual claim')
-  assert.equal(byId.get(39), 'condition', 'student offers need certification')
-  assert.equal(byId.get(2), 'condition')
-  // Claimed this run: the local record explains it.
-  for (const id of [34, 40, 42]) assert.equal(byId.get(id), 'claimed', `campaign ${id} was just claimed`)
+  // Just-claimed campaigns stay in today's roster as signed rather than
+  // dropping out: the row reads 今日已签, never 无活动 after a claim.
+  const signed = new Map(after.campaigns.map((item) => [item.campaignId, item.claimedToday] as const))
+  for (const id of [34, 40, 42]) assert.equal(signed.get(id), true, `campaign ${id} was just claimed`)
+  assert.equal(after.claimedToday, true, 'a fully claimed account is done, not campaign-less')
+  assert.equal(after.claimable, false)
+  // What is left is genuinely excluded, and each says why.
+  const excluded = new Map(after.unavailable.map((item) => [item.campaignId, item.reason] as const))
+  assert.equal(excluded.get(4), 'auto', 'an auto-granted reward is never a manual claim')
+  assert.equal(excluded.get(39), 'condition', 'student offers need certification')
+  assert.equal(excluded.get(2), 'condition')
 })
 
-await check('a campaign claimed elsewhere still reads as already claimed', async () => {
-  // No local record: the upstream CONFIRMED status has to carry the meaning.
+await check('a daily campaign claimed on the web console still reads as signed today', async () => {
+  // No local record at all: the upstream CONFIRMED status has to carry the
+  // meaning, or a web-side claim makes every row read 无活动.
   const { client } = fakeGateway({ claimable: { 34: false, 40: false, 42: false, 39: false, 2: false, 4: false } })
-  const state = await checkin.readCheckin(client, { now: new Date('2026-11-18T10:00:00+08:00'), accountId: 'acct-fresh' })
-  const byId = new Map(state.unavailable.map((item) => [item.campaignId, item.reason] as const))
-  assert.equal(byId.get(42), 'claimed')
-  assert.equal(byId.get(39), 'condition', 'a campaign with no status is a prerequisite gap')
+  const state = await checkin.readCheckin(client, { now: new Date('2026-11-18T10:00:00+08:00'), accountId: 'acct-web' })
+  const signed = new Map(state.campaigns.map((item) => [item.campaignId, item.claimedToday] as const))
+  assert.equal(signed.get(34), true, 'the primary daily campaign reads as signed')
+  assert.equal(signed.get(40), true, 'and so does the Skill daily')
+  assert.equal(state.claimedToday, true, 'nothing left to sign reads as done')
+  assert.equal(state.claimable, false)
+  // A consumed one-off is gone for good: explained as claimed, not counted
+  // as today's signing, so it cannot reappear as unsigned every day.
+  const excluded = new Map(state.unavailable.map((item) => [item.campaignId, item.reason] as const))
+  assert.equal(excluded.get(42), 'claimed')
+  assert.equal(excluded.get(39), 'condition', 'a campaign with no status is a prerequisite gap')
+})
+
+await check('a failed read reports the reason instead of a campaign-less day', async () => {
+  // The row used to print 无活动 for a failed read, hiding the error.
+  const client = { getJson: async () => { throw new Error('offline read error') } }
+  const state = await checkin.readCheckin(client, { now: new Date('2026-11-18T10:00:00+08:00'), accountId: 'acct-err' })
+  assert.equal(state.available, false)
+  assert.equal(state.claimable, false)
+  assert.match(state.reason ?? '', /读取福利列表失败：offline read error/)
+  assert.equal(state.campaigns.length, 0)
 })
 
 await check('a claim is made once per campaign and never repeated the same day', async () => {
