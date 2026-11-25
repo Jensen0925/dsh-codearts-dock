@@ -1,6 +1,6 @@
 {
   "name": "dsh-codearts-dock",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "displayName": "CodeArts Dock · 码道驿站",
   "description": "为 DeepSeek Harness 接入华为云码道模型的非官方插件，提供多账号、积分概览、模型预设与加密配置备份。",
   "type": "module",
