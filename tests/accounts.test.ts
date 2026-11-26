@@ -67,13 +67,13 @@ type CheckinApi = {
     amount: number
     reason?: string
   }>
-  claimDaily(client: unknown, options: { accountId: string; now?: Date }): Promise<{
+  claimDaily(client: unknown, options: { accountId: string; now?: Date; dailyOnly?: boolean }): Promise<{
     claimed: boolean
     amount: number
     campaigns: CheckinCampaign[]
     reasons: string[]
   }>
-  claimAllDaily(options: { targets: Array<{ id: string; client: unknown }>; now?: Date }): Promise<{
+  claimAllDaily(options: { targets: Array<{ id: string; client: unknown }>; now?: Date; dailyOnly?: boolean }): Promise<{
     attempted: number
     claimed: number
     failures: Array<{ id: string }>
@@ -347,6 +347,17 @@ await check('a claim is made once per campaign and never repeated the same day',
   const second = await checkin.claimDaily(client, { accountId: id, now: day })
   assert.equal(second.claimed, false)
   assert.equal(gateway.claims.length, 3, 'a same-day retry must not reach upstream')
+})
+
+await check('automatic daily check-in claims recurring campaigns only', async () => {
+  const { client, state: gateway } = fakeGateway()
+  const result = await checkin.claimAllDaily({
+    targets: [{ id: 'acct-auto-daily', client }],
+    now: new Date('2026-11-18T10:00:00+08:00'),
+    dailyOnly: true,
+  })
+  assert.equal(result.claimed, 1, 'the account receives its daily campaigns')
+  assert.deepEqual(gateway.claims, [34, 40], 'the one-off registration reward is never auto-claimed')
 })
 
 await check('one campaign already claimed does not block the others', async () => {

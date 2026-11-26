@@ -109,19 +109,7 @@ window.__ModuleLoader__.load({
       'time.hoursAgo': ['{count} 小时前', '{count} hr ago'],
       'time.daysAgo': ['{count} 天前', '{count} days ago'],
       'health.details': ['查看异常详情', 'View error details'],
-      'presets.saveAs': ['保存为预设', 'Save as preset'],
-      'presets.details': ['配置详情', 'Configuration details'],
-      'backup.mode': ['备份操作', 'Backup action'],
-      'backup.encrypt': ['加密备份', 'Encrypt backup'],
-      'backup.encryptionRequired': ['含账号凭证，必须加密。', 'Credentials require encryption.'],
-      'backup.paste': ['粘贴 JSON（高级）', 'Paste JSON (advanced)'],
-      'backup.selected': ['已选择：{name}', 'Selected: {name}'],
-      'backup.encrypted': ['加密备份', 'Encrypted backup'],
-      'backup.plain': ['未加密备份', 'Unencrypted backup'],
-      'backup.importHint': ['选择备份文件，再预览将恢复的配置。', 'Choose a backup file, then preview the changes.'],
-      'backup.pasted': ['已粘贴备份内容', 'Backup contents pasted'],
       'health.updateHint': ['更新「{name}」：填写同一个 AK 和新的 SK，将更新已有账号。', 'Update {name}: enter the same AK and the new SK to update the existing account.'],
-      "features.saved": ["已保存", "Saved"],
       "health.available": ["可用", "Available"],
       "health.insufficient": ["余额不足", "Insufficient credits"],
       "health.credentials": ["凭证失效或权限不足", "Invalid credentials or permissions"],
@@ -130,57 +118,18 @@ window.__ModuleLoader__.load({
       "health.gateway": ["上游异常", "Gateway error"],
       "health.unknown": ["状态未确认", "Status unknown"],
       "health.checked": ["最近检查", "Last checked"],
-      "health.recheck": ["重新检查", "Recheck"],
       "health.update": ["更新凭证", "Update credentials"],
       "health.switch": ["可切换备用账号", "Switch to a backup account"],
       "models.imagesOnly": ["支持图片", "Image input"],
       "models.reasoningOnly": ["支持推理", "Reasoning"],
-      "presets.title": ["模型配置预设", "Model presets"],
-      "presets.choose": ["选择预设…", "Choose a preset…"],
-      "presets.daily": ["日常低倍率", "Everyday / lower multiplier"],
-      "presets.deep": ["深度推理", "Deep reasoning"],
-      "presets.images": ["图片任务", "Image tasks"],
-      "presets.preview": ["预览配置", "Preview configuration"],
-      "presets.previewHint": ["预览：将启用 {count} 个模型。应用后仍需点击保存。", "Preview: {count} models will be enabled. Save after applying."],
-      "presets.apply": ["应用到草稿", "Apply to draft"],
-      "presets.applied": ["预设已应用到草稿，请确认后保存。", "Preset applied to draft. Review and save."],
-      "presets.name": ["预设名称", "Preset name"],
-      "presets.save": ["保存当前草稿为预设", "Save current draft as preset"],
-      "presets.delete": ["删除预设", "Delete preset"],
-      "presets.deleteConfirm": ["删除这个模型预设？当前模型配置不会改变。", "Delete this preset? Current model settings will remain."],
-      "presets.noModels": ["这套预设没有可用模型", "No available models for this preset"],
-      "presets.missing": ["部分模型已不在当前目录中，应用时只保留可用模型。", "Some models are no longer in the catalog; only available models will be applied."],
-      "backup.title": ["配置备份与迁移", "Configuration backup and migration"],
-      "backup.hint": ["包含模型选择、能力开关、推理强度、预设和其他偏好。账号凭证可选，勾选后必须设置密码加密。", "Includes model selection, capabilities, reasoning, presets and other preferences. Credentials are optional and require password encryption."],
-      "backup.export": ["导出配置", "Export configuration"],
-      "backup.include": ["包含账号凭证（AK/SK）", "Include account credentials (AK/SK)"],
-      "backup.exportPassword": ["加密密码", "Encryption password"],
-      "backup.confirmPassword": ["确认加密密码", "Confirm encryption password"],
-      "backup.passwordHint": ["密码至少 8 位，两次输入需一致。请妥善保存密码。", "Use at least 8 characters and matching passwords. Keep the password safe."],
-      "backup.download": ["下载备份", "Download backup"],
-      "backup.exported": ["备份已生成并开始下载。", "Backup generated; download started."],
-      "backup.restore": ["恢复配置", "Restore configuration"],
-      "backup.choose": ["选择备份文件", "Choose backup file"],
-      "backup.content": ["备份内容（也可粘贴 JSON）", "Backup contents (or paste JSON)"],
-      "backup.importPassword": ["解密密码", "Decryption password"],
-      "backup.preview": ["读取并预览", "Read and preview"],
-      "backup.summary": ["将更新 {settings} 项配置，新增 {added} 个账号，更新 {updated} 个账号。", "Updates {settings} settings, adds {added} accounts and updates {updated} accounts."],
-      "backup.mergeHint": ["配置将以备份为准；账号按 AK 合并，不移除现有账号。", "Settings follow the backup; accounts merge by AK without removing existing accounts."],
-      "backup.changes": ["查看将恢复的配置", "View settings to restore"],
-      "backup.confirm": ["确认恢复", "Confirm restore"],
-      "backup.restored": ["配置已恢复，新增 {added} 个账号，更新 {updated} 个账号。", "Restored; {added} accounts added and {updated} updated."],
-      "backup.failed": ["备份操作失败", "Backup operation failed"],
-      "backup.tooLarge": ["备份文件过大（最大 768 KB）", "Backup is too large (maximum 768 KB)"],
 
       'meta.title': ['码道连接器', 'CodeArts connector'],
       'meta.description': [
-        '把华为云码道（CodeArts Agent）的模型接入 DSH：原生适配器直连网关，带凭证管理、模型目录与只读积分概览。',
-        'Connects Huawei Cloud CodeArts models to DSH through a native adapter, with credential management, a model catalog, and a read-only credit overview.',
+        '把华为云码道（CodeArts Agent）的模型接入 DSH：原生适配器直连网关，带多账号管理、模型目录与只读积分概览。',
+        'Connects Huawei Cloud CodeArts models to DSH through a native adapter, with account management, a model catalog, and a read-only credit overview.',
       ],
-      'common.more': ['更多操作', 'More actions'],
       'pool.current': ['使用中', 'In use'],
       'pool.allSigned': ['今日全部已签', 'All checked in today'],
-      'pool.manage': ['凭证管理', 'Credential management'],
       'pool.showSecret': ['显示', 'Show'],
       'pool.hideSecret': ['隐藏', 'Hide'],
       'models.search': ['搜索模型名称或 ID', 'Search model name or ID'],
@@ -195,7 +144,13 @@ window.__ModuleLoader__.load({
       'models.clearFilters': ['清除筛选', 'Clear filters'],
       'models.about': ['目录说明与使用帮助', 'About the catalog'],
       'models.clean': ['模型配置已保存', 'Model settings saved'],
-      'models.saveHint': ['勾选模型、能力开关和推理强度后，点击「保存模型配置」使修改生效。', 'Save model selection, capability switches and reasoning levels with “Save model settings”.'],
+      'models.saveHint': ['修改模型选择、能力开关、推理强度和上下文长度后，点击「保存模型配置」使修改生效。', 'Save model selection, capability switches, reasoning levels and context lengths with “Save model settings”.'],
+      'models.contextLength': ['上下文长度', 'Context length'],
+      'models.contextDefault': ['默认', 'Default'],
+      'models.test': ['测试模型', 'Test model'],
+      'models.testHint': ['使用当前上下文长度发送简短请求，会消耗少量积分。', 'Sends a short request with the current context length and uses a small amount of credit.'],
+      'models.testSuccess': ['测试成功 · {elapsedMs} ms', 'Test passed · {elapsedMs} ms'],
+      'models.testFailed': ['测试失败', 'Test failed'],
       'credit.lastResult': ['上次结果', 'Last result'],
       'credit.updated': ['积分更新时间', 'Credits updated'],
       'credit.refreshFailed': ['积分刷新失败，显示上次结果', 'Credits refresh failed; showing the last result'],
@@ -227,6 +182,59 @@ window.__ModuleLoader__.load({
       'tab.account': ['账号', 'Accounts'],
       'tab.models': ['模型', 'Models'],
       'tab.diagnostics': ['诊断', 'Diagnostics'],
+      'tab.activity': ['活动记录', 'Activity'],
+      'activity.title': ['活动记录', 'Activity'],
+      'activity.hint': ['保留最近 {limit} 条本机活动，按最新时间排列。', 'The latest {limit} local events, newest first.'],
+      'activity.refresh': ['刷新记录', 'Refresh activity'],
+      'activity.clear': ['清空记录', 'Clear activity'],
+      'activity.clearConfirm': ['清空本机活动记录？此操作无法撤销。', 'Clear local activity history? This cannot be undone.'],
+      'activity.cleared': ['活动记录已清空', 'Activity cleared'],
+      'activity.failed': ['活动记录操作失败，请重试', 'Could not update activity. Try again.'],
+      'activity.category': ['活动类型', 'Activity type'],
+      'activity.status': ['活动结果', 'Result'],
+      'activity.all': ['全部', 'All'],
+      'activity.account': ['账号', 'Accounts'],
+      'activity.models': ['模型', 'Models'],
+      'activity.checkin': ['签到', 'Check-in'],
+      'activity.system': ['系统', 'System'],
+      'activity.success': ['成功', 'Succeeded'],
+      'activity.warning': ['部分异常', 'With issues'],
+      'activity.error': ['失败', 'Failed'],
+      'activity.empty': ['暂无活动记录，后续操作会显示在这里。', 'No activity yet. Future operations will appear here.'],
+      'activity.noMatch': ['没有符合筛选条件的记录', 'No matching activity'],
+      'activity.count': ['显示 {shown} / {total} 条', 'Showing {shown} of {total}'],
+      'activity.unknown': ['插件活动', 'Plugin activity'],
+      'activity.action.account.add': ['添加账号', 'Account added'],
+      'activity.action.account.update': ['更新账号凭证', 'Account credentials updated'],
+      'activity.action.account.import': ['导入账号', 'Accounts imported'],
+      'activity.action.account.remove': ['移除账号', 'Account removed'],
+      'activity.action.account.activate': ['切换账号', 'Account switched'],
+      'activity.action.account.rename': ['修改账号名', 'Account renamed'],
+      'activity.action.account.export': ['导出账号', 'Accounts exported'],
+      'activity.action.account.check': ['检查账号状态', 'Account health checked'],
+      'activity.action.credentials.save': ['保存账号凭证', 'Credentials saved'],
+      'activity.action.credentials.clear': ['清除账号凭证', 'Credentials cleared'],
+      'activity.action.models.save': ['保存模型配置', 'Model settings saved'],
+      'activity.action.models.test': ['测试模型', 'Model tested'],
+      'activity.action.models.request': ['模型调用异常', 'Model request failed'],
+      'activity.action.settings.save': ['保存偏好设置', 'Preferences saved'],
+      'activity.action.checkin.enable': ['开启每天自动签到', 'Automatic check-in enabled'],
+      'activity.action.checkin.disable': ['关闭每天自动签到', 'Automatic check-in disabled'],
+      'activity.action.checkin.manual': ['手动签到', 'Manual check-in'],
+      'activity.action.checkin.auto': ['每天自动签到', 'Automatic check-in'],
+      'activity.action.catalog.update': ['模型目录已更新', 'Model catalog updated'],
+      'activity.action.catalog.refresh': ['刷新模型目录', 'Model catalog refresh'],
+      'activity.action.connection.test': ['测试连接', 'Connection test'],
+      'activity.detail.added': ['新增 {count}', '{count} added'],
+      'activity.detail.updated': ['更新 {count}', '{count} updated'],
+      'activity.detail.skipped': ['跳过 {count}', '{count} skipped'],
+      'activity.detail.total': ['共 {count} 个', '{count} total'],
+      'activity.detail.enabled': ['启用 {count} 个模型', '{count} models enabled'],
+      'activity.detail.claimed': ['{count} 个账号领取成功', '{count} accounts claimed'],
+      'activity.detail.failed': ['{count} 项失败', '{count} failures'],
+      'activity.detail.available': ['{count} 个可用', '{count} available'],
+      'activity.detail.unavailable': ['{count} 个异常', '{count} unavailable'],
+      'activity.detail.attempted': ['尝试 {count} 次', '{count} attempts'],
 
       'account.title': ['华为云凭证', 'Huawei Cloud credentials'],
       'account.hint': [
@@ -242,13 +250,6 @@ window.__ModuleLoader__.load({
       'account.saving': ['保存中…', 'Saving…'],
       'account.saved': ['已保存并立即生效', 'Saved and in effect'],
       'account.saveFail': ['保存失败', 'Save failed'],
-      'account.clear': ['清除已保存的凭证', 'Clear saved credentials'],
-      'account.clearConfirm': [
-        '清除后插件会立刻改用其它凭证来源（环境变量或码道登录态）。确定清除？',
-        'After clearing, the plugin falls back to other credential sources. Clear anyway?',
-      ],
-      'account.cleared': ['已清除保存的凭证', 'Saved credentials cleared'],
-      'account.clearFail': ['清除失败', 'Clear failed'],
       'account.test': ['测试连接', 'Test connection'],
       'account.testing': ['测试中…', 'Testing…'],
       'account.refreshing': ['刷新中…', 'Refreshing…'],
@@ -332,11 +333,6 @@ window.__ModuleLoader__.load({
         'Could not reach this plugin\'s Host route; it may not be mounted yet.',
       ],
       'pool.title': ['账号池', 'Accounts'],
-      'pool.tagline': [
-        '每个账号独立计费与签到；请求只用「当前」那一个。',
-        'Each account bills and checks in on its own; requests use only the current one.',
-      ],
-      'pool.inUse': ['当前使用：', 'In use: '],
       'pool.expiring': ['{amount} 积分即将到期', '{amount} credits expiring'],
       'pool.expiringHint': [
         '上游会报告有多少积分将要过期，但不下发具体到期时间，所以这里只显示金额。',
@@ -346,14 +342,19 @@ window.__ModuleLoader__.load({
       'pool.colCredits': ['积分', 'Credits'],
       'pool.colCheckin': ['签到', 'Check-in'],
       'pool.current': ['当前', 'Current'],
-      'pool.rename': ['账号备注', 'Account name'],
-      'pool.renameHint': ['点一下改备注，方便认出是哪个账号', 'Click to rename, so you can tell accounts apart'],
-      'pool.renamePlaceholder': ['例如：个人 / 公司', 'e.g. personal / work'],
-      'pool.renameFailed': ['改备注失败', 'Rename failed'],
-      'pool.use': ['切换', 'Use'],
+      'pool.checkAll': ['检查全部账号', 'Check all accounts'],
+      'pool.checkAllLoading': ['检查中…', 'Checking…'],
+      'pool.checkAllResult': ['检查完成：{total} 个账号，{available} 个可用，{unavailable} 个异常', 'Checked {total} accounts: {available} available, {unavailable} with issues'],
       'pool.switching': ['正在切换…', 'Switching…'],
       'pool.switched': ['已切换到「{account}」', 'Switched to {account}'],
       'pool.switchFailed': ['切换到「{account}」失败：{error}', 'Could not switch to {account}: {error}'],
+      'pool.activate': ['切换', 'Switch'],
+      'pool.editName': ['修改名称', 'Edit name'],
+      'pool.namePlaceholder': ['账号名称', 'Account name'],
+      'pool.saveName': ['保存', 'Save'],
+      'pool.cancelName': ['取消', 'Cancel'],
+      'pool.nameSaved': ['账号名称已更新', 'Account name updated'],
+      'pool.nameSaveFailed': ['修改账号名称失败', 'Could not update account name'],
       'pool.remove': ['移除', 'Remove'],
       'pool.removeConfirm': [
         '移除这个账号？它保存的 AK/SK 会从本机删除。',
@@ -364,8 +365,6 @@ window.__ModuleLoader__.load({
         'No accounts yet. Add an AK/SK pair below, or import the credentials.csv exported from the Huawei Cloud console.',
       ],
       'pool.addTitle': ['添加账号', 'Add an account'],
-      'pool.addLabel': ['名称（可选）', 'Name (optional)'],
-      'pool.addLabelPlaceholder': ['例如：个人 / 公司', 'e.g. personal / work'],
       'pool.add': ['添加', 'Add'],
       'pool.importTitle': ['导入', 'Import'],
       'pool.importHint': [
@@ -380,6 +379,7 @@ window.__ModuleLoader__.load({
       ],
       'pool.importEmpty': ['没有认出任何 AK/SK 对。', 'No AK/SK pair recognised.'],
       'pool.export': ['导出', 'Export'],
+      'pool.exporting': ['导出中…', 'Exporting…'],
       'pool.exportHint': [
         '导出的内容含明文密钥，只贴到你自己信任的地方。',
         'The export contains plain-text keys — only paste it somewhere you trust.',
@@ -406,7 +406,14 @@ window.__ModuleLoader__.load({
       'pool.checkinFailedRead': ['读取失败', 'Read failed'],
       'pool.checkinUnknown': ['未读取', 'Not read'],
       'pool.checkinAll': ['一键签到', 'Check in now'],
-      'pool.checkinAllHint': ['立刻为所有可签到的账号领取一次', 'Claim once for every eligible account'],
+      'pool.checkinAllHint': ['立刻为所有可签到账号领取一次', 'Claim once for each eligible account'],
+      'pool.dailyCheckin': ['每天自动签到', 'Automatic daily check-in'],
+      'pool.dailyCheckinHint': [
+        '插件运行期间每天为所有账号领取每日签到；其他福利需手动一键领取。',
+        'Claims daily check-ins for all accounts while the plugin is running. Claim other rewards manually.',
+      ],
+      'pool.dailyCheckinSaving': ['正在保存…', 'Saving…'],
+      'pool.dailyCheckinFailed': ['保存自动签到设置失败', 'Could not save automatic check-in'],
       'pool.checkinClaiming': ['签到中…', 'Claiming…'],
       'pool.checkinNoneToday': ['今天已没有可领取的签到', 'Nothing left to claim today'],
       'pool.checkinResult': ['{claimed} 个账号已签到，{failed} 个失败', '{claimed} claimed, {failed} failed'],
@@ -610,43 +617,41 @@ window.__ModuleLoader__.load({
    One row per account, two lines each: identity on the first, what the account
    can do right now on the second. The reference lays its pool out this way, so
    a long account name never pushes the figures out of alignment. */
-.dca-pool-card-head{
-  display:flex;align-items:center;justify-content:space-between;
-  gap:8px 12px;flex-wrap:wrap;
-}
-/* The head holds a title, a sentence, a badge, and up to two buttons. Left as
-   four loose flex children, the buttons wrap away from each other and the
-   check-in drops onto its own line below a short row of leftovers. Wrapping the
-   controls in one group keeps them together, so the head is two things side by
-   side: what this card is, and what you can do to it. */
-.dca-pool-card-title{margin:0;font-size:13px;font-weight:600;line-height:20px}
-/* Title over sentence, kept together so the controls can sit opposite one block
-   instead of being a fourth loose child that wraps away from the rest. */
-.dca-pool-head-text{display:flex;align-items:baseline;gap:6px 10px;flex-wrap:wrap;min-width:0}
-/* Controls stay together on one line: a badge and two buttons that wrap apart
-   look like three unrelated leftovers rather than one set of actions. */
+.dca-pool-card-head{display:flex;align-items:center;justify-content:space-between;gap:8px 12px;flex-wrap:wrap}
+.dca-pool-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.dca-pool-card-title{margin:0;font-size:15px;font-weight:600;color:var(--dsw-alias-label-primary,#e6e6e6)}
 .dca-pool-actions-group{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.dca-pool-tagline{flex:1 1 auto;min-width:0}
+.dca-pool-modebar{display:flex;flex-direction:column;padding:12px 14px;gap:8px;border:1px solid rgba(86,134,254,.36);border-radius:12px;background:linear-gradient(180deg,rgba(86,134,254,.10),rgba(86,134,254,.02)),var(--dsw-alias-bg-layer-2,#24262c)}
+.dca-pool-modebar-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.dca-pool-modebar-label{font-size:13px;font-weight:600;color:var(--dsw-alias-label-primary,#e6e6e6)}
+.dca-pool-modebar-note{margin:0;font-size:12px;line-height:18px;color:var(--dsw-alias-label-secondary,#c6c9d0)}
+.dca-pool-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.dca-account-tools{display:flex;flex-direction:column;gap:10px}
+.dca-account-tools-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;border:1px dashed var(--dsw-alias-border-l2,#3a3d45);border-radius:12px;padding:6px 10px}
+.dca-add-tools:not([open]){display:none}
+.dca-add-tools>summary{display:none}
+.dca-switch{
+  appearance:none;position:relative;flex:none;width:38px;height:22px;margin:0;padding:0;
+  border:0;border-radius:999px;background:var(--dsw-alias-border-l2,#3a3d45);cursor:pointer;
+  transition:background .18s;
+}
+.dca-switch::after{
+  content:'';position:absolute;top:3px;left:3px;width:16px;height:16px;
+  border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);
+  transition:transform .18s;
+}
+.dca-switch-on{background:var(--dsw-alias-brand-primary,#5686fe)}
+.dca-switch-on::after{transform:translateX(16px)}
+.dca-switch:focus-visible{outline:2px solid var(--dsw-alias-brand-primary,#5686fe);outline-offset:2px}
+.dca-switch:disabled{cursor:default;opacity:.4}
 .dca-pool-account-row{display:flex;align-items:center;gap:8px;min-width:0;flex-wrap:wrap}
-/* The account name is a BUTTON that looks like text: the pencil only appears on
-   hover or focus, so the table does not read as a form with three inputs a row. */
-.dca-rename-btn{
-  appearance:none;font:inherit;display:inline-flex;align-items:center;gap:5px;
-  padding:1px 6px;margin:-1px -6px;border:1px solid transparent;border-radius:6px;
-  background:transparent;color:var(--dsw-alias-label-primary,#e6e6e6);
-  cursor:pointer;min-width:0;max-width:100%;
-}
-.dca-rename-btn:hover{border-color:var(--dsw-alias-border-l2,#3a3d45);background:var(--dsw-alias-bg-layer-2,#232529)}
-.dca-rename-btn:focus-visible{outline:2px solid var(--dsw-alias-brand-primary,#5686fe);outline-offset:1px}
-.dca-rename-btn b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.dca-rename-glyph{
-  flex:none;font-size:11px;line-height:16px;
-  color:var(--dsw-alias-label-tertiary,#999);opacity:.55;transition:opacity .15s;
-}
-.dca-rename-btn:hover .dca-rename-glyph,
-.dca-rename-btn:focus-visible .dca-rename-glyph{opacity:1}
-.dca-rename{max-width:220px;font-family:inherit;font-size:13px}
+.dca-pool-account-name{min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.dca-account-name-editor{display:flex;align-items:center;gap:6px;min-width:0;max-width:100%;flex-wrap:wrap}
+.dca-account-name-input{width:min(220px,60vw);min-width:120px}
+.dca-account-name-actions{display:inline-flex;align-items:center;gap:4px}
+.dca-pool-switching{font-size:12px;line-height:18px;color:var(--dsw-alias-label-secondary,#c6c9d0)}
 .dca-pool-probe{
+  grid-area:probe;
   display:flex;align-items:center;gap:7px 12px;flex-wrap:wrap;
   font-size:12px;line-height:17px;color:var(--dsw-alias-label-tertiary,#999);
   min-width:0;overflow-wrap:anywhere;
@@ -654,27 +659,25 @@ window.__ModuleLoader__.load({
 /* The check-in status spans both text rows of its column: a "1/2 个活动已签"
    line would otherwise sit on the probe row while its header sits on the name
    row. */
-.dca-pool-probe-cell{
-  grid-area:checkin;min-width:0;align-self:center;
-  /* Flush left in its own column, like the header above it: centring the text
-     made a short "今日已签" sit at a different x than a longer "1/2 个活动已签". */
-  justify-self:start;text-align:left;
-}
-.dca-pool-checkin-label{display:none}
-.dca-pool-col-checkin{grid-area:checkin;min-width:0;justify-self:start;text-align:left}
+.dca-pool-probe-cell{grid-area:checkin;min-width:0;align-self:center;justify-self:start;text-align:left}
+.dca-checkin-badge{display:inline-flex;align-items:center;gap:4px;padding:1px 8px;border:1px solid transparent;border-radius:999px;font-size:12px;line-height:18px;font-weight:500;white-space:nowrap}
+.dca-checkin-done{color:var(--dsw-alias-state-success-primary,#3fb950);border-color:rgba(63,185,80,.3);background:rgba(63,185,80,.08)}
+.dca-checkin-pending,.dca-checkin-progress{color:var(--dsw-alias-state-warn-primary,#e8b34b);border-color:rgba(210,153,34,.34);background:rgba(210,153,34,.08)}
+.dca-checkin-error{color:var(--dsw-alias-state-error-primary,#e5534b);border-color:rgba(229,83,75,.3);background:rgba(229,83,75,.08)}
+.dca-checkin-none,.dca-checkin-unknown{color:var(--dsw-alias-label-secondary,#b6b8be);border-color:var(--dsw-alias-border-l2,#36373b);background:var(--dsw-alias-bg-layer-1,#1c1d21)}
 .dca-pool-probe-main{
+  display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;
   font-size:12px;line-height:17px;color:var(--dsw-alias-label-tertiary,#999);
   min-width:0;overflow-wrap:anywhere;
 }
 .dca-pool-credits-row{
-  grid-area:credits;align-self:center;
-  /* The amount and its chips share a right edge. A wrapped row keeps the number
-     in the same column as the header for every account: letting the chip sit
-     beside it pushed a long balance left and made the column look ragged. */
+  grid-area:credits;align-self:center;display:flex;flex-wrap:wrap;align-items:baseline;justify-content:flex-end;gap:0 6px;
+  justify-self:end;text-align:right;font-variant-numeric:tabular-nums;
   display:flex;flex-direction:row;flex-wrap:wrap;align-items:baseline;
   justify-content:flex-end;gap:2px 6px;min-width:0;
   justify-self:end;text-align:right;font-variant-numeric:tabular-nums;
 }
+.dca-pool-credit-label{font-size:12px;font-weight:400;color:var(--dsw-alias-label-tertiary,#999)}
 /* The chip gets its own line rather than sharing the amount's, so the figures
    stay flush right. */
 .dca-pool-credits-row .dca-tag-row{
@@ -934,7 +937,10 @@ window.__ModuleLoader__.load({
   color:var(--dsw-alias-label-tertiary,#999);font-size:11px;line-height:16px;
 }
 .dca-model-meta .dca-num{font-variant-numeric:tabular-nums}
-.dca-id{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:var(--dsw-alias-label-tertiary,#999);line-height:16px}
+.dca-model-tools{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px 12px;min-width:0;padding-inline-start:22px}
+.dca-model-context{display:flex;align-items:center;flex-wrap:wrap;gap:5px;min-width:0;font-size:11px;line-height:16px;color:var(--dsw-alias-label-secondary,#c6c9d0)}
+.dca-model-test{flex:none;white-space:nowrap}
+.dca-model-feedback{margin:0;padding-inline-start:22px;overflow-wrap:anywhere;font-size:12px;line-height:18px}
 
 /* ---- pills, key/value, messages --------------------------------------- */
 
@@ -976,35 +982,21 @@ window.__ModuleLoader__.load({
    account, aligned columns, the current one marked rather than reordered.
    Every row is the same height so the check-in buttons line up. */
 .dca-pool{display:flex;flex-direction:column;gap:12px;margin:0;padding:0 0 4px}
-/* A grid table, matched to the reference card: rounded outer frame on
-   bg-layer-2, one row per account, uppercase 11px header row on bg-layer-3.
-   Not a <table> — the columns reflow to two lines on a narrow panel, which a
-   table cannot do. */
+/* Rows carry their own labels: identity and credits first, then health,
+   check-in and actions, matching WorkBuddy's account module. */
 .dca-pool-table{
   box-sizing:border-box;
   border:1px solid var(--dsw-alias-border-l2,#3a3d45);
   border-radius:12px;
   background:var(--dsw-alias-bg-layer-2,#24262c);
-  /* The rows share these columns through subgrid. Without that each row is its
-     own grid, so every row sized its columns to its own text and the header no
-     longer sat above the values it names. */
-  display:grid;
-  grid-template-columns:minmax(0,1fr) minmax(92px,auto) minmax(120px,auto) auto;
 }
 .dca-pool-row{
   display:grid;
-  /* Account, then check-in, then figures. The check-in gets its own column so
-     its header lines up with the values and a long account name pushes the
-     columns instead of the status text. */
-  grid-column:1 / -1;
-  grid-template-columns:subgrid;
-  /* Name and its probe line on the left, the figures and the buttons on the
-     right, and the check-in between them. Two content rows, as before, so the
-     row height does not grow. */
+  grid-template-columns:minmax(0,1fr) minmax(0,auto) 160px;
   grid-template-areas:
-    "account checkin credits actions"
-    "probe   checkin credits actions";
-  column-gap:12px;row-gap:2px;align-items:center;
+    "account account credits"
+    "probe   checkin actions";
+  column-gap:12px;row-gap:4px;align-items:center;
   padding:10px 14px;
   border-top:1px solid var(--dsw-alias-border-l1,#2c2d31);
   font-size:13px;
@@ -1017,19 +1009,10 @@ window.__ModuleLoader__.load({
   /* The ONLY marker for the serving account now: a tint strong enough to read at
      a glance plus the accent bar. A 7% wash alone reads as an alternating-row
      stripe in a long table. */
-  background:rgba(86,134,254,.14);
+  background:rgba(86,134,254,.07);
   box-shadow:inset 3px 0 0 var(--dsw-alias-brand-primary,#5686fe);
 }
-.dca-pool-row-head{
-  padding:8px 14px;row-gap:1px;
-  background:var(--dsw-alias-bg-layer-3,#2a2c33);
-  color:var(--dsw-alias-label-tertiary,#999);
-  font-size:11px;font-weight:600;letter-spacing:.02em;text-transform:uppercase;
-}
 .dca-pool-col-account{grid-area:account;min-width:0}
-.dca-pool-col-credits{
-  grid-area:credits;justify-self:end;text-align:right;font-variant-numeric:tabular-nums;
-}
 .dca-pool-col-actions{grid-area:actions;justify-self:end;align-self:center}
 
 .dca-pool-sub{display:block;font-size:11px;line-height:16px;color:var(--dsw-alias-label-tertiary,#999)}
@@ -1067,7 +1050,7 @@ window.__ModuleLoader__.load({
 .dca-filter-group{display:inline-flex;gap:2px;padding:3px;border:1px solid var(--dsw-alias-border-l2,#36373b);border-radius:9px}
 .dca-filter{appearance:none;font:inherit;border:0;border-radius:6px;padding:3px 10px;cursor:pointer;background:transparent;color:var(--dsw-alias-label-secondary,#c6c9d0)}
 .dca-filter[aria-pressed="true"]{background:var(--dsw-alias-label-primary,#e6e6e6);color:var(--dsw-alias-bg-layer-1,#17181b)}
-.dca-filter:focus-visible,.dca-details > summary:focus-visible,.dca-account-menu > summary:focus-visible{outline:2px solid var(--dsw-alias-brand-primary,#5686fe);outline-offset:2px}
+.dca-filter:focus-visible,.dca-details > summary:focus-visible{outline:2px solid var(--dsw-alias-brand-primary,#5686fe);outline-offset:2px}
 .dca-sort{width:auto;max-width:100%;min-height:32px;font-family:inherit}
 .dca-catalog-meta{display:flex;align-items:center;gap:6px 14px;flex-wrap:wrap;font-size:12px;color:var(--dsw-alias-label-secondary,#c6c9d0)}
 .dca-model-meta{color:var(--dsw-alias-label-secondary,#b6b8be)}
@@ -1093,13 +1076,8 @@ window.__ModuleLoader__.load({
 .dca-secret-field .dca-input{flex:1;min-width:0}
 .dca-form{display:flex;flex-direction:column;gap:12px}
 .dca-form .dca-fields{align-items:flex-start}
-.dca-account-menu{position:relative}
-.dca-account-menu > summary{display:flex;align-items:center;justify-content:center;box-sizing:border-box;min-width:30px;min-height:30px;cursor:pointer;list-style:none;padding:3px 8px;border:1px solid var(--dsw-alias-border-l2,#3a3d45);border-radius:8px;font-size:16px;line-height:20px}
-.dca-account-menu > summary::-webkit-details-marker{display:none}
-.dca-menu-actions{position:absolute;inset-inline-end:0;top:calc(100% + 4px);z-index:4;padding:5px;min-width:110px;border:1px solid var(--dsw-alias-border-l2,#3a3d45);border-radius:8px;background:var(--dsw-alias-bg-overlay,#26282e);box-shadow:0 4px 16px rgba(0,0,0,.12)}
-.dca-menu-actions .dca-btn-xs{width:100%;text-align:left;border-color:transparent}
 .dca-danger{color:var(--dsw-alias-state-error-primary,#ef4444)}
-.dca-pool-row-head{border-radius:11px 11px 0 0}
+.dca-pool-row:first-child{border-radius:11px 11px 0 0}
 .dca-pool-row:last-child{border-radius:0 0 11px 11px}
 .dca-current-tag{display:inline-flex;font-size:11px;font-weight:500;color:var(--dsw-alias-brand-primary,#5686fe)}
 .dca-diagnostic-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(190px,100%),1fr));gap:10px}
@@ -1117,21 +1095,8 @@ window.__ModuleLoader__.load({
   .dca-model-actions-buttons{margin-inline-start:auto}
   .dca-model-meta{gap:4px 10px}
   .dca-pool-row{
-    grid-template-columns:minmax(0,1fr) auto auto;
-    /* On a narrow panel the check-in sits beside the balance instead of under
-       it, and the buttons take the last line: two lines of height rather than
-       four. */
-    grid-template-areas:
-      "account credits checkin"
-      "probe   actions actions";
-    padding:10px;
+    column-gap:8px;row-gap:3px;padding:9px 12px;
   }
-  .dca-pool-row-head .dca-pool-col-checkin{display:none}
-  .dca-pool-col-checkin{justify-self:end;align-self:center}
-  .dca-pool-probe-cell{display:flex;grid-area:checkin;justify-self:end;text-align:right;align-self:center;align-items:center;gap:6px}
-  .dca-pool-checkin-label{display:inline-flex;font-size:10px;line-height:16px;color:var(--dsw-alias-label-tertiary,#999)}
-  .dca-pool-col-actions{grid-area:actions}
-  .dca-pool-actions{justify-content:flex-end}
 }
 
 @container dca-settings (max-width:420px){
@@ -1140,20 +1105,14 @@ window.__ModuleLoader__.load({
     grid-template-areas:
       "account credits"
       "probe   probe"
-      "checkin checkin"
-      "actions actions";
+      "checkin actions";
     row-gap:8px;
   }
-  .dca-pool-row-head .dca-pool-col-checkin{display:none}
-  .dca-pool-probe-cell{grid-area:checkin;justify-self:stretch;text-align:left}
-  .dca-pool-col-actions{justify-self:stretch}
-  .dca-pool-actions{justify-content:flex-start}
-  .dca-pool-row-head .dca-pool-col-actions{display:none}
+  .dca-pool-probe-cell{justify-self:start}
   .dca-pool-account-row{gap:4px 8px}
   .dca-model-name{white-space:normal;flex-wrap:wrap;overflow-wrap:anywhere}
   .dca-model-actions-buttons{width:100%}
   .dca-form-field{max-width:100%}
-  .dca-preset-tools .dca-preset-row > .dca-input{flex-basis:100%}
 }
 .dca-credit-status{display:block;flex-basis:100%;font-size:11px;line-height:16px;color:var(--dsw-alias-state-warn-primary,#d49937)}
 .dca-pop-notice{margin:6px 0;font-size:12px;line-height:18px;color:var(--dsw-alias-state-warn-primary,#d49937)}
@@ -1167,22 +1126,24 @@ window.__ModuleLoader__.load({
 .dca-account-error p{margin:6px 0 0;padding:8px 10px;border-inline-start:2px solid currentColor;overflow-wrap:anywhere;color:var(--dsw-alias-label-secondary,#b6b8be)}
 .dca-capability-filters{display:flex;align-items:center;gap:8px 14px;flex-wrap:wrap;font-size:12px}
 .dca-capability-filters label{cursor:pointer;min-height:28px}
-.dca-mode-switch{display:flex;flex-wrap:wrap;gap:4px;padding:4px;border-radius:9px;background:var(--dsw-alias-bg-layer-1,#17181b)}
-.dca-mode-switch .dca-filter{flex:1;min-height:32px}
-.dca-file-state{display:flex;flex-direction:column;gap:4px;font-size:12px;overflow-wrap:anywhere}
-.dca-feature-stack.dca-backup-form{padding-top:0}
-.dca-preset-tools{display:flex;flex-direction:column;gap:10px;min-width:0}
 .dca-pop-dot-warn{background:var(--dsw-alias-state-warn-primary,#d49937)}
 
 .dca-feature-stack{display:flex;flex-direction:column;gap:12px;min-width:0;padding-top:12px}
-.dca-feature-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(210px,100%),1fr));gap:12px}
 .dca-subtitle{font-size:13px;font-weight:600;margin:0}
-.dca-preview-box{border:1px solid var(--dsw-alias-border-l2,#36373b);border-radius:8px;padding:12px;max-width:100%;overflow-wrap:anywhere}
 .dca-health{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:11px;color:var(--dsw-alias-label-secondary,#b6b8be)}
 .dca-health-bad{color:var(--dsw-alias-state-warn-primary,#d49937)}
-.dca-preset-preview{max-height:180px;overflow:auto;margin:0;padding-inline-start:20px}
-.dca-preset-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.dca-preset-row .dca-input{flex:1;min-width:min(180px,100%)}
+.dca-activity-filters{display:flex;align-items:center;gap:8px 16px;flex-wrap:wrap}
+.dca-activity-filters label{display:flex;align-items:center;gap:8px;font-size:12px}
+.dca-activity-filters .dca-input{width:auto;max-width:100%;font-family:inherit}
+.dca-activity-list{list-style:none;margin:0;padding:0;max-height:560px;overflow:auto}
+.dca-activity-item{padding:12px 0;border-bottom:1px solid var(--dsw-alias-border-l2,#36373b)}
+.dca-activity-item:last-child{border-bottom:0}
+.dca-activity-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px;line-height:20px}
+.dca-activity-time{margin-inline-start:auto;font-size:11px;line-height:16px;color:var(--dsw-alias-label-tertiary,#999)}
+.dca-activity-result{font-size:11px;line-height:16px;color:var(--dsw-alias-state-success-primary,#6fbd88)}
+.dca-activity-result-warning{color:var(--dsw-alias-state-warn-primary,#d49937)}
+.dca-activity-result-error{color:var(--dsw-alias-state-error-primary,#ef4444)}
+.dca-activity-detail{margin:4px 0 0;font-size:12px;line-height:18px;color:var(--dsw-alias-label-secondary,#b6b8be);overflow-wrap:anywhere}
 
 @media(prefers-reduced-motion:reduce){
   .dca-page *,.dca-pop *{animation:none!important;transition:none!important}
@@ -1409,7 +1370,7 @@ window.__ModuleLoader__.load({
      * Blob is the reliable way out, and a file is what a user expects when the
      * button says 导出.
      */
-    function AccountTools({ onChanged, onResult, hasAccounts, updateTarget }) {
+    function AccountTools({ onChanged, onResult, hasAccounts, updateTarget, onExport, exportBusy, disabled }) {
       const [expanded, setExpanded] = useState(false)
       useEffect(() => {
         if (hasAccounts !== null) setExpanded(!hasAccounts)
@@ -1417,8 +1378,8 @@ window.__ModuleLoader__.load({
       const [showSecret, setShowSecret] = useState(false)
       const [ak, setAk] = useState('')
       const [sk, setSk] = useState('')
-      const [label, setLabel] = useState('')
       const [busy, setBusy] = useState(null)
+      const actionBusy = busy !== null || disabled === true
       const [preview, setPreview] = useState(null)
       const fileInput = useRef(null)
       /** The picked file's text, held here: the picker closes immediately, so
@@ -1427,7 +1388,7 @@ window.__ModuleLoader__.load({
       const akInput = useRef(null)
       useEffect(() => {
         if (!updateTarget) return
-        setExpanded(true); setLabel(updateTarget.label ?? ''); setAk(''); setSk('')
+        setExpanded(true); setAk(''); setSk('')
         akInput.current?.focus()
       }, [updateTarget])
 
@@ -1438,9 +1399,9 @@ window.__ModuleLoader__.load({
         }
         setBusy('add')
         try {
-          const result = await postRoute('/accounts/add', { ak, sk, label })
+          const result = await postRoute('/accounts/add', { ak, sk })
           if (result.ok) {
-            setAk(''); setSk(''); setLabel('')
+            setAk(''); setSk('')
             setShowSecret(false)
             setExpanded(false)
             onResult({ kind: 'success', text: result.added ? t('pool.added') : t('pool.updated') })
@@ -1451,7 +1412,7 @@ window.__ModuleLoader__.load({
         } catch (error) {
           onResult({ kind: 'error', text: `${t('account.saveFail')}：${error.message}` })
         } finally { setBusy(null) }
-      }, [ak, sk, label, onChanged, onResult])
+      }, [ak, sk, onChanged, onResult])
 
       /** Read the picked file and show what it contains before writing. */
       const readFile = useCallback(async (file) => {
@@ -1495,63 +1456,70 @@ window.__ModuleLoader__.load({
       }, [onChanged, onResult])
 
 
-      return h(
-        'details',
-        {
-          className: 'dca-card dca-details dca-add-tools',
-          open: expanded,
-          onToggle: (event) => setExpanded(event.currentTarget.open),
+      return h('div', { className: 'dca-account-tools' },
+        h('div', { className: 'dca-account-tools-bar' },
+          h('button', {
+            type: 'button', className: 'dca-btn', disabled: actionBusy,
+            'aria-expanded': expanded, 'aria-controls': 'dca-add-account',
+            onClick: () => setExpanded((current) => !current),
+          }, t('pool.addTitle')),
+          h('button', {
+            type: 'button', className: 'dca-btn', disabled: actionBusy,
+            onClick: () => fileInput.current?.click(),
+          }, busy === 'import' ? t('pool.importing') : t('pool.import')),
+          hasAccounts ? h('button', {
+            type: 'button', className: 'dca-btn', onClick: onExport, disabled: actionBusy,
+            title: t('pool.exportHint'),
+          }, exportBusy ? t('pool.exporting') : t('pool.export')) : null,
+        ),
+        h('details', {
+          id: 'dca-add-account', className: 'dca-card dca-details dca-add-tools',
+          open: expanded, onToggle: (event) => setExpanded(event.currentTarget.open),
         },
-        h('summary', null, t('pool.addTitle')),
-        updateTarget ? h('p', { className: 'dca-hint' }, t('health.updateHint').replace('{name}', updateTarget.label)) : null,
-        h(
-          'form',
-          { className: 'dca-form', onSubmit: (event) => { event.preventDefault(); if (busy === null) void add() } },
+          h('summary', null, t('pool.addTitle')),
+          updateTarget ? h('p', { className: 'dca-hint' }, t('health.updateHint').replace('{name}', updateTarget.label)) : null,
           h(
-            'div',
-            { className: 'dca-fields' },
-            h('label', { className: 'dca-form-field', htmlFor: 'dca-ak2' },
-              t('account.ak'),
-              h('input', {
-                ref: akInput, id: 'dca-ak2', className: 'dca-input', value: ak, autoComplete: 'off',
-                placeholder: t('account.placeholderAk'), disabled: busy !== null,
-                'aria-label': t('account.ak'), onChange: (event) => setAk(event.target.value),
-              }),
-            ),
-            h('label', { className: 'dca-form-field', htmlFor: 'dca-sk2' },
-              t('account.sk'),
-              h('span', { className: 'dca-secret-field' },
+            'form',
+            { className: 'dca-form', onSubmit: (event) => { event.preventDefault(); if (!actionBusy) void add() } },
+            h(
+              'div',
+              { className: 'dca-fields' },
+              h('label', { className: 'dca-form-field', htmlFor: 'dca-ak2' },
+                t('account.ak'),
                 h('input', {
-                  id: 'dca-sk2', className: 'dca-input', type: showSecret ? 'text' : 'password',
-                  value: sk, autoComplete: 'off', placeholder: t('account.placeholderSk'),
-                  disabled: busy !== null, 'aria-label': t('account.sk'),
-                  onChange: (event) => setSk(event.target.value),
+                  ref: akInput, id: 'dca-ak2', className: 'dca-input', value: ak, autoComplete: 'off',
+                  placeholder: t('account.placeholderAk'), disabled: actionBusy,
+                  'aria-label': t('account.ak'), onChange: (event) => setAk(event.target.value),
                 }),
-                h('button', {
-                  type: 'button', className: 'dca-btn-xs', 'aria-controls': 'dca-sk2',
-                  'aria-pressed': showSecret, 'aria-label': t(showSecret ? 'pool.hideSecret' : 'pool.showSecret'), disabled: busy !== null,
-                  onClick: () => setShowSecret((current) => !current),
-                }, t(showSecret ? 'pool.hideSecret' : 'pool.showSecret')),
               ),
+              h('label', { className: 'dca-form-field', htmlFor: 'dca-sk2' },
+                t('account.sk'),
+                h('span', { className: 'dca-secret-field' },
+                  h('input', {
+                    id: 'dca-sk2', className: 'dca-input', type: showSecret ? 'text' : 'password',
+                    value: sk, autoComplete: 'off', placeholder: t('account.placeholderSk'),
+                    disabled: actionBusy, 'aria-label': t('account.sk'),
+                    onChange: (event) => setSk(event.target.value),
+                  }),
+                  h('button', {
+                    type: 'button', className: 'dca-btn-xs', 'aria-controls': 'dca-sk2',
+                    'aria-pressed': showSecret, 'aria-label': t(showSecret ? 'pool.hideSecret' : 'pool.showSecret'), disabled: actionBusy,
+                    onClick: () => setShowSecret((current) => !current),
+                  }, t(showSecret ? 'pool.hideSecret' : 'pool.showSecret')),
+                ),
+              ),
+
             ),
-            h('label', { className: 'dca-form-field', htmlFor: 'dca-label' },
-              t('pool.addLabel'),
-              h('input', {
-                id: 'dca-label', className: 'dca-input', value: label, autoComplete: 'off',
-                placeholder: t('pool.addLabelPlaceholder'), disabled: busy !== null,
-                onChange: (event) => setLabel(event.target.value),
-              }),
+            h('div', { className: 'dca-pool-actions-group' },
+              h('button', {
+                type: 'submit', className: 'dca-btn dca-btn-primary',
+                disabled: actionBusy || !ak.trim() || !sk.trim(),
+              }, busy === 'add' ? t('account.saving') : t('pool.add')),
             ),
           ),
-          h('div', { className: 'dca-pool-actions-group' },
-            h('button', {
-              type: 'submit', className: 'dca-btn dca-btn-primary',
-              disabled: busy !== null || !ak.trim() || !sk.trim(),
-            }, busy === 'add' ? t('account.saving') : t('pool.add')),
-            h('button', {
-              type: 'button', className: 'dca-btn', disabled: busy !== null,
-              onClick: () => fileInput.current?.click(),
-            }, busy === 'import' ? t('pool.importing') : t('pool.import')),
+          h('details', { className: 'dca-details' },
+            h('summary', null, t('account.whereToGet')),
+            h('p', { className: 'dca-hint' }, t('account.whereToGetBody')),
           ),
         ),
         h('input', {
@@ -1597,7 +1565,7 @@ window.__ModuleLoader__.load({
                 ),
                 h(
                   'button',
-                  { type: 'button', className: 'dca-btn dca-btn-primary', onClick: confirmImport, disabled: busy !== null },
+                  { type: 'button', className: 'dca-btn dca-btn-primary', onClick: confirmImport, disabled: actionBusy },
                   busy === 'import'
                     ? t('pool.importing')
                     : t('pool.importConfirm').replace('{count}', preview.accounts.length),
@@ -1605,10 +1573,6 @@ window.__ModuleLoader__.load({
               ),
             )
           : null,
-        h('details', { className: 'dca-details' },
-          h('summary', null, t('account.whereToGet')),
-          h('p', { className: 'dca-hint' }, t('account.whereToGetBody')),
-        ),
       )
     }
 
@@ -1650,6 +1614,21 @@ window.__ModuleLoader__.load({
         .replace('{total}', String(campaigns.length))
     }
 
+    /** A visual state derived from check-in data, never from translated copy. */
+    function checkinCellState(checkin) {
+      if (!checkin) return 'unknown'
+      if (checkin.reason) return 'error'
+      const campaigns = checkinCampaignsOf(checkin)
+      if (campaigns.length === 0) {
+        if (checkin.claimedToday) return 'done'
+        return checkin.claimable ? 'pending' : 'none'
+      }
+      const done = campaigns.filter((campaign) => campaign.claimedToday).length
+      if (done === campaigns.length) return 'done'
+      if (done === 0 && !checkin.claimable) return 'none'
+      return done === 0 ? 'pending' : 'progress'
+    }
+
     /** The tooltip listing each campaign, so the count is never a mystery. */
     function checkinTitle(checkin, t) {
       // Why a read failed is the one fact the cell cannot fit; keep it in the
@@ -1678,8 +1657,8 @@ window.__ModuleLoader__.load({
     /**
      * The account pool.
      *
-     * The header shows the account in use and one manual check-in action for
-     * the whole pool. Two-line rows keep identity, balances and health aligned.
+     * Batch checks and check-in sit above the account rows. Each row provides
+     * manual switching and keeps identity, balances and health aligned.
      */
     function AccountPool({
       pool,
@@ -1687,118 +1666,103 @@ window.__ModuleLoader__.load({
       rowNotice,
       busy,
       onActivate,
-      onRemove,
-      onCheckinAll,
       onRename,
-      onExport,
-      onCheck,
+      onRemove,
+      onCheckAll,
+      onCheckinAll,
+      onTest,
+      dailyCheckinEnabled,
+      dailyCheckinSaving,
+      onDailyCheckinChange,
       onUpdateCredentials,
     }) {
-      /** Which row is being renamed, and its draft text. */
-      const [editingId, setEditingId] = useState(null)
-      const [draftLabel, setDraftLabel] = useState('')
-      // Keyboard save/cancel also causes a blur. Guard the blur path so one
-      // edit can produce at most one write, and Escape can never save it.
-      const renameFinished = useRef(true)
       const [now, setNow] = useState(Date.now)
+      const [editingId, setEditingId] = useState(null)
+      const [draftName, setDraftName] = useState('')
       useEffect(() => {
         const timer = setInterval(() => setNow(Date.now()), 30000)
         return () => clearInterval(timer)
       }, [])
 
-
-      const beginRename = useCallback((account) => {
-        renameFinished.current = false
+      function beginNameEdit(account) {
         setEditingId(account.id)
-        // Start from the current name, EXCEPT when it is the derived fallback
-        // (a masked AK): that is a placeholder, not a name the user chose, and
-        // prefilling it would make them delete it before typing.
-        setDraftLabel(account.renameable === false ? '' : (account.label ?? ''))
-      }, [])
+        setDraftName(account.renameable ? account.label : '')
+      }
 
-      const cancelRename = useCallback(() => {
-        renameFinished.current = true
+      function cancelNameEdit() {
         setEditingId(null)
-        setDraftLabel('')
-      }, [])
+        setDraftName('')
+      }
 
-      const commitRename = useCallback(async (id) => {
-        if (renameFinished.current) return
-        renameFinished.current = true
-        const next = draftLabel.trim()
-        setEditingId(null)
-        setDraftLabel('')
-        // An unchanged or empty draft is a cancel, not a request.
-        if (next === '') return
-        await onRename(id, next)
-      }, [draftLabel, onRename])
+      async function saveNameEdit(account) {
+        if (await onRename(account, draftName)) cancelNameEdit()
+      }
+
+
       const accounts = pool?.accounts ?? []
       const busyId = rowAction?.id ?? null
       // `busy` is the KIND ('checkin' | 'test' | null); most checks only care
       // whether anything is running.
-      const anyBusy = busy !== null && busy !== undefined && busy !== false
+      const anyBusy = dailyCheckinSaving || (busy !== null && busy !== undefined && busy !== false)
       // Something to claim right now? The button is disabled otherwise, so a
       // press that cannot do anything never looks like a broken button.
       const anyClaimable = accounts.some((account) => account.checkin?.claimable)
       const allSigned = accounts.length > 0 && accounts.every((account) => account.checkin?.claimedToday === true)
-      const active = accounts.find((account) => account.active)
+      const active = accounts.find((account) => account.active || account.id === pool?.activeId)
       return h(
         'div',
         { className: 'dca-pool' },
 
-        h(
-          'div',
-          { className: 'dca-pool-card-head' },
-          // Title and sentence are one block so the controls opposite them are
-          // a single group; four loose children let the buttons wrap apart.
-          h('div', { className: 'dca-pool-head-text' },
-            h('h2', { className: 'dca-title' }, t('pool.title')),
-            h('p', { className: 'dca-hint dca-pool-tagline' }, t('pool.tagline')),
-          ),
-          h('div', { className: 'dca-pool-actions-group' },
-            active ? h('span', { className: 'dca-badge' }, `${t('pool.inUse')}${active.label}`) : null,
-            accounts.length === 0
-              ? null
-              : h(
-                  'button',
-                  {
-                    type: 'button',
-                    className: 'dca-btn dca-btn-xs',
-                    disabled: anyBusy || busyId !== null || !anyClaimable,
-                    title: anyClaimable
-                      ? t('pool.checkinAllHint')
-                      : t('pool.checkinNoneToday'),
-                    onClick: onCheckinAll,
-                  },
-                  busy === 'checkin' ? t('pool.checkinClaiming') : allSigned ? t('pool.allSigned') : t('pool.checkinAll'),
-                ),
-            accounts.length > 0 ? h('button', {
-              type: 'button', className: 'dca-btn-xs', onClick: onExport, disabled: anyBusy || busyId !== null,
-              title: t('pool.exportHint'),
-            }, t('pool.export')) : null,
-          ),
+        h('div', { className: 'dca-pool-head' },
+          h('h2', { className: 'dca-pool-card-title' }, t('pool.title')),
         ),
+
+        h('div', { className: 'dca-pool-modebar' },
+          h('div', { className: 'dca-pool-modebar-row' },
+            h('button', {
+              type: 'button',
+              className: `dca-switch${dailyCheckinEnabled === true ? ' dca-switch-on' : ''}`,
+              role: 'switch',
+              'aria-checked': dailyCheckinEnabled === true,
+              'aria-busy': dailyCheckinSaving,
+              'aria-describedby': 'dca-daily-checkin-hint',
+              disabled: anyBusy || busyId !== null,
+              'aria-label': t('pool.dailyCheckin'),
+              onClick: () => onDailyCheckinChange(dailyCheckinEnabled !== true),
+            }),
+            h('b', { className: 'dca-pool-modebar-label' }, t('pool.dailyCheckin')),
+            dailyCheckinSaving ? h('span', { className: 'dca-pool-modebar-note', role: 'status' }, t('pool.dailyCheckinSaving')) : null,
+          ),
+          h('p', { id: 'dca-daily-checkin-hint', className: 'dca-pool-modebar-note' }, t('pool.dailyCheckinHint')),
+        ),
+
+        accounts.length > 0 ? h('div', { className: 'dca-pool-toolbar' },
+          h('button', {
+            type: 'button', className: 'dca-btn dca-btn-xs',
+            disabled: anyBusy || busyId !== null,
+            onClick: onCheckAll,
+          }, busy === 'check-all' ? t('pool.checkAllLoading') : t('pool.checkAll')),
+          h('button', {
+            type: 'button', className: 'dca-btn dca-btn-xs',
+            disabled: anyBusy || busyId !== null || !anyClaimable,
+            title: anyClaimable ? t('pool.checkinAllHint') : t('pool.checkinNoneToday'),
+            onClick: onCheckinAll,
+          }, busy === 'checkin' ? t('pool.checkinClaiming') : allSigned ? t('pool.allSigned') : t('pool.checkinAll')),
+          onTest ? h('button', {
+            type: 'button', className: 'dca-btn dca-btn-xs',
+            onClick: onTest, disabled: anyBusy || busyId !== null,
+          }, busy === 'test' ? t('account.testing') : t('account.test')) : null,
+        ) : null,
 
         accounts.length === 0
           ? h('p', { className: 'dca-hint' }, t('pool.empty'))
           : h(
               'div',
               { className: 'dca-pool-table' },
-              h(
-                'div',
-                { className: 'dca-pool-row dca-pool-row-head' },
-                h('span', { className: 'dca-pool-col-account' }, t('pool.colAccount')),
-                h('span', { className: 'dca-pool-col-checkin' }, t('pool.colCheckin')),
-                h('span', { className: 'dca-pool-col-credits' }, t('pool.colCredits')),
-                // An empty cell on purpose: the grid template names an `actions`
-                // area, and without a box the credits label would claim that
-                // track and stop lining up with the values below it. The buttons
-                // speak for themselves, so it carries no text.
-                h('span', { className: 'dca-pool-col-actions', 'aria-hidden': true }),
-              ),
               ...accounts.map((account) => {
                 const rowBusy = busyId === account.id
                 const checkin = account.checkin
+                const checkinState = checkinCellState(checkin)
                 return h(
                   'div',
                   {
@@ -1814,65 +1778,70 @@ window.__ModuleLoader__.load({
                       { className: 'dca-pool-account-row' },
                       account.active ? h('span', { className: 'dca-current-tag' }, t('pool.current')) : null,
                       editingId === account.id
-                        ? h('input', {
-                            type: 'text',
-                            className: 'dca-input dca-rename',
-                            value: draftLabel,
-                            autoFocus: true,
-                            'aria-label': t('pool.rename'),
-                            placeholder: t('pool.renamePlaceholder'),
-                            onChange: (event) => setDraftLabel(event.target.value),
-                            onKeyDown: (event) => {
-                              if (event.key === 'Enter') {
-                                event.preventDefault()
-                                void commitRename(account.id)
-                              }
-                              // Escape must not save: an accidental click into the
-                              // field is the common way a user arrives here.
-                              else if (event.key === 'Escape') cancelRename()
-                            },
-                            onBlur: () => void commitRename(account.id),
-                          })
-                        : h(
-                            'button',
-                            {
-                              type: 'button',
-                              className: 'dca-rename-btn',
-                              title: t('pool.renameHint'),
-                              onClick: () => beginRename(account),
-                            },
-                            h('b', null, account.label),
-                            h('span', { className: 'dca-rename-glyph', 'aria-hidden': true }, '✎'),
-                          ),
-                    ),
-                    h(
-                      'div',
-                      { className: 'dca-pool-probe' },
-                      h('div', { className: `dca-health${account.health?.state && account.health.state !== 'available' ? ' dca-health-bad' : ''}` },
-                        h('span', null, t(`health.${account.health?.state ?? 'unknown'}`)),
-                        account.health?.checkedAt ? h('time', {
-                          dateTime: new Date(account.health.checkedAt).toISOString(),
-                          title: `${t('health.checked')} ${formatTime(account.health.checkedAt)}`,
-                        }, relativeTime(account.health.checkedAt, now)) : null,
-                      ),
-                      // The masked AK is only a second identity line when the
-                      // name above is something the user chose. For an unnamed
-                      // account `label` IS the masked AK, and printing it twice
-                      // in one row just looks like a rendering bug.
-                      account.accountName && account.accountName !== account.label
-                        ? h('span', null, account.accountName)
-                        : account.renameable
-                          ? h('span', null, account.akMasked)
-                          : null,
-                      account.error ? h('details', { className: 'dca-details dca-account-error' },
-                        h('summary', null, t('health.details')),
-                        h('p', null, account.error),
-                      ) : null,
+                        ? h('div', { className: 'dca-account-name-editor' },
+                            h('input', {
+                              type: 'text', className: 'dca-input dca-account-name-input',
+                              value: draftName, placeholder: t('pool.namePlaceholder'),
+                              'aria-label': t('pool.namePlaceholder'),
+                              disabled: rowBusy || anyBusy || busyId !== null,
+                              onChange: (event) => setDraftName(event.target.value),
+                              onKeyDown: (event) => {
+                                if (event.key === 'Enter') { event.preventDefault(); void saveNameEdit(account) }
+                                if (event.key === 'Escape') cancelNameEdit()
+                              },
+                            }),
+                            h('span', { className: 'dca-account-name-actions' },
+                              h('button', {
+                                type: 'button', className: 'dca-btn-xs',
+                                disabled: rowBusy || anyBusy || busyId !== null,
+                                onClick: () => void saveNameEdit(account),
+                              }, t('pool.saveName')),
+                              h('button', {
+                                type: 'button', className: 'dca-btn-xs',
+                                disabled: rowBusy || anyBusy || busyId !== null,
+                                onClick: cancelNameEdit,
+                              }, t('pool.cancelName')),
+                            ),
+                          )
+                        : h('b', { className: 'dca-pool-account-name' }, account.label),
+                      editingId !== account.id
+                        ? h('button', {
+                            type: 'button', className: 'dca-btn-xs',
+                            disabled: rowBusy || anyBusy || busyId !== null,
+                            'aria-label': `${t('pool.editName')}：${account.label}`,
+                            onClick: () => beginNameEdit(account),
+                          }, t('pool.editName'))
+                        : null,
                     ),
                   ),
                   h(
                     'div',
+                    { className: 'dca-pool-probe' },
+                    h('div', { className: `dca-health${account.health?.state && account.health.state !== 'available' ? ' dca-health-bad' : ''}` },
+                      h('span', null, t(`health.${account.health?.state ?? 'unknown'}`)),
+                      account.health?.checkedAt ? h('time', {
+                        dateTime: new Date(account.health.checkedAt).toISOString(),
+                        title: `${t('health.checked')} ${formatTime(account.health.checkedAt)}`,
+                      }, relativeTime(account.health.checkedAt, now)) : null,
+                    ),
+                    // The masked AK is only a second identity line when the
+                    // name above is something the user chose. For an unnamed
+                    // account `label` IS the masked AK, and printing it twice
+                    // in one row just looks like a rendering bug.
+                    account.renameable
+                      ? h('span', null, account.akMasked)
+                      : account.accountName && account.accountName !== account.label
+                        ? h('span', null, account.accountName)
+                        : null,
+                    account.error ? h('details', { className: 'dca-details dca-account-error' },
+                      h('summary', null, t('health.details')),
+                      h('p', null, account.error),
+                    ) : null,
+                  ),
+                  h(
+                    'div',
                     { className: 'dca-pool-credits-row' },
+                    h('span', { className: 'dca-pool-credit-label' }, t('pool.colCredits')),
                     h('span', { className: 'dca-account-credits' }, account.credit ? formatCredits(account.credit.remain) : '—'),
                     h(CreditStatus, { account, now }),
                     account.credit?.plan ? h('span', { className: 'dca-pool-sub' }, account.credit.plan) : null,
@@ -1910,8 +1879,10 @@ window.__ModuleLoader__.load({
                         // and a second line would break the fixed row height.
                         ...(checkinTitle(checkin, t) === null ? {} : { title: checkinTitle(checkin, t) }),
                       },
-                        h('span', { className: 'dca-pool-checkin-label' }, t('pool.colCheckin')),
-                        h('span', null, checkinCellText(checkin, t)),
+                        h('span', { className: `dca-checkin-badge dca-checkin-${checkinState}` },
+                          checkinState === 'done' ? h('span', { 'aria-hidden': true }, '✓') : null,
+                          checkinCellText(checkin, t),
+                        ),
                     ),
                   ),
                   h(
@@ -1922,60 +1893,25 @@ window.__ModuleLoader__.load({
                       { className: 'dca-pool-actions' },
                       account.health?.state === 'credentials' ? h('button', { type: 'button', className: 'dca-btn-xs', disabled: rowBusy || anyBusy || busyId !== null, onClick: () => onUpdateCredentials(account) }, t('health.update')) : null,
                       account.health?.state === 'insufficient' ? h('span', { className: 'dca-hint' }, t('health.switch')) : null,
-                      account.active
-                        ? null
-                        : h(
-                            'button',
-                            {
-                              type: 'button',
-                              className: 'dca-btn-xs',
-                              disabled: rowBusy || anyBusy || busyId !== null,
-                              onClick: () => onActivate(account),
-                              'aria-busy': rowBusy && rowAction.kind === 'activate',
-                            },
-                            rowBusy && rowAction.kind === 'activate' ? t('pool.switching') : t('pool.use'),
-                          ),
-                      h('details', { className: 'dca-account-menu' },
-                        h('summary', {
-                          'aria-label': `${t('common.more')} — ${account.label}`,
-                          title: t('common.more'),
-                          'aria-disabled': anyBusy || busyId !== null,
-                          onClick: (event) => { if (anyBusy || busyId !== null) event.preventDefault() },
-                        }, '⋯'),
-                        h('div', { className: 'dca-menu-actions' },
-                          h('button', {
-                            type: 'button', className: 'dca-btn-xs',
-                            disabled: rowBusy || anyBusy || busyId !== null,
-                            onClick: (event) => {
-                              const menu = event?.currentTarget?.closest?.('details')
-                              if (menu) menu.open = false
-                              beginRename(account)
-                            },
-                          }, t('pool.rename')),
-                          h('button', {
-                            type: 'button', className: 'dca-btn-xs',
-                            disabled: rowBusy || anyBusy || busyId !== null,
-                            onClick: (event) => {
-                              const menu = event?.currentTarget?.closest?.('details')
-                              if (menu) menu.open = false
-                              void onCheck(account.id)
-                            },
-                          }, rowBusy && rowAction.kind === 'check' ? t('common.loading') : t('health.recheck')),
-                          h('button', {
-                            type: 'button', className: 'dca-btn-xs dca-danger',
-                            disabled: rowBusy || anyBusy || busyId !== null,
-                            onClick: (event) => {
-                              event.currentTarget.closest('details').open = false
-                              void onRemove(account)
-                            },
-                          }, t('pool.remove')),
-                        ),
-                      ),
+                      h('button', {
+                        type: 'button', className: 'dca-btn-xs',
+                        disabled: account.id === active?.id || anyBusy || busyId !== null,
+                        'aria-busy': rowBusy && rowAction?.kind === 'activate',
+                        'aria-label': t('chip.switchTo').replace('{account}', account.label),
+                        onClick: () => onActivate(account),
+                      }, t('pool.activate')),
+                      h('button', {
+                        type: 'button', className: 'dca-btn-xs dca-danger',
+                        disabled: rowBusy || anyBusy || busyId !== null,
+                        onClick: () => void onRemove(account),
+                      }, t('pool.remove')),
                     ),
                   ),
-                  rowNotice?.id === account.id
-                    ? h('div', { className: 'dca-pool-feedback' }, h(FeatureNotice, { notice: rowNotice }))
-                    : null,
+                  rowBusy && rowAction?.kind === 'activate'
+                    ? h('div', { className: 'dca-pool-feedback dca-pool-switching', role: 'status' }, t('pool.switching'))
+                    : rowNotice?.id === account.id
+                      ? h('div', { className: 'dca-pool-feedback' }, h(FeatureNotice, { notice: rowNotice }))
+                      : null,
                 )
               }),
             ),
@@ -1991,6 +1927,13 @@ window.__ModuleLoader__.load({
       const [rowNotice, setRowNotice] = useState(null)
       const [notice, setNotice] = useState(null)
       const [updateTarget, setUpdateTarget] = useState(null)
+      const preferencesPending = useRef(false)
+      const [dailyCheckinEnabled, setDailyCheckinEnabled] = useState(status?.settings?.dailyCheckinEnabled === true)
+      const [dailyCheckinSaving, setDailyCheckinSaving] = useState(false)
+
+      useEffect(() => {
+        setDailyCheckinEnabled(status?.settings?.dailyCheckinEnabled === true)
+      }, [status?.settings?.dailyCheckinEnabled])
 
       const credential = status?.credential
       const reload = onChanged
@@ -2048,6 +1991,20 @@ window.__ModuleLoader__.load({
         } finally { setRowAction(null) }
       }, [reload])
 
+      const rename = useCallback(async (account, label) => {
+        setRowAction({ id: account.id, kind: 'rename' }); setRowNotice(null)
+        try {
+          const result = await postRoute('/accounts/rename', { id: account.id, label })
+          if (!result.ok) throw new Error(result.error ?? t('common.retryHint'))
+          await reload()
+          setRowNotice({ id: account.id, kind: 'success', text: t('pool.nameSaved') })
+          return true
+        } catch (error) {
+          setRowNotice({ id: account.id, kind: 'error', text: `${t('pool.nameSaveFailed')}：${error.message}` })
+          return false
+        } finally { setRowAction(null) }
+      }, [reload])
+
       const remove = useCallback(async (account) => {
         const ask = t('pool.removeConfirm')
         if (typeof window !== 'undefined' && typeof window.confirm === 'function' && !window.confirm(ask)) return
@@ -2090,16 +2047,22 @@ window.__ModuleLoader__.load({
         }
       }, [reload, report])
 
-      /** Rename one account; the pool's inline editor calls this. */
-      const rename = useCallback(async (id, label) => {
+      const changeDailyCheckin = useCallback(async (enabled) => {
+        if (preferencesPending.current) return
+        preferencesPending.current = true
+        setDailyCheckinSaving(true)
         try {
-          const result = await postRoute('/accounts/rename', { id, label })
-          if (!result.ok) report({ kind: 'error', text: result.error ?? t('pool.renameFailed') })
+          const result = await postRoute('/preferences/save', { dailyCheckinEnabled: enabled })
+          if (!result.ok || typeof result.preferences?.dailyCheckinEnabled !== 'boolean') throw new Error(result.error ?? t('pool.dailyCheckinFailed'))
+          setDailyCheckinEnabled(result.preferences.dailyCheckinEnabled)
           await reload()
         } catch (error) {
-          report({ kind: 'error', text: `${t('pool.renameFailed')}：${error.message}` })
+          report({ kind: 'error', text: `${t('pool.dailyCheckinFailed')}：${error.message}` })
+        } finally {
+          preferencesPending.current = false
+          setDailyCheckinSaving(false)
         }
-      }, [reload, report])
+      }, [dailyCheckinEnabled, reload, report])
 
       const test = useCallback(async () => {
         setBusy('test')
@@ -2116,43 +2079,28 @@ window.__ModuleLoader__.load({
         }
       }, [onChanged])
 
-      // Destructive and irreversible from the UI, so it asks first — the button
-      // sits at the same weight as the harmless refresh beside it.
-      const clear = useCallback(async () => {
-        if (typeof window !== 'undefined' && typeof window.confirm === 'function') {
-          if (!window.confirm(t('account.clearConfirm'))) return
-        }
-        setBusy('clear')
+      const checkAllAccounts = async () => {
+        setBusy('check-all')
         setNotice(null)
         try {
-          await postRoute('/clear', {})
-          setNotice({ kind: 'success', text: t('account.cleared') })
-          await onChanged()
-        } catch (error) {
-          setNotice({ kind: 'error', text: `${t('account.clearFail')}：${error.message}` })
-        } finally {
-          setBusy(null)
-        }
-      }, [onChanged])
-
-      const checkAccount = async (id) => {
-        setRowAction({ id, kind: 'check' }); setRowNotice(null)
-        try {
-          const result = await postRoute('/accounts/check', { id })
-          if (!result.ok) throw new Error(result.error ?? t('common.retry'))
-          report({ kind: result.account.health.state === 'available' ? 'success' : 'warn', text: `${result.account.label}：${t(`health.${result.account.health.state}`)}` })
+          const result = await postRoute('/accounts/check-all', {})
+          if (!result.ok || !Array.isArray(result.accounts)) throw new Error(result.error ?? t('common.retry'))
+          const available = result.accounts.filter((account) => account.health?.state === 'available').length
+          const unavailable = result.accounts.length - available
+          report({
+            kind: unavailable === 0 ? 'success' : 'warn',
+            text: t('pool.checkAllResult')
+              .replace('{total}', String(result.accounts.length))
+              .replace('{available}', String(available))
+              .replace('{unavailable}', String(unavailable)),
+          })
           await reload()
-        } catch (error) { report({ kind: 'error', text: error.message }) } finally { setRowAction(null) }
+        } catch (error) { report({ kind: 'error', text: error.message }) } finally { setBusy(null) }
       }
       const accounts = pool?.accounts ?? []
       return h(
         'div',
         { className: 'dca-page' },
-        // The pool below renders its own head — title, tagline and the in-use
-        // badge — so the page must not render a second one above it. It did, and
-        // the two read as a duplicated heading with two different sentences
-        // under it.
-
         // One line for every outcome of every action on this tab, announced.
         notice
           ? h(
@@ -2168,10 +2116,8 @@ window.__ModuleLoader__.load({
             )
           : null,
 
-        // The pool renders its own head, its own switch block, the table and the
-        // batch action — the order the reference card uses. The daily switch is
-        // passed in rather than drawn as a separate card, so it sits above the
-        // table where the reference puts it.
+        // Keep account choice, pool preferences, batch tools and account rows
+        // together; account adding and transfer controls follow the list.
         h(AccountPool, {
           pool,
           rowAction,
@@ -2180,190 +2126,29 @@ window.__ModuleLoader__.load({
           // button must know whether IT is the one running so it can show
           // 「签到中…」 — a boolean cannot express that.
           busy,
+          dailyCheckinEnabled,
+          dailyCheckinSaving,
           onActivate: activate,
-          onRemove: remove,
-          onCheckinAll: checkinAll,
           onRename: rename,
-          onExport: doExport,
-          onCheck: checkAccount,
+          onRemove: remove,
+          onCheckAll: checkAllAccounts,
+          onCheckinAll: checkinAll,
+          onTest: accounts.length > 0 && !credential?.error ? test : null,
+          onDailyCheckinChange: changeDailyCheckin,
           onUpdateCredentials: (account) => setUpdateTarget({ ...account }),
         }),
 
-        h(AccountTools, { onChanged, onResult: report, hasAccounts: pool ? accounts.length > 0 : null, updateTarget }),
-        h(BackupTools, { onRestored: onChanged }),
-
-        accounts.length === 0 || credential?.error
-          ? null
-          : h(
-              'div',
-              { className: 'dca-card dca-card-plain' },
-              h(
-                'div',
-                { className: 'dca-row' },
-                h('button', { type: 'button', className: 'dca-btn', onClick: test, disabled: busy !== null },
-                  busy === 'test' ? t('account.testing') : t('account.test')),
-
-              ),
-              h('details', { className: 'dca-details' },
-                h('summary', null, t('pool.manage')),
-                h('button', { type: 'button', className: 'dca-btn dca-danger', onClick: clear, disabled: busy !== null }, t('account.clear')),
-              ),
-            ),
+        h(AccountTools, {
+          onChanged, onResult: report, hasAccounts: pool ? accounts.length > 0 : null, updateTarget,
+          onExport: doExport, exportBusy: busy === 'export',
+          disabled: busy !== null || rowAction !== null || dailyCheckinSaving,
+        }),
       )
     }
 
     function FeatureNotice({ notice }) {
       if (!notice) return null
       return h('p', { className: `dca-msg dca-msg-${notice.kind === 'error' ? 'error' : 'ok'}`, role: notice.kind === 'error' ? 'alert' : 'status' }, notice.text)
-    }
-
-    function downloadJson(value, name) {
-      const url = URL.createObjectURL(new Blob([JSON.stringify(value, null, 2)], { type: 'application/json' }))
-      const anchor = document.createElement('a')
-      anchor.href = url
-      anchor.download = name
-      document.body.appendChild(anchor)
-      anchor.click()
-      anchor.remove()
-      window.setTimeout(() => URL.revokeObjectURL(url), 1000)
-    }
-
-    function BackupTools({ onRestored }) {
-      const [mode, setMode] = useState('export')
-      const [includeCredentials, setIncludeCredentials] = useState(false)
-      const [encryptExport, setEncryptExport] = useState(false)
-      const [exportPassword, setExportPassword] = useState('')
-      const [confirmation, setConfirmation] = useState('')
-      const [text, setText] = useState('')
-      const [fileName, setFileName] = useState('')
-      const [password, setPassword] = useState('')
-      const [preview, setPreview] = useState(null)
-      const [busy, setBusy] = useState(null)
-      const [notice, setNotice] = useState(null)
-      const fileInput = useRef(null)
-      const needsEncryption = includeCredentials || encryptExport
-      const validPassword = exportPassword.length >= 8 && exportPassword.length <= 256 && exportPassword === confirmation
-      let importFormat
-      try { importFormat = JSON.parse(text)?.format } catch {}
-      // Both ids the plugin has ever written: a backup exported before the
-      // rename must still be recognised here so the dialog asks for its
-      // password instead of calling the file unsupported.
-      const encryptedImport = importFormat === 'dsh-codearts-dock-encrypted' || importFormat === 'dsh-connect-codearts-encrypted'
-      const plainImport = importFormat === 'dsh-codearts-dock-backup' || importFormat === 'dsh-connect-codearts-backup'
-      const importLabel = encryptedImport ? 'backup.encrypted' : plainImport ? 'backup.plain' : null
-      const canInspect = text.trim() && (!encryptedImport || (password.length >= 8 && password.length <= 256))
-      const changeMode = (next) => {
-        if (busy || next === mode) return
-        setMode(next); setNotice(null); setPreview(null)
-        setExportPassword(''); setConfirmation(''); setPassword('')
-      }
-      const updateImport = (next, name = '') => {
-        setText(next); setFileName(name); setPassword(''); setPreview(null); setNotice(null)
-      }
-      const selectFile = async (event) => {
-        const file = event.target.files?.[0]; event.target.value = ''
-        if (!file || busy) return
-        setBusy('file'); setPreview(null); setNotice(null)
-        updateImport('')
-        try {
-          if (file.size > 768 * 1024) throw new Error(t('backup.tooLarge'))
-          updateImport(await file.text(), file.name)
-        } catch (error) { setNotice({ kind: 'error', text: error.message }) } finally { setBusy(null) }
-      }
-      const exportBackup = async (event) => {
-        event.preventDefault()
-        if (busy || (needsEncryption && !validPassword)) return
-        setBusy('export'); setNotice(null)
-        try {
-          const result = await postRoute('/backup/export', { includeCredentials, password: needsEncryption ? exportPassword : '' })
-          if (!result.ok) throw new Error(result.error ?? t('backup.failed'))
-          downloadJson(result.backup, `codearts-backup-${new Date().toISOString().slice(0, 10)}.json`)
-          setExportPassword(''); setConfirmation('')
-          setNotice({ kind: 'success', text: t('backup.exported') })
-        } catch (error) { setNotice({ kind: 'error', text: error.message }) } finally { setBusy(null) }
-      }
-      const inspect = async () => {
-        if (busy || !canInspect) return
-        setBusy('preview'); setNotice(null); setPreview(null)
-        try {
-          const result = await postRoute('/backup/preview', { text, password: encryptedImport ? password : '' })
-          if (!result.ok) throw new Error(result.error ?? t('backup.failed'))
-          setPreview(result)
-        } catch (error) { setNotice({ kind: 'error', text: error.message }) } finally { setBusy(null) }
-      }
-      const restore = async () => {
-        if (!preview || busy) return
-        setBusy('restore'); setNotice(null)
-        try {
-          const result = await postRoute('/backup/restore', { text, password: encryptedImport ? password : '' })
-          if (!result.ok) throw new Error(result.error ?? t('backup.failed'))
-          updateImport('')
-          await onRestored()
-          setNotice({ kind: 'success', text: t('backup.restored').replace('{added}', result.added).replace('{updated}', result.updated) })
-        } catch (error) { setNotice({ kind: 'error', text: error.message }) } finally { setBusy(null) }
-      }
-      return h('details', { className: 'dca-card dca-details' },
-        h('summary', null, t('backup.title')),
-        h('div', { className: 'dca-feature-stack' },
-          h('div', { className: 'dca-mode-switch', role: 'group', 'aria-label': t('backup.mode') },
-            ...['export', 'restore'].map((value) => h('button', {
-              key: value, type: 'button', className: 'dca-filter', 'aria-pressed': mode === value,
-              disabled: busy !== null, onClick: () => changeMode(value),
-            }, t(`backup.${value}`))),
-          ),
-          h(FeatureNotice, { notice }),
-          mode === 'export' ? h('form', { className: 'dca-feature-stack dca-backup-form', onSubmit: exportBackup },
-            h('p', { className: 'dca-hint' }, t('backup.hint')),
-            h('label', { className: 'dca-row' }, h('input', {
-              type: 'checkbox', checked: includeCredentials, disabled: busy !== null,
-              onChange: (event) => {
-                setIncludeCredentials(event.target.checked)
-                if (!event.target.checked && !encryptExport) { setExportPassword(''); setConfirmation('') }
-              },
-            }), t('backup.include')),
-            includeCredentials ? h('p', { className: 'dca-hint' }, t('backup.encryptionRequired'))
-              : h('label', { className: 'dca-row' }, h('input', {
-                  type: 'checkbox', checked: encryptExport, disabled: busy !== null,
-                  onChange: (event) => { setEncryptExport(event.target.checked); setExportPassword(''); setConfirmation('') },
-                }), t('backup.encrypt')),
-            needsEncryption ? h(React.Fragment, null,
-              h('div', { className: 'dca-feature-grid' },
-                h('label', { className: 'dca-form-field' }, t('backup.exportPassword'), h('input', { className: 'dca-input', type: 'password', autoComplete: 'new-password', maxLength: 256, value: exportPassword, disabled: busy !== null, onChange: (event) => setExportPassword(event.target.value) })),
-                h('label', { className: 'dca-form-field' }, t('backup.confirmPassword'), h('input', { className: 'dca-input', type: 'password', autoComplete: 'new-password', maxLength: 256, value: confirmation, disabled: busy !== null, onChange: (event) => setConfirmation(event.target.value) })),
-              ),
-              !validPassword ? h('p', { className: 'dca-hint' }, t('backup.passwordHint')) : null,
-            ) : null,
-            h('div', { className: 'dca-row' }, h('button', { className: 'dca-btn', type: 'submit', disabled: busy !== null || (needsEncryption && !validPassword) }, busy === 'export' ? t('common.loading') : t('backup.download'))),
-          ) : h('div', { className: 'dca-feature-stack dca-backup-form' },
-            h('p', { className: 'dca-hint' }, t('backup.importHint')),
-            h('div', { className: 'dca-row' },
-              h('button', { type: 'button', className: 'dca-btn', disabled: busy !== null, onClick: () => fileInput.current?.click() }, busy === 'file' ? t('common.loading') : t('backup.choose')),
-              h('input', { ref: fileInput, type: 'file', accept: '.json,application/json', className: 'dca-file-input', disabled: busy !== null, onChange: selectFile }),
-            ),
-            text.trim() ? h('div', { className: 'dca-file-state', role: 'status' },
-              h('span', null, fileName ? t('backup.selected').replace('{name}', fileName) : t('backup.pasted')),
-              importLabel ? h('span', { className: 'dca-hint' }, t(importLabel)) : null,
-            ) : null,
-            h('details', { className: 'dca-details' }, h('summary', null, t('backup.paste')),
-              h('label', { className: 'dca-form-field' }, t('backup.content'), h('textarea', {
-                className: 'dca-input', rows: 4, maxLength: 786432, value: text, disabled: busy !== null,
-                onChange: (event) => updateImport(event.target.value),
-              })),
-            ),
-            encryptedImport ? h('label', { className: 'dca-form-field' }, t('backup.importPassword'), h('input', { className: 'dca-input', type: 'password', autoComplete: 'off', maxLength: 256, value: password, disabled: busy !== null, onChange: (event) => { setPassword(event.target.value); setPreview(null) } })) : null,
-            h('div', { className: 'dca-row' }, h('button', { type: 'button', className: 'dca-btn', disabled: busy !== null || !canInspect, onClick: inspect }, busy === 'preview' ? t('common.loading') : t('backup.preview'))),
-            preview ? h('div', { className: 'dca-feature-stack dca-preview-box', role: 'region', 'aria-label': t('backup.preview') },
-              h('p', null, t('backup.summary').replace('{settings}', preview.changes.length).replace('{added}', preview.accounts.added).replace('{updated}', preview.accounts.updated)),
-              h('p', { className: 'dca-hint' }, t('backup.mergeHint')),
-              h('details', { className: 'dca-details' }, h('summary', null, t('backup.changes')), h('pre', { className: 'dca-pre', tabIndex: 0 }, JSON.stringify(preview.preferences, null, 2))),
-              h('div', { className: 'dca-row' },
-                h('button', { type: 'button', className: 'dca-btn dca-btn-primary', disabled: busy !== null, onClick: restore }, busy === 'restore' ? t('common.loading') : t('backup.confirm')),
-                h('button', { type: 'button', className: 'dca-btn', disabled: busy !== null, onClick: () => updateImport('') }, t('pool.cancel')),
-              ),
-            ) : null,
-          ),
-        ),
-      )
     }
 
     // ── models tab ─────────────────────────────────────────────────────────
@@ -2384,6 +2169,27 @@ window.__ModuleLoader__.load({
      * and capability switches. Edits are local until saved; the panel keeps
      * selection changes separate from the live catalog refresh.
      */
+    const CONTEXT_OPTIONS = [
+      [32768, '32K'], [65536, '64K'], [131072, '128K'], [204800, '200K'],
+      [262144, '256K'], [524288, '512K'], [1048576, '1M'], [2097152, '2M'],
+    ]
+
+    function modelContextLimit(model) {
+      const limit = model.defaults?.context ?? model.context
+      return Number.isSafeInteger(limit) && limit >= 1024 ? limit : null
+    }
+
+    /** The same context choice is displayed, saved, and sent for a test. */
+    function normalizeModelOverride(model, draft) {
+      const override = { ...model.overrides, ...draft }
+      const limit = modelContextLimit(model)
+      if (override.context !== null && override.context !== undefined &&
+        (!Number.isSafeInteger(override.context) || override.context < 1024 || limit === null || override.context > limit)) {
+        override.context = null
+      }
+      return override
+    }
+
     function ModelsTab({ models, onRefresh, onSaved }) {
       const [busy, setBusy] = useState(null)
       const [query, setQuery] = useState('')
@@ -2391,16 +2197,12 @@ window.__ModuleLoader__.load({
       const [sort, setSort] = useState('default')
       const [imagesOnly, setImagesOnly] = useState(false)
       const [reasoningOnly, setReasoningOnly] = useState(false)
-      const [presetId, setPresetId] = useState('')
-      const [presetName, setPresetName] = useState('')
-      const [presetEditorOpen, setPresetEditorOpen] = useState(false)
-      const [presetPreview, setPresetPreview] = useState(null)
-      const [savedPresets, setSavedPresets] = useState(null)
-      useEffect(() => { setSavedPresets(null) }, [models.presets])
       const [notice, setNotice] = useState(null)
       /** Local draft: null means "no unsaved edits". */
       const [enabledIds, setEnabledIds] = useState(null)
       const [overrides, setOverrides] = useState({})
+      const [testResults, setTestResults] = useState({})
+      const testPending = useRef(false)
 
       const list = models?.models ?? []
       const selectionIsDefault = models?.enabledIds === null || models?.enabledIds === undefined
@@ -2421,7 +2223,7 @@ window.__ModuleLoader__.load({
           const model = list.find((entry) => entry.id === id)
           if (!model) return false
           const saved = { images: model.supportsImages, allowOff: model.allowOff !== false, defaultStrength: model.defaultStrength, ...model.overrides }
-          return Object.entries(patch).some(([key, value]) => value !== saved[key])
+          return Object.entries(patch).some(([key, value]) => (value ?? undefined) !== (saved[key] ?? undefined))
         })
       const selectedIds = list.filter((model) => isEnabled(model.id)).map((model) => model.id)
       const selectedCount = selectedIds.length
@@ -2451,6 +2253,11 @@ window.__ModuleLoader__.load({
 
       const setOverride = useCallback((id, patch) => {
         setNotice(null)
+        setTestResults((current) => {
+          const next = { ...current }
+          delete next[id]
+          return next
+        })
         setOverrides((current) => ({
           ...current,
           [id]: { ...(current[id] ?? {}), ...patch },
@@ -2470,7 +2277,7 @@ window.__ModuleLoader__.load({
                 : selectedIds.length === list.length
                   ? null
                   : selectedIds,
-            overrides: Object.fromEntries(list.map((model) => [model.id, { ...model.overrides, ...overrides[model.id] }])),
+            overrides: Object.fromEntries(list.map((model) => [model.id, normalizeModelOverride(model, overrides[model.id])])),
           }
           const result = await postRoute('/models/select', payload)
           // NOT just `result.ok`: a mis-routed request can land on a read route
@@ -2495,9 +2302,32 @@ window.__ModuleLoader__.load({
         }
       }, [enabledIds, overrides, list, models, onSaved, selectedIds, selectionIsDefault])
 
+      const testModel = useCallback(async (model) => {
+        if (testPending.current || busy !== null) return
+        const override = normalizeModelOverride(model, overrides[model.id])
+        testPending.current = true
+        setBusy(`test:${model.id}`)
+        setTestResults((current) => ({ ...current, [model.id]: null }))
+        try {
+          const result = await postRoute('/models/test', { modelId: model.id, overrides: override })
+          const elapsedMs = Number.isFinite(result.elapsedMs) ? Math.max(0, Math.round(result.elapsedMs)) : null
+          setTestResults((current) => ({ ...current, [model.id]: result.ok && elapsedMs !== null
+            ? { ok: true, elapsedMs }
+            : { ok: false, error: result.error ?? t('models.testFailed') },
+          }))
+          creditsChanged()
+        } catch (error) {
+          setTestResults((current) => ({ ...current, [model.id]: { ok: false, error: error.message } }))
+        } finally {
+          testPending.current = false
+          setBusy(null)
+        }
+      }, [busy, overrides])
+
       const discard = useCallback(() => {
         setEnabledIds(null)
         setOverrides({})
+        setTestResults({})
         setNotice(null)
       }, [])
 
@@ -2515,67 +2345,6 @@ window.__ModuleLoader__.load({
           setBusy(null)
         }
       }, [onRefresh])
-
-      const ratioOf = (model) => {
-        const value = Number.parseFloat(String(model.ratio ?? '').trim().replace(/^x/i, ''))
-        return Number.isFinite(value) ? value : Infinity
-      }
-      const makeBuiltin = (id, name, targets, deep = false) => ({
-        id, name, enabledModelIds: targets.map((model) => model.id),
-        modelOverrides: Object.fromEntries(list.map((model) => {
-          const base = model.defaults ?? model
-          const strengths = model.strengths ?? []
-          const strength = deep && targets.some((entry) => entry.id === model.id)
-            ? (strengths.includes('max') ? 'max' : strengths.at(-1))
-            : base.defaultStrength
-          return [model.id, { images: base.supportsImages === true, allowOff: base.allowOff !== false,
-            ...(strengths.includes(strength) ? { defaultStrength: strength } : strengths.length ? { defaultStrength: strengths[0] } : {}),
-          }]
-        })),
-      })
-      const presets = [
-        makeBuiltin('builtin:daily', t('presets.daily'), [...list].sort((a, b) => ratioOf(a) - ratioOf(b)).slice(0, 3)),
-        makeBuiltin('builtin:deep', t('presets.deep'), list.filter((model) => model.strengths?.length), true),
-        makeBuiltin('builtin:images', t('presets.images'), list.filter((model) => (model.defaults ?? model).supportsImages)),
-        ...(savedPresets ?? models.presets ?? []),
-      ]
-      const selectedPreset = presets.find((entry) => entry.id === presetId)
-      const previewIds = presetPreview ? (presetPreview.enabledModelIds ?? list.map((entry) => entry.id)).filter((id) => list.some((entry) => entry.id === id)) : []
-      const snapshotOverrides = () => Object.fromEntries(list.map((model) => {
-        const patch = { ...model.overrides, ...overrides[model.id] }
-        const strengths = model.strengths ?? []
-        const strength = patch.defaultStrength ?? model.defaultStrength
-        return [model.id, { images: patch.images ?? model.supportsImages, allowOff: patch.allowOff ?? model.allowOff ?? true,
-          ...(strengths.length ? { defaultStrength: strengths.includes(strength) ? strength : strengths[0] } : {}),
-        }]
-      }))
-      const savePreset = async () => {
-        if (!presetName.trim() || !selectedCount || busy) return
-        setBusy('preset')
-        try {
-          const result = await postRoute('/presets', { action: 'save', name: presetName.trim(), enabledModelIds: selectedCount === list.length ? null : selectedIds, modelOverrides: snapshotOverrides() })
-          if (!result.ok) throw new Error(result.error ?? t('common.retry'))
-          setSavedPresets(result.presets); setPresetName(''); setPresetEditorOpen(false)
-          setNotice({ kind: 'success', text: t('features.saved') })
-        } catch (error) { setNotice({ kind: 'error', text: error.message }) } finally { setBusy(null) }
-      }
-      const deletePreset = async () => {
-        if (!selectedPreset || selectedPreset.id.startsWith('builtin:') || busy || !window.confirm(t('presets.deleteConfirm'))) return
-        setBusy('preset')
-        try {
-          const result = await postRoute('/presets', { action: 'delete', id: selectedPreset.id })
-          if (!result.ok) throw new Error(result.error ?? t('common.retry'))
-          setSavedPresets(result.presets); setPresetId(''); setPresetPreview(null)
-          setNotice({ kind: 'success', text: t('features.saved') })
-        } catch (error) { setNotice({ kind: 'error', text: error.message }) } finally { setBusy(null) }
-      }
-      const applyPreset = () => {
-        if (!previewIds.length || busy) return
-        setEnabledIds(previewIds)
-        setOverrides(Object.fromEntries(Object.entries(presetPreview.modelOverrides ?? {}).filter(([id]) => list.some((model) => model.id === id))))
-        setPresetPreview(null); setPresetId('')
-        setNotice({ kind: 'success', text: t('presets.applied') })
-      }
 
       const source = catalogSourceLabel(models.source)
 
@@ -2632,40 +2401,6 @@ window.__ModuleLoader__.load({
           h('label', { className: 'dca-row' }, h('input', { type: 'checkbox', checked: imagesOnly, onChange: (event) => setImagesOnly(event.target.checked) }), t('models.imagesOnly')),
           h('label', { className: 'dca-row' }, h('input', { type: 'checkbox', checked: reasoningOnly, onChange: (event) => setReasoningOnly(event.target.checked) }), t('models.reasoningOnly')),
         ),
-        h('div', { className: 'dca-preset-tools' },
-          h('div', { className: 'dca-preset-row' },
-            h('select', {
-              className: 'dca-input', value: presetId, disabled: busy !== null,
-              'aria-label': t('presets.title'), onChange: (event) => {
-                const next = event.target.value
-                setPresetId(next); setPresetPreview(presets.find((entry) => entry.id === next) ?? null)
-                setPresetEditorOpen(false)
-              },
-            }, h('option', { value: '' }, t('presets.choose')), ...presets.map((preset) => h('option', { key: preset.id, value: preset.id }, preset.name))),
-            h('button', { type: 'button', className: 'dca-btn', disabled: busy !== null || !selectedCount,
-              'aria-expanded': presetEditorOpen, onClick: () => { setPresetEditorOpen((value) => !value); setPresetPreview(null); setPresetId('') },
-            }, t('presets.saveAs')),
-          ),
-          presetEditorOpen ? h('form', { className: 'dca-preset-row', onSubmit: (event) => { event.preventDefault(); void savePreset() } },
-            h('input', { className: 'dca-input', value: presetName, maxLength: 48, autoFocus: true, placeholder: t('presets.name'), 'aria-label': t('presets.name'), disabled: busy !== null, onChange: (event) => setPresetName(event.target.value) }),
-            h('button', { type: 'submit', className: 'dca-btn', disabled: busy !== null || !presetName.trim() || !selectedCount }, t('presets.save')),
-            h('button', { type: 'button', className: 'dca-btn', disabled: busy !== null, onClick: () => setPresetEditorOpen(false) }, t('pool.cancel')),
-          ) : null,
-          presetPreview ? h('div', { className: 'dca-preview-box dca-feature-stack', role: 'region', 'aria-label': t('presets.preview') },
-            h('p', { className: 'dca-hint' }, t('presets.previewHint').replace('{count}', previewIds.length)),
-            !previewIds.length ? h('p', { className: 'dca-hint' }, t('presets.noModels')) : null,
-            presetPreview.enabledModelIds && previewIds.length < presetPreview.enabledModelIds.length ? h('p', { className: 'dca-hint' }, t('presets.missing')) : null,
-            h('ul', { className: 'dca-preset-preview' }, ...previewIds.map((id) => h('li', { key: id }, list.find((model) => model.id === id).name))),
-            h('details', { className: 'dca-details' }, h('summary', null, t('presets.details')),
-              h('pre', { className: 'dca-pre', tabIndex: 0 }, JSON.stringify(presetPreview.modelOverrides, null, 2)),
-              selectedPreset && !selectedPreset.id.startsWith('builtin:') ? h('button', { type: 'button', className: 'dca-btn dca-danger', disabled: busy !== null, onClick: deletePreset }, t('presets.delete')) : null,
-            ),
-            h('div', { className: 'dca-row' },
-              h('button', { type: 'button', className: 'dca-btn', disabled: busy !== null || !previewIds.length, onClick: applyPreset }, t('presets.apply')),
-              h('button', { type: 'button', className: 'dca-btn', disabled: busy !== null, onClick: () => { setPresetPreview(null); setPresetId('') } }, t('pool.cancel')),
-            ),
-          ) : null,
-        ),
         h('details', { className: 'dca-details' },
           h('summary', null, t('models.about')),
           h('div', { className: 'dca-details-body' },
@@ -2689,11 +2424,21 @@ window.__ModuleLoader__.load({
                 null,
                 ...visibleModels.map((model) => {
                   const on = isEnabled(model.id)
-                  const override = { ...model.overrides, ...overrides[model.id] }
+                  const override = normalizeModelOverride(model, overrides[model.id])
                   const images = typeof override.images === 'boolean' ? override.images : model.supportsImages
                   const strengths = model.strengths ?? []
                   const preferredStrength = override.defaultStrength ?? model.defaultStrength
                   const defaultStrength = strengths.includes(preferredStrength) ? preferredStrength : strengths[0]
+                  const testResult = testResults[model.id]
+                  const contextLimit = modelContextLimit(model)
+                  const contextChoices = new Map(CONTEXT_OPTIONS.filter(([value]) => contextLimit !== null && value <= contextLimit))
+                  if (contextLimit !== null) {
+                    if (!contextChoices.has(contextLimit)) contextChoices.set(contextLimit, formatTokens(contextLimit))
+                    if (typeof override.context === 'number' && !contextChoices.has(override.context)) {
+                      contextChoices.set(override.context, formatTokens(override.context))
+                    }
+                  }
+                  const contextOptions = [...contextChoices].sort((left, right) => left[0] - right[0])
                   const promo = model.promo
                   const promoTone = ['success', 'info', 'warning', 'neutral'].includes(promo?.tone) ? promo.tone : 'neutral'
                   const promoIsHalfPrice = promo?.label === '限时半价' || promo?.labelEn === 'Limited-time half price'
@@ -2829,9 +2574,36 @@ window.__ModuleLoader__.load({
                               ),
                             )
                           : null,
-                        h('span', { className: 'dca-id' }, model.id),
                       ),
                     ),
+                    h('div', { className: 'dca-model-tools' },
+                      h('label', { className: 'dca-model-context' },
+                        h('span', null, t('models.contextLength')),
+                        h('select', {
+                          className: 'dca-effort-select',
+                          value: override.context ?? '',
+                          'aria-label': `${t('models.contextLength')} — ${model.name}`,
+                          disabled: busy !== null,
+                          onChange: (event) => setOverride(model.id, { context: event.target.value === '' ? null : Number(event.target.value) }),
+                        },
+                          h('option', { value: '' }, contextLimit === null ? t('models.contextDefault') : `${t('models.contextDefault')}（${formatTokens(contextLimit)}）`),
+                          ...contextOptions.map(([value, label]) => h('option', { key: value, value }, label)),
+                        ),
+                      ),
+                      h('button', {
+                        type: 'button', className: 'dca-btn dca-model-test',
+                        'aria-label': `${t('models.test')} — ${model.name}`,
+                        title: t('models.testHint'),
+                        disabled: busy !== null,
+                        onClick: () => testModel(model),
+                      }, busy === `test:${model.id}` ? t('account.testing') : t('models.test')),
+                    ),
+                    testResult ? h('p', {
+                      className: `dca-model-feedback dca-msg-${testResult.ok ? 'ok' : 'error'}`,
+                      role: testResult.ok ? 'status' : 'alert',
+                    }, testResult.ok
+                      ? t('models.testSuccess').replace('{elapsedMs}', testResult.elapsedMs)
+                      : `${t('models.testFailed')}：${testResult.error}`) : null,
                   )
                 }),
               ),
@@ -2875,6 +2647,113 @@ window.__ModuleLoader__.load({
               busy === 'save' ? t('account.saving') : t('models.save'),
             ),
           ),
+        ),
+      )
+    }
+
+    // ── activity tab ───────────────────────────────────────────────────────
+
+    function ActivityTab({ active }) {
+      const [records, setRecords] = useState(null)
+      const [limit, setLimit] = useState(200)
+      const [category, setCategory] = useState('all')
+      const [result, setResult] = useState('all')
+      const [busy, setBusy] = useState(null)
+      const [error, setError] = useState(null)
+      const [notice, setNotice] = useState(null)
+      const request = useRef(null)
+      const operation = useRef({ clearing: false, generation: 0 })
+
+      const load = useCallback(async () => {
+        if (operation.current.clearing) return
+        request.current?.abort()
+        const controller = new AbortController()
+        const generation = operation.current.generation
+        request.current = controller
+        setBusy('refresh'); setError(null); setNotice(null)
+        try {
+          const value = await getRoute('/activities', { signal: controller.signal })
+          if (controller.signal.aborted || generation !== operation.current.generation) return
+          if (!value?.ok || !Array.isArray(value.records)) throw new Error()
+          setRecords(value.records)
+          setLimit(Number.isInteger(value.limit) && value.limit > 0 ? value.limit : 200)
+        } catch {
+          if (!controller.signal.aborted) setError(t('activity.failed'))
+        } finally {
+          if (request.current === controller) {
+            request.current = null
+            setBusy(null)
+          }
+        }
+      }, [])
+
+      useEffect(() => {
+        if (active) void load()
+        return () => request.current?.abort()
+      }, [active, load])
+
+      const clear = async () => {
+        if (busy || operation.current.clearing || !records?.length || !window.confirm(t('activity.clearConfirm'))) return
+        operation.current.clearing = true
+        operation.current.generation += 1
+        request.current?.abort()
+        request.current = null
+        setBusy('clear'); setError(null); setNotice(null)
+        try {
+          const value = await postRoute('/activities/clear', {})
+          if (!value?.ok) throw new Error()
+          setRecords([])
+          setNotice({ kind: 'success', text: t('activity.cleared') })
+        } catch {
+          setError(t('activity.failed'))
+        } finally { operation.current.clearing = false; setBusy(null) }
+      }
+
+      const visible = (records ?? []).filter((entry) =>
+        (category === 'all' || entry.category === category) && (result === 'all' || entry.status === result),
+      )
+      const detailText = (details = {}) => {
+        const parts = ['added', 'updated', 'skipped', 'total', 'enabled', 'claimed', 'failed', 'available', 'unavailable', 'attempted']
+          .filter((key) => Number.isInteger(details[key]) && details[key] >= 0)
+          .map((key) => t(`activity.detail.${key}`).replace('{count}', String(details[key])))
+        if (['credentials', 'network', 'rate_limited', 'insufficient', 'gateway', 'unknown'].includes(details.reason)) parts.push(t(`health.${details.reason}`))
+        return parts.join(' · ')
+      }
+
+      return h('div', { className: 'dca-page' },
+        h('div', { className: 'dca-pool-card-head' },
+          h('h2', { className: 'dca-title' }, t('activity.title')),
+          h('div', { className: 'dca-row' },
+            h('button', { type: 'button', className: 'dca-btn', disabled: busy !== null, onClick: load }, busy === 'refresh' ? t('common.loading') : t('activity.refresh')),
+            h('button', { type: 'button', className: 'dca-btn dca-danger', disabled: busy !== null || !records?.length, onClick: clear }, busy === 'clear' ? t('common.loading') : t('activity.clear')),
+          ),
+        ),
+        h('p', { className: 'dca-hint' }, t('activity.hint').replace('{limit}', String(limit))),
+        h(FeatureNotice, { notice }),
+        records === null ? h(Pending, { error, onRetry: load }) : h(React.Fragment, null,
+          error ? h('p', { className: 'dca-msg dca-msg-error', role: 'alert' }, error) : null,
+          h('div', { className: 'dca-activity-filters' },
+            h('label', null, t('activity.category'), h('select', { className: 'dca-input', value: category, onChange: (event) => setCategory(event.target.value) },
+              ...['all', 'account', 'models', 'checkin', 'system'].map((value) => h('option', { key: value, value }, t(`activity.${value}`))),
+            )),
+            h('label', null, t('activity.status'), h('select', { className: 'dca-input', value: result, onChange: (event) => setResult(event.target.value) },
+              ...['all', 'success', 'warning', 'error'].map((value) => h('option', { key: value, value }, t(`activity.${value}`))),
+            )),
+          ),
+          h('p', { className: 'dca-hint', role: 'status' }, t('activity.count').replace('{shown}', String(visible.length)).replace('{total}', String(records.length))),
+          visible.length ? h('ol', { className: 'dca-activity-list', 'aria-label': t('activity.title'), 'aria-busy': busy === 'refresh' },
+            ...visible.map((entry) => {
+              const detail = detailText(entry.details)
+              return h('li', { key: entry.id, className: 'dca-activity-item' },
+                h('div', { className: 'dca-activity-head' },
+                  h('strong', null, t(STRINGS[`activity.action.${entry.action}`] ? `activity.action.${entry.action}` : 'activity.unknown')),
+                  h('span', { className: `dca-activity-result dca-activity-result-${entry.status}` }, t(`activity.${entry.status}`)),
+                  h('time', { className: 'dca-activity-time', dateTime: new Date(entry.at).toISOString() }, formatTime(entry.at)),
+                ),
+                detail ? h('p', { className: 'dca-activity-detail' }, detail) : null,
+              )
+            }),
+          ) : h('p', { className: 'dca-hint' }, t(records.length ? 'activity.noMatch' : 'activity.empty')),
         ),
       )
     }
@@ -3065,6 +2944,7 @@ window.__ModuleLoader__.load({
         { id: 'account', paths: ['/accounts'], content: pool && h(AccountTab, { status, pool, onChanged: loadAll }) },
         { id: 'models', paths: ['/models'], content: models && h(ModelsTab, { models, onRefresh: refreshModels, onSaved: loadModels }) },
         { id: 'diagnostics', paths: ['/status', '/account'], content: status && h(DiagnosticsTab, { status, account, accountError: errors['/account'] }) },
+        { id: 'activity', paths: [], content: h(ActivityTab, { active: tab === 'activity' }) },
       ]
 
       return h(

@@ -60,10 +60,11 @@ check('the section switcher is a sticky underlined tab strip, not cards', () => 
   )
 })
 
-check('the account pool is a grid table with an uppercase header row', () => {
-  has('grid-template-areas:', 'pool rows are a grid, so columns reflow on a narrow panel')
-  has('text-transform:uppercase', 'header row is uppercase')
-  has('font-size:11px;font-weight:600;letter-spacing:.02em', 'header typography')
+check('account rows match the reference two-line layout without a column header', () => {
+  has('grid-template-columns:minmax(0,1fr) minmax(0,auto) 160px;', 'three reference tracks')
+  has('"account account credits"\n    "probe   checkin actions"', 'identity and credits precede health, check-in and actions')
+  assert.ok(!source.includes('dca-pool-row-head'), 'self-describing values replace the column header')
+  has('.dca-pool-credit-label{font-size:12px', 'credits carry a readable label')
   has('padding:10px 14px', 'row rhythm')
 })
 
@@ -105,10 +106,15 @@ check('hints and row metadata use the reference type scale', () => {
   has('font-size:11px;line-height:16px', 'row metadata line')
 })
 
-check('check-in is a manual action with no automatic switch or route', () => {
+check('daily automatic check-in has an accessible switch and keeps the manual action', () => {
   assert.ok(source.includes("postRoute('/checkin/claim-all', {})"), 'manual claim uses a dedicated route')
-  assert.ok(!source.includes('/checkin/auto'), 'the automatic route is gone')
-  assert.ok(!source.includes('pool.autoTitle'), 'the automatic switch is gone')
+  assert.ok(source.includes("role: 'switch'"), 'the automatic check-in control exposes switch semantics')
+  assert.match(source, /type: 'button',\s+className: `dca-switch/, 'the switch is a button control, not a checkbox')
+  assert.ok(source.includes("'aria-checked': dailyCheckinEnabled === true"), 'the button reports its state accessibly')
+  assert.ok(source.includes('.dca-switch::after{'), 'the switch button draws a movable thumb')
+  assert.ok(source.includes('dailyCheckinEnabled'), 'the switch reads and saves the persisted preference')
+  assert.ok(source.includes("postRoute('/preferences/save'"), 'the switch saves through the preferences route')
+  assert.ok(!source.includes('/checkin/auto'), 'automatic check-in is scheduled by the host, not a browser timer route')
 })
 
 check('every class the markup uses has a rule in the stylesheet', () => {
@@ -134,12 +140,15 @@ check('the account row is two lines: identity, then a probe line', () => {
 })
 
 check('account actions and check-in status stay clear on narrow and touch layouts', () => {
-  has('.dca-pool-checkin-label{display:none}', 'desktop uses the aligned check-in column label')
-  has('.dca-pool-checkin-label{display:inline-flex', 'narrow rows label the check-in status')
-  has('opacity:.55;transition:opacity .15s', 'rename affordance stays visible without hover')
-  has('min-width:30px;min-height:30px', 'account menu has a touch-sized target')
-  assert.ok(source.includes("}, t('pool.rename'))"), 'rename is available in the row menu')
-  assert.ok(source.includes("}, rowBusy && rowAction.kind === 'check' ? t('common.loading') : t('health.recheck'))"), 'recheck is available in the row menu')
+  assert.ok(!source.includes('dca-pool-checkin-label'), 'the redundant check-in label is removed')
+  has('.dca-checkin-badge{display:inline-flex;align-items:center', 'check-in results use compact status badges')
+  has('.dca-checkin-done{color:var(--dsw-alias-state-success-primary,#3fb950)', 'completed check-ins read as success')
+  has('.dca-checkin-pending,.dca-checkin-progress{color:var(--dsw-alias-state-warn-primary,#e8b34b)', 'pending check-ins stay noticeable')
+  has('.dca-checkin-error{color:var(--dsw-alias-state-error-primary,#e5534b)', 'failed reads stand apart from completed states')
+  assert.ok(!source.includes('dca-account-menu'), 'account rows do not have an edit menu')
+  assert.ok(source.includes("'pool.checkAll': ['检查全部账号'"), 'all accounts can be checked from the pool toolbar')
+  assert.ok(source.includes("}, t('pool.remove'))"), 'remove is directly available on the row')
+  assert.ok(!source.includes("t('health.recheck'))"), 'single-account recheck is absent from the row menu')
 })
 
 check('narrow settings layouts follow panel width, not viewport width', () => {
@@ -190,16 +199,21 @@ check('the settings nav glyph is registered under the section\'s own id', () => 
   )
 })
 
-check('the account pool has no on/off switch: the selected account just serves', () => {
-  // The switch was removed on request. Which account serves is not a preference
-  // to toggle — the selected account serves every request and a failure is
-  // reported as it is, so there is nothing to turn on or off.
-  const host = readSource('../src/index.js')
-  assert.ok(!source.includes("postRoute('/pool'"), 'no pool route is called from the card')
-  assert.ok(!source.includes('pool.enableHint'), 'its hint is gone too')
-  assert.ok(!host.includes("route('/pool'"), 'the host no longer serves that route')
-  assert.ok(!host.includes('nextAccountClient'), 'failover wiring is gone with it')
+check('account rows expose manual switch buttons', () => {
+  assert.ok(!source.includes("'pool.enabled':"), 'the retired automatic-selection switch is removed')
+  assert.ok(!source.includes("'pool.chooseAccount':"), 'the account dropdown is removed')
+  assert.ok(source.includes("}, t('pool.activate'))"), 'manual switching is available on each row')
   assert.ok(source.includes("postRoute('/checkin/claim-all'"), 'manual check-in remains')
+})
+
+check('automatic check-in retains the compact tinted settings bar', () => {
+  has('.dca-pool-modebar{display:flex;flex-direction:column;padding:12px 14px;gap:8px;', 'one compact settings block')
+  has('border:1px solid rgba(86,134,254,.36);border-radius:12px;background:linear-gradient(180deg,rgba(86,134,254,.10),rgba(86,134,254,.02))', 'reference border and brand tint')
+  has('width:38px;height:22px', 'reference switch geometry')
+  has('top:3px;left:3px;width:16px;height:16px', 'reference thumb geometry')
+  has('.dca-switch-on::after{transform:translateX(16px)}', 'thumb travel matches the compact track')
+  has('.dca-pool-modebar-label{font-size:13px;font-weight:600;', 'reference label type')
+  assert.ok(!source.includes('width:72px;height:40px'), 'the oversized switches are removed')
 })
 
 check('the provider is declared, so Settings → Models renders a card for it', () => {
@@ -231,7 +245,9 @@ check('an unticked model leaves the picker, a reset restores everything', () => 
   // would empty the picker with no way back.
   const host = readSource('../src/index.js')
   assert.ok(host.includes("route('/models/select'"), 'a save route exists')
-  assert.ok(host.includes('enabledIds === null'), 'null is distinguished from an empty list')
+  assert.ok(host.includes('validateSelection({ enabledModelIds: body.enabledIds'), 'the save route uses shared selection validation')
+  const preferences = readSource('../src/preferences.js')
+  assert.ok(preferences.includes('ids !== null') && preferences.includes('!ids.length'), 'null is distinguished from an empty list')
   assert.ok(host.includes("emit('llm/models-updated'"), 'the picker is told to reload, without a restart')
 })
 
@@ -241,14 +257,14 @@ check('edits are a draft until saved, with a visible dirty marker', () => {
   assert.ok(source.includes("postRoute('/models/select'"), 'saving writes them')
 })
 
-check('an account can be renamed from its row', () => {
-  // Without a name, several accounts are indistinguishable: the row shows a
-  // masked AK, which tells a user nothing about which account is which.
-  assert.ok(source.includes('dca-rename-btn'), 'the name is an inline editor trigger')
-  assert.ok(source.includes("postRoute('/accounts/rename'"), 'it saves through the route')
-  assert.ok(source.includes('renameable === false'), 'a derived label starts the editor EMPTY, not prefilled')
-  assert.ok(source.includes("event.key === 'Escape'"), 'Escape cancels — an accidental click must not save')
-  assert.ok(source.includes("event.key === 'Enter'"), 'Enter commits')
+check('account names are editable and replace imported cloud names when customized', () => {
+  assert.ok(source.includes("h('b', { className: 'dca-pool-account-name' }, account.label)"), 'saved account names remain visible as text')
+  assert.ok(source.includes('dca-account-name-editor'), 'the row contains an inline name editor')
+  assert.ok(source.includes("postRoute('/accounts/rename', { id: account.id, label })"), 'saving calls the existing rename route')
+  assert.ok(source.includes('account.renameable\n                      ? h(\'span\', null, account.akMasked)'), 'a custom name hides the original cloud name')
+  assert.ok(!source.includes("'pool.addLabel'"), 'the add form has no name field')
+  assert.ok(source.includes("postRoute('/accounts/add', { ak, sk })"), 'new accounts submit only their credentials')
+  assert.ok(source.includes("}, t('pool.activate'))"), 'manual switching remains available in each account row')
 })
 
 check('save and discard live in a persistent action bar', () => {

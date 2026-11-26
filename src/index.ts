@@ -18,7 +18,7 @@
 import { randomUUID, createHash } from 'node:crypto'
 import { join } from 'node:path'
 import { CredentialProvider, CredentialError } from './credentials.js'
-import { Catalog } from './catalog.js'
+import { Catalog, validateContextOverrides } from './catalog.js'
 import { MadaoClient, GatewayError } from './gateway.js'
 import { createCodeArtsAdapter, PROVIDER_ID, PROVIDER_NAME } from './adapter.js'
 import {
@@ -62,9 +62,10 @@ import {
 } from './checkin.js'
 import { getSts } from './sts.js'
 import { CONFIG_DIR } from './paths.js'
-import { FEATURE_DEFAULTS, InputError, readPreferences, validatePreferences } from './preferences.js'
-import { registerFeatureRoutes, applyPreferences } from './features.js'
+import { FEATURE_DEFAULTS, InputError, readPreferences, validatePreferences, validateSelection } from './preferences.js'
+import { registerFeatureRoutes, applyPreferences, recordActivity, recordOperation, activityReason } from './features.js'
 import { accountHealth } from './health.js'
+import { ACTIVITY_LIMIT, createActivityStore } from './activity.js'
 import { resolveModelPromo } from './promo.js'
 
 /** Plugin name; also the client module id. */
@@ -93,6 +94,7 @@ export const Config = z.object({
   gateway: z.string().description('网关地址，留空用内置地址'),
   refreshIntervalMs: z.number().description('模型目录与积分的刷新间隔（毫秒）'),
   composerChip: z.boolean().default(true).description('在输入框旁显示积分'),
+  dailyCheckinEnabled: z.boolean().default(false).description('开启后每天自动领取可领取的每日签到活动'),
   registerProvider: z.boolean().default(true).description('是否注册码道这个 provider 路由'),
   enabledModelIds: z.array(z.string()).description('启用的模型；留空表示全部'),
   modelOverrides: z.dict(z.object({
@@ -174,10 +176,34 @@ export function apply(ctx, config = {}) {
   try { Object.assign(settings, validatePreferences(readPreferences())) } catch {}
   const healthChecks = new Map()
   const healthCache = new Map()
+  let checkinMutation = Promise.resolve()
+  const serializeCheckin = (operation) => {
+    const result = checkinMutation.then(operation)
+    checkinMutation = result.catch(() => {})
+    return result
+  }
   let rescheduleCatalog = () => {}
+  let rescheduleDailyCheckin = () => {}
   if (settings.enabled === false) return
 
   const logger = createLogger()
+  const activityStore = createActivityStore()
+  const pendingActivity = new Set()
+  let activityDisposed = false
+  const activity = {
+    ...activityStore,
+    record(...args) {
+      if (activityDisposed) return Promise.resolve(false)
+      const write = Promise.resolve().then(() => activityStore.record(...args)).catch(() => false)
+      pendingActivity.add(write)
+      void write.finally(() => pendingActivity.delete(write))
+      return write
+    },
+  }
+  ctx.effect(() => async () => {
+    activityDisposed = true
+    await Promise.allSettled([...pendingActivity])
+  }, 'codearts: activity history')
   const credentials = new CredentialProvider()
   const catalog = new Catalog({ log: logger })
   // A restart begins on the fallback table until the first refresh lands. A
@@ -206,12 +232,22 @@ export function apply(ctx, config = {}) {
 
   // ── the LLM adapter ──────────────────────────────────────────────────────
   if (settings.registerProvider !== false) {
+    // Reasons are a fixed six-value vocabulary; retries cannot flood history.
+    const modelFailureAt = new Map()
     const adapter = createCodeArtsAdapter({
       credentials,
       catalog,
       gateway: () => settings.gateway,
       attachments: () => ctx.get('attachments'),
       log: logger,
+      onError: (error) => {
+        const reason = activityReason(error)
+        const now = Date.now()
+        const last = modelFailureAt.get(reason)
+        if (last !== undefined && now >= last && now - last < 60000) return
+        modelFailureAt.set(reason, now)
+        return recordActivity({ activity }, 'models.request', 'error', { reason })
+      },
     })
     ctx.effect(() => ctx.llm.registerAdapter([PROVIDER_ID], adapter), 'codearts: llm adapter')
 
@@ -255,6 +291,16 @@ export function apply(ctx, config = {}) {
 
   // ── catalog refresh ──────────────────────────────────────────────────────
   let refreshing = null
+  let catalogFailed = false
+  const catalogActivity = async (result, error) => {
+    const failed = Boolean(error || result.error || result.source !== 'gateway')
+    if (failed && !catalogFailed) {
+      await recordActivity({ activity }, 'catalog.refresh', 'error', { reason: activityReason(error ?? (result.error ? { message: result.error } : null)) })
+    } else if (!failed && (catalogFailed || result.changed)) {
+      await recordActivity({ activity }, 'catalog.update', 'success', { total: catalog.models().length, enabled: catalog.visible().length })
+    }
+    catalogFailed = failed
+  }
   const refresh = async () => {
     if (refreshing) return refreshing
     refreshing = (async () => {
@@ -268,9 +314,11 @@ export function apply(ctx, config = {}) {
           // Advertise the new catalog; the selector reloads on this event.
           ctx.emit('llm/models-updated', PROVIDER_ID)
         }
+        await catalogActivity(result)
         return result
       } catch (error) {
         logger(`刷新失败：${error?.message ?? error}`)
+        await catalogActivity({ source: catalog.source }, error)
         return { changed: false, source: catalog.source, error: String(error?.message ?? error) }
       } finally {
         refreshing = null
@@ -297,6 +345,83 @@ export function apply(ctx, config = {}) {
     return () => { disposed = true; clearTimeout(timer); rescheduleCatalog = () => {} }
   }, 'codearts: catalog refresh timer')
 
+  // Automatic check-in is opt-in and belongs to the plugin lifecycle. It runs
+  // once after activation (to cover today's sign-in), then shortly after each
+  // local midnight while the plugin remains active.
+  ctx.effect(() => {
+    let disposed = false
+    let timer
+    let running = null
+    const enabled = () => !disposed && settings.dailyCheckinEnabled === true
+    const run = () => {
+      if (!enabled()) return Promise.resolve(null)
+      if (running) return running
+      running = (async () => {
+        const targets = []
+        const credentialFailures = []
+        for (const account of readStore().accounts) {
+          if (!enabled()) break
+          if (!hasAccount(account.id)) continue
+          try {
+            targets.push({
+              id: account.id,
+              client: new MadaoClient({ credentials: await tripleOf(account), gateway: settings.gateway }),
+            })
+          } catch (error) {
+            credentialFailures.push({ id: account.id, reason: message(error) })
+            logger(`每日自动签到跳过账号「${account.label ?? defaultLabel(account.ak)}」：${error?.message ?? error}`)
+          }
+        }
+        if (!enabled()) return null
+        const summary = await serializeCheckin(() => claimAllDaily({ targets, dailyOnly: true, shouldContinue: enabled, shouldInclude: hasAccount }))
+        summary.attempted += credentialFailures.length
+        summary.failures.push(...credentialFailures)
+        if (summary.claimed > 0) {
+          healthCache.clear()
+          healthChecks.clear()
+        }
+        logger(`每日自动签到完成：${summary.claimed} 个账号已签到，${summary.failures.length} 项失败`)
+        const outcome = checkinActivityOutcome(summary)
+        await recordActivity({ activity }, 'checkin.auto', outcome.status, outcome.details)
+        return summary
+      })().catch((error) => {
+        logger(`每日自动签到失败：${error?.message ?? error}`)
+        void recordActivity({ activity }, 'checkin.auto', 'error', { reason: activityReason(error) })
+        return null
+      }).finally(() => { running = null })
+      return running
+    }
+    const schedule = () => {
+      clearTimeout(timer)
+      timer = undefined
+      if (!enabled()) return
+      const now = new Date()
+      const next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 5, 0, 0)
+      timer = setTimeout(async () => {
+        timer = undefined
+        await run()
+        schedule()
+      }, Math.max(1000, next.getTime() - now.getTime()))
+      timer.unref?.()
+    }
+    rescheduleDailyCheckin = (runNow = false) => {
+      clearTimeout(timer)
+      timer = undefined
+      if (!enabled()) return
+      if (runNow) void (running ? running.then(() => run()) : run())
+      schedule()
+    }
+    if (enabled()) {
+      void run()
+      schedule()
+    }
+    return () => {
+      disposed = true
+      clearTimeout(timer)
+      rescheduleDailyCheckin = () => {}
+    }
+  }, 'codearts: daily check-in timer')
+
   // ── HTTP surface for the settings page and the chip ──────────────────────
   ctx.inject(['webServer'], (webCtx) => {
     const route = (path, handler) => {
@@ -318,36 +443,50 @@ export function apply(ctx, config = {}) {
       )
     }
 
-    const deps = { credentials, catalog, client, refresh, logger, settings, ctx, settingsNs, healthChecks, healthCache, rescheduleCatalog: () => rescheduleCatalog(), invalidateAccounts: () => { healthCache.clear(); healthChecks.clear(); tripleCache.clear() } }
+    const deps = { credentials, catalog, client, refresh, logger, settings, ctx, settingsNs, activity, healthChecks, healthCache, serializeCheckin, rescheduleCatalog: () => rescheduleCatalog(), rescheduleDailyCheckin: (runNow) => rescheduleDailyCheckin(runNow), invalidateAccounts: () => { healthCache.clear(); healthChecks.clear(); tripleCache.clear() } }
 
     registerFeatureRoutes(route, deps, readJsonBody)
 
+    route('/activities', () => ({ ok: true, records: activity.read(), limit: ACTIVITY_LIMIT }))
+    route('/activities/clear', async (req) => {
+      await readJsonBody(req)
+      if (!await activity.clear()) throw new HttpError(500, '无法清空活动记录，请重试')
+      return { ok: true }
+    })
+
     route('/status', () => buildStatus(deps))
     route('/models', () => buildModels(deps))
+    route('/models/test', (req) => recordOperation(deps, 'models.test', () => handleModelTest(req, deps)))
     route('/account', () => buildAccount(deps))
-    route('/save', (req) => handleSave(req, deps))
-    route('/test', () => handleTest(deps))
+    route('/save', (req) => recordOperation(deps, 'credentials.save', () => handleSave(req, deps)))
+    route('/test', () => recordOperation(deps, 'connection.test', () => handleTest(deps), (result) => result.ok ? {} : { details: { reason: activityReason({ message: result.steps.find((step) => !step.ok)?.detail ?? '' }) } }))
     route('/refresh', () => handleRefresh(deps))
     route('/benefits', () => handleBenefits(deps))
-    route('/claim', (req) => handleClaim(req, deps))
-    route('/clear', () => handleClear(deps))
+    route('/claim', (req) => recordOperation(deps, 'checkin.manual', () => handleClaim(req, deps)))
+    route('/clear', () => recordOperation(deps, 'credentials.clear', () => handleClear(deps)))
 
     // The account pool.
     route('/accounts', () => handleAccounts(deps))
-    route('/accounts/add', (req) => handleAccountAdd(req, deps))
+    route('/accounts/add', (req) => recordOperation(deps, 'account.add', () => handleAccountAdd(req, deps), (result) => ({ action: result.added ? 'account.add' : 'account.update', details: { added: result.added ? 1 : 0, updated: result.added ? 0 : 1 } })))
     route('/accounts/preview', (req) => handleAccountPreview(req, deps))
-    route('/accounts/import', (req) => handleAccountImport(req, deps))
-    route('/accounts/remove', (req) => handleAccountRemove(req, deps))
-    route('/accounts/activate', (req) => handleAccountActivate(req, deps))
-    route('/accounts/rename', (req) => handleAccountRename(req, deps))
-    route('/accounts/check', (req) => handleAccountCheck(req, deps))
-    route('/accounts/export', () => handleAccountExport(deps))
+    route('/accounts/import', (req) => recordOperation(deps, 'account.import', () => handleAccountImport(req, deps), (result) => ({ details: { added: result.added, updated: result.updated, skipped: result.skipped, total: result.total } })))
+    route('/accounts/remove', (req) => recordOperation(deps, 'account.remove', () => handleAccountRemove(req, deps)))
+    route('/accounts/activate', (req) => recordOperation(deps, 'account.activate', () => handleAccountActivate(req, deps)))
+    route('/accounts/rename', (req) => recordOperation(deps, 'account.rename', () => handleAccountRename(req, deps)))
+    route('/accounts/check', (req) => recordOperation(deps, 'account.check', () => handleAccountCheck(req, deps), (result) => accountCheckActivityOutcome([result.account])))
+    route('/accounts/check-all', (req) => recordOperation(deps, 'account.check', () => handleAccountCheckAll(req, deps), (result) => accountCheckActivityOutcome(result.accounts)))
+    route('/accounts/export', () => recordOperation(deps, 'account.export', () => handleAccountExport(deps), () => ({ details: { total: readStore().accounts.length } })))
 
     // Daily check-in.
-    route('/models/select', (req) => handleModelSelection(req, deps))
+    route('/models/select', (req) => recordOperation(deps, 'models.save', () => handleModelSelection(req, deps), (result) => ({ details: { enabled: result.enabled, total: result.total } })))
     route('/checkin', () => handleCheckinStatus(deps))
-    route('/checkin/claim', (req) => handleCheckinClaim(req, deps))
-    route('/checkin/claim-all', (req) => handleCheckinClaimAll(req, deps))
+    route('/checkin/claim', (req) => recordOperation(deps, 'checkin.manual', () => handleCheckinClaim(req, deps), (result) => {
+      const reasons = result.reasons?.filter((reason) => reason !== NO_CLAIMABLE_BENEFITS) ?? []
+      const skipped = result.ok !== false && result.reasons?.includes(NO_CLAIMABLE_BENEFITS) ? 1 : 0
+      const failed = result.ok === false || reasons.length > 0
+      return { status: failed ? (result.claimed ? 'warning' : 'error') : 'success', details: { attempted: 1, claimed: result.claimed ? 1 : 0, skipped, failed: failed ? 1 : 0, ...(failed ? { reason: activityReason({ message: reasons[0] ?? result.reason ?? '' }) } : {}) } }
+    }))
+    route('/checkin/claim-all', (req) => recordOperation(deps, 'checkin.manual', () => handleCheckinClaimAll(req, deps), (result) => checkinActivityOutcome(result.summary)))
   })
 
   // Release the renewal timer when the plugin unloads.
@@ -357,6 +496,33 @@ export function apply(ctx, config = {}) {
 }
 
 // ── route handlers ─────────────────────────────────────────────────────────
+
+/** Aggregate checks expose counts and a fixed cause without account identity. */
+function accountCheckActivityOutcome(accounts) {
+  const available = accounts.filter((account) => account.health?.state === 'available').length
+  const unavailable = accounts.length - available
+  const reason = accounts.find((account) => account.health?.state !== 'available')?.health?.state ?? 'unknown'
+  return {
+    status: unavailable === 0 ? 'success' : available > 0 ? 'warning' : 'error',
+    details: { total: accounts.length, available, unavailable, ...(unavailable ? { reason } : {}) },
+  }
+}
+
+const NO_CLAIMABLE_BENEFITS = '上游当前没有可领取的福利活动'
+
+/** No available welfare is a skipped action; several failures still count once. */
+function checkinActivityOutcome(summary) {
+  const failures = summary.failures.filter((failure) => failure.reason !== NO_CLAIMABLE_BENEFITS)
+  const failed = new Set(failures.map((failure) => failure.id)).size
+  const skipped = summary.skipped + new Set(summary.failures.filter((failure) => failure.reason === NO_CLAIMABLE_BENEFITS).map((failure) => failure.id)).size
+  return {
+    status: failed === 0 ? 'success' : summary.claimed > 0 || skipped > 0 ? 'warning' : 'error',
+    details: {
+      attempted: summary.attempted, claimed: summary.claimed, skipped, failed,
+      ...(failed ? { reason: activityReason({ message: failures[0].reason }) } : {}),
+    },
+  }
+}
 
 /**
  * A handler receives the parsed request and returns a JSON-serialisable value.
@@ -410,6 +576,7 @@ async function buildStatus(deps) {
     },
     settings: {
       composerChip: deps.settings.composerChip !== false,
+      dailyCheckinEnabled: deps.settings.dailyCheckinEnabled === true,
       refreshIntervalMs: deps.settings.refreshIntervalMs ?? DEFAULT_REFRESH_MS,
       gateway: deps.settings.gateway ?? null,
     },
@@ -431,18 +598,16 @@ async function buildModels(deps) {
     // The selection, so the card can render the ticks and the "changed" marker.
     enabledIds: selectionIsDefault ? null : deps.catalog.visible().map((model) => model.id),
     total: all.length,
-    presets: deps.settings.modelPresets,
     models: all.map((model) => ({
       enabled: deps.catalog.isEnabled(model.id),
       overrides: overrides[model.id] ?? null,
-      defaults: (() => {
-        const base = deps.catalog.find(model.id)
-        return { supportsImages: base?.supportsImages === true, allowOff: base?.allowOff !== false, defaultStrength: base?.defaultStrength ?? null }
-      })(),
       id: model.id,
       name: model.name,
       context: model.context,
       maxOutput: model.maxOutput,
+      defaults: {
+        context: deps.catalog.find(model.id)?.context,
+      },
       ratio: model.ratio ?? null,
       supportsImages: model.supportsImages,
       allowOff: model.allowOff !== false,
@@ -459,11 +624,12 @@ async function buildAccount(deps) {
   try {
     const { client, resolved } = await deps.client()
     const identity = parseIdentity(resolved.key.securityToken)
+    const accountId = resolved.accountId ?? deps.credentials.accountId ?? resolved.source
     const [credit, roles] = await Promise.all([readCredit(client), readRoles(client)])
     return {
       ok: true,
       account: identity.accountName ?? null,
-      accountId: deps.credentials.accountId ?? resolved.source,
+      accountId,
       userId: identity.userId ?? null,
       source: resolved.source,
       sourceLabel: resolved.label,
@@ -471,7 +637,7 @@ async function buildAccount(deps) {
       expiresAt: resolved.expiresAtMs ?? null,
       credit,
       creditCheckedAt: credit ? Date.now() : null,
-      creditIdentity: createHash('sha256').update(JSON.stringify([resolved.source, deps.credentials.accountId ?? identity.userId ?? resolved.key.ak, deps.settings.gateway ?? ''])).digest('hex'),
+      creditIdentity: createHash('sha256').update(JSON.stringify([resolved.source, resolved.accountId ?? identity.userId ?? resolved.key.ak, deps.settings.gateway ?? ''])).digest('hex'),
       roles,
       composerChip: deps.settings.composerChip !== false,
       health: accountHealth({ credit }),
@@ -506,6 +672,11 @@ async function handleClear(deps) {
 }
 
 // ── account pool ───────────────────────────────────────────────────────────
+
+/** A removed account must not be included in a queued batch operation. */
+function hasAccount(id) {
+  return readStore().accounts.some((account) => account.id === id)
+}
 
 /**
  * The pool, with per-account credit and check-in state.
@@ -596,9 +767,13 @@ async function handleAccounts(deps) {
     const cached = deps.healthCache.get(account.id)
     return cached && Date.now() - cached.health.checkedAt < 60000 ? { ...cached, ...publicAccount(account, store) } : inspectAccount(account, deps)
   })
+  // The user can switch or remove an account while the probes are running.
+  const current = readStore()
   return {
-    ok: true, version: STORE_VERSION, activeId: store.activeId, accounts,
-    today: todaySummary(accounts.map(({ id, label }) => ({ id, label })), new Date()),
+    ok: true, version: STORE_VERSION, activeId: current.activeId,
+    accounts: accounts.filter((account) => current.accounts.some((entry) => entry.id === account.id))
+      .map((account) => ({ ...account, active: account.id === current.activeId })),
+    today: todaySummary(current.accounts.map(({ id, label, ak }) => ({ id, label: label ?? defaultLabel(ak) })), new Date()),
   }
 }
 async function handleAccountCheck(req, deps) {
@@ -606,6 +781,13 @@ async function handleAccountCheck(req, deps) {
   const account = readStore().accounts.find((entry) => entry.id === id)
   if (!account) throw new HttpError(404, '账号不存在')
   return { ok: true, account: await inspectAccount(account, deps, true) }
+}
+async function handleAccountCheckAll(req, deps) {
+  await readJsonBody(req)
+  const store = readStore()
+  const accounts = await mapAccountsWithConcurrency(store.accounts, (account) =>
+    hasAccount(account.id) ? inspectAccount(account, deps, true) : null)
+  return { ok: true, accounts: accounts.filter(Boolean) }
 }
 
 /**
@@ -646,6 +828,7 @@ async function handleAccountAdd(req, deps) {
   deps.healthChecks.delete(result.account.id)
   tripleCache.delete(result.account.id)
   deps.credentials.invalidate()
+  deps.rescheduleDailyCheckin(true)
   void deps.refresh()
   return { ok: true, added: result.added, id: result.account.id }
 }
@@ -696,6 +879,7 @@ async function handleAccountImport(req, deps) {
   const result = await addAccounts(parsed.accounts)
   deps.invalidateAccounts()
   deps.credentials.invalidate()
+  deps.rescheduleDailyCheckin(true)
   void deps.refresh()
   return {
     ok: true,
@@ -721,6 +905,7 @@ async function handleAccountRemove(req, deps) {
 async function handleAccountActivate(req, deps) {
   const body = await readJsonBody(req)
   if (typeof body.id !== 'string') throw new HttpError(400, '缺少账号 id')
+  if (!readStore().accounts.some((account) => account.id === body.id)) throw new HttpError(404, '账号不存在')
   await setActiveAccount(body.id)
   deps.credentials.invalidate()
   void deps.refresh()
@@ -755,31 +940,81 @@ async function handleAccountExport(deps) {
  */
 async function handleModelSelection(req, deps) {
   const body = await readJsonBody(req)
-  const enabledIds = Array.isArray(body.enabledIds)
-    ? body.enabledIds.filter((id) => typeof id === 'string' && id !== '')
-    : body.enabledIds === null
-      ? null
-      : undefined
-  if (enabledIds === undefined) throw new HttpError(400, 'enabledIds 必须是字符串数组或 null')
-
-  const overrides = {}
-  if (body.overrides !== null && typeof body.overrides === 'object') {
-    for (const [id, value] of Object.entries(body.overrides)) {
-      if (value === null || typeof value !== 'object') continue
-      const entry = {}
-      if (typeof value.images === 'boolean') entry.images = value.images
-      if (typeof value.allowOff === 'boolean') entry.allowOff = value.allowOff
-      if (typeof value.defaultStrength === 'string' && value.defaultStrength !== '') {
-        entry.defaultStrength = value.defaultStrength
-      }
-      if (Object.keys(entry).length > 0) overrides[id] = entry
-    }
-  }
-
-  await applyPreferences(deps, { enabledModelIds: enabledIds, modelOverrides: overrides })
+  const selection = validateSelection({ enabledModelIds: body.enabledIds, modelOverrides: body.overrides ?? {} })
+  await applyPreferences(deps, selection)
   // Announce the new catalog so the picker reloads without a restart.
   deps.ctx.emit('llm/models-updated', PROVIDER_ID)
   return { ok: true, enabled: deps.catalog.visible().length, total: deps.catalog.models().length }
+}
+
+/** Probe a draft with an isolated session; never write it into preferences. */
+async function handleModelTest(req, deps) {
+  const body = await readJsonBody(req)
+  const model = typeof body.modelId === 'string' ? deps.catalog.find(body.modelId) : undefined
+  if (!model) throw new HttpError(400, '请选择目录中的模型进行测试')
+  if (body.overrides !== undefined && (body.overrides === null || typeof body.overrides !== 'object' || Array.isArray(body.overrides))) {
+    throw new InputError('模型覆盖配置格式不正确')
+  }
+  const { modelOverrides } = validateSelection({
+    enabledModelIds: null,
+    modelOverrides: { [model.id]: { ...deps.settings.modelOverrides?.[model.id], ...body.overrides } },
+  })
+  if (body.overrides && Object.hasOwn(body.overrides, 'context')) validateContextOverrides(deps.catalog, { [model.id]: modelOverrides[model.id] ?? {} })
+  const preview = new Catalog()
+  preview.configure({ overrides: modelOverrides })
+  const effective = preview.effective(model)
+  const controller = new AbortController()
+  const started = Date.now()
+  let timer
+  const run = async () => {
+    const resolved = await deps.credentials.resolve()
+    controller.signal.throwIfAborted()
+    const sessionId = `codearts-test-${randomUUID()}`
+    const client = new MadaoClient({
+      credentials: resolved.key,
+      gateway: deps.settings.gateway,
+      sessionId,
+      fetch: (input, init) => globalThis.fetch(input, { ...init, signal: controller.signal }),
+    })
+    let sawText = false
+    try {
+      await client.heartbeat('busy')
+      controller.signal.throwIfAborted()
+      for await (const event of client.streamChat({
+        model: model.id,
+        messages: [{ role: 'user', content: '请只回复 OK。' }],
+        maxTokens: effective.maxOutput,
+        reasoningEffort: (effective.strengths ?? []).includes(effective.defaultStrength)
+          ? effective.defaultStrength : effective.strengths?.[0],
+        signal: controller.signal,
+      })) {
+        if (event.text?.trim()) sawText = true
+        if (event.error) throw new Error(event.error)
+      }
+      controller.signal.throwIfAborted()
+      if (!sawText) throw new Error('模型未返回正文，请稍后重试或检查推理设置')
+    } finally {
+      // Release only this probe's session, even when its main request timed out.
+      client.fetch = (input, init) => globalThis.fetch(input, { ...init, signal: AbortSignal.timeout(5000) })
+      void client.heartbeat('idle').catch(() => {})
+    }
+  }
+  try {
+    const deadline = new Promise((_, reject) => {
+      timer = setTimeout(() => {
+        const error = new Error('模型测试超时（30 秒），请稍后重试')
+        reject(error)
+        controller.abort(error)
+      }, 30000)
+    })
+    await Promise.race([run(), deadline])
+    return { ok: true, elapsedMs: Date.now() - started }
+  } catch (error) {
+    return { ok: false, elapsedMs: Date.now() - started, error: message(error) }
+  } finally {
+    clearTimeout(timer)
+    controller.abort()
+  }
 }
 
 async function handleCheckinStatus(deps) {
@@ -813,7 +1048,7 @@ async function handleCheckinClaim(req, deps) {
   if (!account) throw new HttpError(400, '没有这个账号')
   try {
     const client = new MadaoClient({ credentials: await tripleOf(account), gateway: deps.settings.gateway })
-    const result = await claimDaily(client, { accountId: account.id })
+    const result = await deps.serializeCheckin(() => claimDaily(client, { accountId: account.id }))
     deps.healthCache.delete(account.id)
     deps.healthChecks.delete(account.id)
     return {
@@ -834,17 +1069,22 @@ async function handleCheckinClaimAll(req, deps) {
   await readJsonBody(req)
   const store = readStore()
   const targets = []
+  const credentialFailures = []
   for (const account of store.accounts) {
+    if (!hasAccount(account.id)) continue
     try {
       targets.push({
         id: account.id,
         client: new MadaoClient({ credentials: await tripleOf(account), gateway: deps.settings.gateway }),
       })
-    } catch {
+    } catch (error) {
       // An account whose key cannot be exchanged is skipped, not fatal.
+      credentialFailures.push({ id: account.id, reason: message(error) })
     }
   }
-  const summary = await claimAllDaily({ targets })
+  const summary = await deps.serializeCheckin(() => claimAllDaily({ targets, shouldInclude: hasAccount }))
+  summary.attempted += credentialFailures.length
+  summary.failures.push(...credentialFailures)
   deps.healthCache.clear()
   deps.healthChecks.clear()
   return { ok: true, summary }
@@ -871,9 +1111,9 @@ async function handleTest(deps) {
     const refreshResult = await deps.refresh()
     steps.push({
       step: '模型清单',
-      ok: refreshResult.source === 'gateway',
+      ok: refreshResult.source === 'gateway' && !refreshResult.error,
       detail:
-        refreshResult.source === 'gateway'
+        refreshResult.source === 'gateway' && !refreshResult.error
           ? `${deps.catalog.models().length} 个模型`
           : (refreshResult.error ?? '退回兜底清单'),
     })
@@ -1039,9 +1279,10 @@ async function handleRoute(req, res, handler) {
 
 /** Routes that change state and therefore accept POST only. */
 const MUTATING_PATHS = new Set([
-  '/preferences/save', '/presets', '/accounts/check',
-  '/backup/export', '/backup/preview', '/backup/restore',
+  '/activities/clear',
+  '/preferences/save', '/accounts/check', '/accounts/check-all',
   '/models/select',
+  '/models/test',
   '/save',
   '/clear',
   '/claim',
@@ -1081,8 +1322,7 @@ async function readJsonBody(req) {
   let size = 0
   for await (const chunk of req) {
     size += chunk.length
-    // A credential blob is tiny; anything larger is not this route's input.
-    if (size > ((req.url ?? '').includes('/backup/') ? 1024 * 1024 : 64 * 1024)) throw new HttpError(413, '请求体过大')
+    if (size > 64 * 1024) throw new HttpError(413, '请求体过大')
     chunks.push(chunk)
   }
   if (chunks.length === 0) return {}

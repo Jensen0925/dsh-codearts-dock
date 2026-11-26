@@ -84,7 +84,7 @@ const index = {
   plugins: [{
     name: pkg.name,
     title: { zh: pkg.displayName, en: 'CodeArts Dock' },
-    description: { zh: pkg.description, en: 'Unofficial CodeArts model connector with accounts, credits, presets and encrypted backups.' },
+    description: { zh: pkg.description, en: 'Unofficial CodeArts model connector with accounts, credits, model configuration and local activity history.' },
     author: 'Jensen0925',
     homepage: ROOT,
     repository: { url: ROOT },

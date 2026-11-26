@@ -1,5 +1,5 @@
 // @ts-nocheck
-/** Validated, atomic, serialized preferences shared by settings and migration. */
+/** Validated, atomic, serialized preferences for account and model settings. */
 import { readFileSync } from 'node:fs'
 import { mkdir, writeFile, rename } from 'node:fs/promises'
 import { join } from 'node:path'
@@ -7,7 +7,7 @@ import { randomUUID } from 'node:crypto'
 import { CONFIG_DIR, configCandidates } from './paths.js'
 
 export class InputError extends Error {}
-export const FEATURE_DEFAULTS = Object.freeze({ modelPresets: [] })
+export const FEATURE_DEFAULTS = Object.freeze({ dailyCheckinEnabled: false })
 const plain = (value) => value !== null && typeof value === 'object' && !Array.isArray(value)
 const fail = (message) => { throw new InputError(message) }
 const safeId = (id) => typeof id === 'string' && id.length > 0 && id.length <= 200 && !['__proto__', 'constructor', 'prototype'].includes(id)
@@ -30,6 +30,10 @@ export function validateSelection(value) {
       if (typeof patch.defaultStrength !== 'string' || (!patch.defaultStrength.trim() || patch.defaultStrength.length > 64)) fail('推理强度不正确')
       entry.defaultStrength = patch.defaultStrength
     }
+    if ('context' in patch && patch.context !== null) {
+      if (!Number.isInteger(patch.context) || patch.context < 1024 || patch.context > 2097152) fail('上下文长度必须为 1024 到 2097152 之间的整数')
+      entry.context = patch.context
+    }
     if (Object.keys(entry).length) modelOverrides[id] = entry
   }
   return { enabledModelIds: ids === null ? null : [...new Set(ids)], modelOverrides }
@@ -41,28 +45,26 @@ export function validatePreferences(input) {
     if (typeof input.composerChip !== 'boolean') fail('composerChip 必须为布尔值')
     out.composerChip = input.composerChip
   }
-  // `favoriteModelIds` belonged to the retired model pinning UI. Ignore it so
-  // old preferences and backups remain readable, but never carry it forward.
+  // This is intentionally a new preference name. An older, retired
+  // `autoCheckin` field remains ignored so old preferences cannot silently opt a
+  // user into automatic claims after upgrading.
+  if ('dailyCheckinEnabled' in input) {
+    if (typeof input.dailyCheckinEnabled !== 'boolean') fail('dailyCheckinEnabled 必须为布尔值')
+    out.dailyCheckinEnabled = input.dailyCheckinEnabled
+  }
+  // Ignore retired account selection, model pinning and preset fields so old
+  // preferences remain readable without carrying those features forward.
   if ('refreshIntervalMs' in input) {
     if (!Number.isInteger(input.refreshIntervalMs) || input.refreshIntervalMs < 60000 || input.refreshIntervalMs > 86400000) fail('刷新间隔必须在 1 分钟到 24 小时之间')
     out.refreshIntervalMs = input.refreshIntervalMs
   }
   if ('enabledModelIds' in input || 'modelOverrides' in input) Object.assign(out, validateSelection({ enabledModelIds: input.enabledModelIds ?? null, modelOverrides: input.modelOverrides ?? {} }))
-  if ('modelPresets' in input) {
-    if (!Array.isArray(input.modelPresets) || input.modelPresets.length > 20) fail('最多保存 20 套模型预设')
-    const ids = new Set()
-    out.modelPresets = input.modelPresets.map((preset) => {
-      if (!plain(preset) || !safeId(preset.id) || preset.id.startsWith('builtin:') || ids.has(preset.id) || typeof preset.name !== 'string' || !preset.name.trim() || preset.name.trim().length > 48) fail('模型预设格式不正确或名称重复')
-      ids.add(preset.id)
-      return { id: preset.id, name: preset.name.trim(), ...validateSelection(preset) }
-    })
-  }
   return out
 }
 export const PREFERENCES_PATH = join(CONFIG_DIR, 'preferences.json')
 export function readPreferences() {
   // Newest location first: a user upgrading from the pre-1.2 name keeps the
-  // model selection and presets they already had.
+  // model selection they already had.
   for (const path of configCandidates('preferences.json')) {
     try {
       const value = JSON.parse(readFileSync(path, 'utf8'))
@@ -80,6 +82,9 @@ export function persistPreferences(patch) {
     const path = `${PREFERENCES_PATH}.${randomUUID()}.tmp`
     const next = { ...readPreferences(), ...patch }
     delete next.favoriteModelIds
+    delete next.modelPresets
+    delete next.accountPoolEnabled
+    delete next.accountPoolMemberIds
     await writeFile(path, `${JSON.stringify(next, null, 2)}\n`, { mode: 0o600 })
     await rename(path, PREFERENCES_PATH)
     return next
@@ -90,7 +95,7 @@ export function persistPreferences(patch) {
 export function portablePreferences(settings) {
   return validatePreferences({
     composerChip: settings.composerChip !== false,
-    modelPresets: settings.modelPresets ?? [],
+    dailyCheckinEnabled: settings.dailyCheckinEnabled === true,
     enabledModelIds: settings.enabledModelIds ?? null, modelOverrides: settings.modelOverrides ?? {},
     refreshIntervalMs: Math.max(60000, Math.min(86400000, Number(settings.refreshIntervalMs) || 300000)),
   })

@@ -221,6 +221,138 @@ await check('a gateway failure becomes an error finish, not a throw', async () =
   assert.match(finish.reason.failure.message, /exploded/);
 });
 
+await check('request failures notify once and preserve error chunks, open-block closure and heartbeat release', async () => {
+  const failure = Object.assign(new Error('upstream failed'), { status: 429 });
+  const reported: unknown[] = [];
+  const heartbeats: string[] = [];
+  let requests = 0;
+  const adapter = createCodeArtsAdapter({
+    credentials: {
+      resolve: async () => ({ key: { ak: 'TEST_AK', sk: 'TEST_SK', securityToken: 'TEST_TOKEN' } }),
+    },
+    catalog: fakeCatalog(models),
+    onError: (error) => { reported.push(error); },
+    createClient: () => ({
+      heartbeat: async (state) => { heartbeats.push(state); },
+      streamChat: async function* () { requests++; yield { text: 'partial' }; throw failure; },
+    }),
+  });
+  const out = await collect(adapter, { provider: PROVIDER_ID, model: 'm1', messages: [] });
+  assert.deepEqual(reported, [failure]);
+  assert.equal(requests, 1, 'failure reporting never replays a partially emitted stream');
+  assert.deepEqual(heartbeats, ['busy', 'idle']);
+  assert.equal(out.at(-2)?.type, 'block-end');
+  assert.equal(finishChunk(out).reason.kind, 'error');
+});
+
+await check('concurrent streams keep the client resolved for each request and notify their own failure', async () => {
+  const reported: unknown[] = [];
+  const failures = { first: new Error('first account failed'), second: new Error('second account failed') };
+  let releaseFirst!: () => void;
+  let releaseSecond!: () => void;
+  const firstGate = new Promise<void>((resolve) => { releaseFirst = resolve; });
+  const secondGate = new Promise<void>((resolve) => { releaseSecond = resolve; });
+  let notifyStarted!: () => void;
+  const bothStarted = new Promise<void>((resolve) => { notifyStarted = resolve; });
+  let started = 0;
+  let resolved = 0;
+  const credentials = {
+    accountId: '',
+    resolve: async () => {
+      const id = resolved++ === 0 ? 'first' : 'second';
+      credentials.accountId = id;
+      return { key: { ak: id, sk: 'TEST_SK', securityToken: id }, accountId: id };
+    },
+  };
+  const adapter = createCodeArtsAdapter({
+    credentials, catalog: fakeCatalog(models), onError: (error) => { reported.push(error); },
+    createClient: (key) => ({
+      heartbeat: async () => true,
+      streamChat: async function* () {
+        if (++started === 2) notifyStarted();
+        await (key.ak === 'first' ? firstGate : secondGate);
+        throw failures[key.ak as keyof typeof failures];
+      },
+    }),
+  });
+  const options = { provider: PROVIDER_ID, model: 'm1', messages: [] };
+  const first = collect(adapter, options);
+  const second = collect(adapter, options);
+  await bothStarted;
+  assert.equal(credentials.accountId, 'second', 'another resolution changed the provider current account');
+  releaseFirst();
+  assert.equal(finishChunk(await first).reason.failure?.message, failures.first.message);
+  releaseSecond();
+  assert.equal(finishChunk(await second).reason.failure?.message, failures.second.message);
+  assert.deepEqual(reported, [failures.first, failures.second]);
+});
+
+await check('credential failures notify once and retain the original rejected stream', async () => {
+  const failure = Object.assign(new Error('offline test credentials unavailable'), { name: 'CredentialError' });
+  const reported: unknown[] = [];
+  let created = false;
+  const adapter = createCodeArtsAdapter({
+    credentials: { resolve: async () => { throw failure; } },
+    catalog: fakeCatalog(models),
+    onError: (error) => { reported.push(error); },
+    createClient: () => { created = true; },
+  });
+  await assert.rejects(collect(adapter, { provider: PROVIDER_ID, model: 'm1', messages: [] }), (error) => error === failure);
+  assert.deepEqual(reported, [failure]);
+  assert.equal(created, false, 'no heartbeat or stream client exists when credentials fail');
+});
+
+await check('throwing and rejecting failure callbacks cannot replace the model failure', async () => {
+  for (const onError of [() => { throw new Error('test history unavailable'); }, async () => { throw new Error('test history write rejected'); }]) {
+    const failure = new Error('original upstream test failure');
+    const adapter = createCodeArtsAdapter({
+      credentials: { resolve: async () => ({ key: { ak: 'TEST_AK', sk: 'TEST_SK', securityToken: 'TEST_TOKEN' } }) },
+      catalog: fakeCatalog(models), onError,
+      createClient: () => ({ heartbeat: async () => true, streamChat: async function* () { throw failure; } }),
+    });
+    const out = await collect(adapter, { provider: PROVIDER_ID, model: 'm1', messages: [] });
+    assert.equal(finishChunk(out).reason.kind, 'error');
+    assert.equal(finishChunk(out).reason.failure?.message, failure.message);
+    const noCredential = createCodeArtsAdapter({ credentials: { resolve: async () => { throw failure; } }, catalog: fakeCatalog(models), onError });
+    await assert.rejects(collect(noCredential, { provider: PROVIDER_ID, model: 'm1', messages: [] }), (error) => error === failure);
+    await new Promise(setImmediate);
+  }
+});
+
+await check('successful streams and user cancellations never notify request failure history', async () => {
+  const reported: unknown[] = [];
+  for (const mode of ['success', 'abort-error', 'aborted-signal', 'aborted-signal-failure']) {
+    const controller = new AbortController();
+    const heartbeats: string[] = [];
+    const adapter = createCodeArtsAdapter({
+      credentials: {
+        resolve: async () => ({ key: { ak: 'TEST_AK', sk: 'TEST_SK', securityToken: 'TEST_TOKEN' } }),
+      },
+      catalog: fakeCatalog(models),
+      onError: (error) => { reported.push(error); },
+      createClient: () => ({
+        heartbeat: async (state) => { heartbeats.push(state); },
+        streamChat: async function* () {
+          if (mode === 'abort-error') throw Object.assign(new Error('test cancelled'), { name: 'AbortError' });
+          if (mode.startsWith('aborted-signal')) controller.abort();
+          if (mode === 'aborted-signal-failure') throw new Error('test transport ended after cancellation');
+          yield { text: 'test response' };
+          yield { finish: 'stop' };
+        },
+      }),
+    });
+    const out = await collect(adapter, { provider: PROVIDER_ID, model: 'm1', messages: [], signal: controller.signal });
+    assert.equal(finishChunk(out).reason.kind, mode === 'success' ? 'stop' : mode === 'aborted-signal-failure' ? 'error' : 'aborted');
+    assert.deepEqual(heartbeats, ['busy', 'idle']);
+  }
+  const cancelledCredential = createCodeArtsAdapter({
+    credentials: { resolve: async () => { throw Object.assign(new Error('test cancelled'), { name: 'AbortError' }); } },
+    catalog: fakeCatalog(models), onError: (error) => { reported.push(error); },
+  });
+  await assert.rejects(collect(cancelledCredential, { provider: PROVIDER_ID, model: 'm1', messages: [] }), { name: 'AbortError' });
+  assert.deepEqual(reported, []);
+});
+
 await check('max-tokens maps through', async () => {
   const { adapter } = adapterWith([{ finish:'length' }]);
   const out = await collect(adapter, { provider: PROVIDER_ID, model:'m1', messages:[] });

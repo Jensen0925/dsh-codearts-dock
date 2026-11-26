@@ -30,6 +30,7 @@ import { resolveBusyBadge } from './busy.js'
  * @property {() => any} [attachments] the Host attachment service, for image bytes.
  * @property {(key: any) => MadaoClient} [createClient] client factory, injected by tests.
  * @property {(line: string) => void} [log] diagnostic sink.
+ * @property {(error: unknown) => void|Promise<void>} [onError] best-effort request failure notification.
  */
 
 /**
@@ -227,7 +228,14 @@ class CodeArtsAdapter extends LlmAdapter {
    */
   async *stream(options) {
     const model = this.#effective(this.deps.catalog.find(options.model))
-    const client = await this.#client()
+    let client
+    try {
+      client = await this.#client()
+    } catch (error) {
+      if (error?.name !== 'AbortError' && !options.signal?.aborted) this.#reportError(error)
+      // Credential resolution has always rejected stream acquisition directly.
+      throw error
+    }
 
     /** @type {number} */ let nextIndex = 0
     /** Open text block index, or undefined when none is open. */
@@ -419,6 +427,9 @@ class CodeArtsAdapter extends LlmAdapter {
         reason: pendingFinish ?? (sawToolCall ? { kind: 'tool-calls' } : { kind: 'stop' }),
       }
     } catch (error) {
+      if (error?.name !== 'AbortError' && !options.signal?.aborted) {
+        this.#reportError(error)
+      }
       yield* closeAll()
 
       const failure = describeFailure(error)
@@ -435,6 +446,11 @@ class CodeArtsAdapter extends LlmAdapter {
       // allows only a few sessions, and a held slot blocks every new turn.
       void client.heartbeat('idle').catch(() => {})
     }
+  }
+
+  /** Logging failures must not delay or replace the original model outcome. */
+  #reportError(error) {
+    try { void Promise.resolve(this.deps.onError?.(error)).catch(() => {}) } catch {}
   }
 
   /** Build (or reuse) the gateway client for the current credential. */

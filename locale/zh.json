@@ -1,7 +1,7 @@
 {
   "meta": {
     "title": "CodeArts Dock · 码道驿站",
-    "description": "为 DeepSeek Harness 接入华为云码道模型的第三方非官方插件。支持多账号、积分概览、账号健康检查、模型搜索与配置预设、及加密配置备份。需要自己的有效账号与权限，调用可能产生费用。",
+    "description": "为 DeepSeek Harness 接入华为云码道模型的第三方非官方插件。支持多账号、积分概览、账号健康检查、模型搜索与配置、活动记录。需要自己的有效账号与权限，调用可能产生费用。",
     "detail": "docs/DETAIL.zh.md"
   }
 }

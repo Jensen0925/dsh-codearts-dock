@@ -12,6 +12,7 @@ import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { discoverModels, FALLBACK_MODELS } from './models.js'
 import { errorMessage } from './errors.js'
+import { InputError } from './preferences.js'
 
 type ModelInfo = {
   id: string
@@ -30,7 +31,20 @@ type ModelInfo = {
   limitedTimeHalfPrice?: boolean
 }
 
-type ModelOverride = { images?: boolean; allowOff?: boolean; defaultStrength?: string }
+type ModelOverride = { images?: boolean; allowOff?: boolean; defaultStrength?: string; context?: number }
+
+/** Only a positive token count provides a known upstream context ceiling. */
+const contextLimit = (model) => Number.isSafeInteger(model?.context) && model.context > 0 ? model.context : undefined
+
+/** Validate newly submitted selections against each known model's own limit. */
+export function validateContextOverrides(catalog, overrides: Record<string, ModelOverride>) {
+  for (const [id, override] of Object.entries(overrides)) {
+    if (override.context === undefined) continue
+    const model = catalog.find(id)
+    const limit = contextLimit(model)
+    if (limit !== undefined && override.context > limit) throw new InputError(`${model.name}：上下文长度不能超过模型上限 ${limit}`)
+  }
+}
 
 export class Catalog {
   log: (line: string) => void
@@ -146,13 +160,22 @@ export class Catalog {
     return this.enabledIds === null || this.enabledIds.includes(id)
   }
 
-  /** One model after capability overrides: images and whether "off" is offered. */
+  /** One model after capability and context overrides have been applied. */
   effective(model) {
     if (!model) return model
     const override = this.overrides?.[model.id]
     if (!override) return model
+    const requestedContext = override.context
+    const hasContextOverride = typeof requestedContext === 'number' && Number.isInteger(requestedContext) && requestedContext >= 1024 && requestedContext <= 2097152
+    const limit = contextLimit(model)
+    const context = hasContextOverride
+      ? (limit === undefined ? requestedContext : Math.min(requestedContext, limit))
+      : model.context
     return {
       ...model,
+      context,
+      // Reserve conversation space when a smaller context is selected.
+      maxOutput: hasContextOverride ? Math.min(model.maxOutput, Math.floor(context / 4)) : model.maxOutput,
       supportsImages: typeof override.images === 'boolean' ? override.images : model.supportsImages,
       allowOff: typeof override.allowOff === 'boolean' ? override.allowOff : model.allowOff,
       // Only honour a level the model actually offers: a stale or hand-edited

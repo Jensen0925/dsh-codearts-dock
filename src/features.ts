@@ -1,15 +1,48 @@
 // @ts-nocheck
 /** Feature routes kept separate from protocol/credential handling. */
-import { randomUUID } from 'node:crypto'
-import { InputError, persistPreferences, portablePreferences, validatePreferences, validateSelection } from './preferences.js'
-import { encodeBackup, decodeBackup, backupSummary } from './backup.js'
-import { readStore, addAccounts, setActiveAccount } from './accounts.js'
+import { InputError, persistPreferences, portablePreferences, validatePreferences } from './preferences.js'
+import { accountHealth } from './health.js'
+import { validateContextOverrides } from './catalog.js'
+
+/** Store only a fixed failure category, never the exception or upstream text. */
+export function activityReason(error) {
+  if (!error || error instanceof InputError || [400, 404, 413].includes(error.status)) return 'unknown'
+  const state = accountHealth({ error }).state
+  return state === 'available' ? 'unknown' : state
+}
+
+/** History is best-effort and cannot change an operation's outcome. */
+export async function recordActivity(deps, action, status = 'success', details = {}) {
+  try { await deps.activity?.record(action, status, details) } catch {}
+}
+
+/** Apply only to explicit business actions after the route's access checks. */
+export async function recordOperation(deps, action, operation, summarize = () => ({})) {
+  let result
+  try {
+    result = await operation()
+  } catch (error) {
+    await recordActivity(deps, action, 'error', { reason: activityReason(error) })
+    throw error
+  }
+  let outcome = {}
+  try { outcome = summarize(result) } catch {}
+  const status = outcome.status ?? (result?.ok === false ? 'error' : 'success')
+  const details = outcome.details ?? (status === 'error' ? { reason: activityReason(result.error || result.reason ? { message: result.error ?? result.reason } : null) } : {})
+  await recordActivity(deps, outcome.action ?? action, status, details)
+  return result
+}
 
 export async function applyPreferences(deps, patch) {
   const validated = validatePreferences(patch)
+  if ('modelOverrides' in validated) validateContextOverrides(deps.catalog, validated.modelOverrides)
+  const wasDailyCheckinEnabled = deps.settings.dailyCheckinEnabled === true
   await persistPreferences(validated)
   Object.assign(deps.settings, validated)
   if ('refreshIntervalMs' in validated) deps.rescheduleCatalog?.()
+  if ('dailyCheckinEnabled' in validated && validated.dailyCheckinEnabled !== wasDailyCheckinEnabled) {
+    deps.rescheduleDailyCheckin?.(validated.dailyCheckinEnabled)
+  }
   if ('enabledModelIds' in validated || 'modelOverrides' in validated) {
     deps.catalog.configure({ enabledIds: deps.settings.enabledModelIds, overrides: deps.settings.modelOverrides })
     deps.ctx.emit('llm/models-updated', 'codearts')
@@ -26,55 +59,9 @@ export function registerFeatureRoutes(route, deps, readBody) {
   route('/preferences', () => ({ ok: true, preferences: portablePreferences(deps.settings) }))
   route('/preferences/save', async (req) => {
     const body = await readBody(req)
-    return serial(() => applyPreferences(deps, body))
-  })
-  route('/presets', async (req) => {
-    const body = await readBody(req)
-    return serial(async () => {
-      let presets = [...deps.settings.modelPresets]
-      if (body.action === 'delete') {
-        if (typeof body.id !== 'string' || !presets.some((entry) => entry.id === body.id)) throw new InputError('预设不存在')
-        presets = presets.filter((entry) => entry.id !== body.id)
-      } else if (body.action === 'save') {
-        const selection = validateSelection(body)
-        const preset = { id: body.id || randomUUID(), name: body.name, ...selection }
-        const index = presets.findIndex((entry) => entry.id === preset.id)
-        if (index < 0) presets.push(preset)
-        else presets[index] = preset
-      } else throw new InputError('未知预设操作')
-      await applyPreferences(deps, { modelPresets: presets })
-      return { ok: true, presets: deps.settings.modelPresets }
-    })
-  })
-  route('/backup/export', async (req) => {
-    const body = await readBody(req)
-    const store = body.includeCredentials === true ? readStore() : null
-    const backup = await encodeBackup({
-      preferences: portablePreferences(deps.settings),
-      activeAccountId: store?.activeId,
-      accounts: body.includeCredentials === true ? store.accounts.map(({ ak, sk, label }) => ({ ak, sk, ...(label ? { label } : {}) })) : undefined,
-      includeCredentials: body.includeCredentials === true,
-      password: body.password,
-    })
-    return { ok: true, backup }
-  })
-  route('/backup/preview', async (req) => {
-    const body = await readBody(req)
-    const payload = await decodeBackup(body.text, body.password)
-    return { ok: true, ...backupSummary(payload, portablePreferences(deps.settings), readStore().accounts) }
-  })
-  route('/backup/restore', async (req) => {
-    const body = await readBody(req)
-    const payload = await decodeBackup(body.text, body.password)
-    return serial(async () => {
-      const preserveActive = Boolean(readStore().activeId)
-      const result = payload.accounts?.length ? await addAccounts(payload.accounts) : { added: 0, updated: 0 }
-      if (!preserveActive && payload.activeAccountId) await setActiveAccount(payload.activeAccountId)
-      await applyPreferences(deps, payload.preferences)
-      deps.invalidateAccounts?.()
-      deps.credentials.invalidate()
-      void deps.refresh()
-      return { ok: true, added: result.added, updated: result.updated, preferences: portablePreferences(deps.settings) }
-    })
+    const action = typeof body.dailyCheckinEnabled === 'boolean'
+      ? (body.dailyCheckinEnabled ? 'checkin.enable' : 'checkin.disable')
+      : ('enabledModelIds' in body || 'modelOverrides' in body) ? 'models.save' : 'settings.save'
+    return recordOperation(deps, action, () => serial(() => applyPreferences(deps, body)))
   })
 }

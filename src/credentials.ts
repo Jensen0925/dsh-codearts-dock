@@ -48,6 +48,7 @@ type ResolvedCredential = {
   source: CredentialCandidate['source']
   label: string
   expiresAtMs?: number
+  accountId?: string
 }
 
 // Re-exported so callers that imported these from here keep working.
@@ -137,8 +138,7 @@ export function listCandidates(): CredentialCandidate[] {
     })
   }
 
-  // The account store: the active account is the one requests use. Naming it
-  // in the label is what lets a user see which of several accounts is live.
+  // Only the account explicitly selected by the user serves requests.
   // The path comes from the store itself rather than from CREDENTIAL_PATH: on a
   // profile that has not saved since the rename it is still the old file, and
   // naming a file that does not exist sends the user to the wrong place.
@@ -320,6 +320,9 @@ export class CredentialProvider {
   private pending: Promise<ResolvedCredential> | null
   private renewTimer: NodeJS.Timeout | null
   private lastError: string | null
+  private generation = 0
+  private candidateSignature: string | null = null
+  private disposed = false
   /**
    * @param {object} [options] provider options.
    * @param {number} [options.renewMarginMs] renew this early; 10 minutes default.
@@ -339,12 +342,22 @@ export class CredentialProvider {
    * @returns {Promise<{key: StoredKey, source: string, label: string}>} the credential.
    */
   async resolve(): Promise<ResolvedCredential> {
-    if (this.cached && this.#isFresh()) return this.cached
+    if (this.disposed) throw new CredentialError('凭证服务已停止')
     if (this.pending) return this.pending
-    this.pending = this.#resolveUncached().finally(() => {
-      this.pending = null
+    const pending = this.#resolveCandidates(this.generation).finally(() => {
+      if (this.pending === pending) this.pending = null
     })
-    return this.pending
+    this.pending = pending
+    return pending
+  }
+
+  async #resolveCandidates(generation: number): Promise<ResolvedCredential> {
+    const candidates = listCandidates()
+    // Includes credential values so rotating a secret cannot reuse its old STS.
+    const signature = JSON.stringify(candidates)
+    if (this.candidateSignature === signature && this.cached && this.#isFresh()) return this.cached
+    this.cached = null
+    return this.#resolveUncached(candidates, generation)
   }
 
   /** Whether the cached triple is still usable with margin. */
@@ -355,8 +368,7 @@ export class CredentialProvider {
   }
 
   /** Try each source in order, adopting the first that verifies. */
-  async #resolveUncached(): Promise<ResolvedCredential> {
-    const candidates = listCandidates()
+  async #resolveUncached(candidates: CredentialCandidate[], generation: number): Promise<ResolvedCredential> {
     if (candidates.length === 0) {
       throw new CredentialError(
         '未找到码道凭证。任选其一：\n' +
@@ -369,18 +381,30 @@ export class CredentialProvider {
 
     const failures: string[] = []
     for (const candidate of candidates) {
+      let resolved: ResolvedCredential
       try {
-        const resolved = await this.#verify(candidate)
-        this.cached = resolved
-        this.resolvedFrom = candidate
-        this.lastError = null
-        this.#scheduleRenewal()
-        return resolved
+        resolved = await this.#verify(candidate)
       } catch (error) {
+        if (generation !== this.generation) return this.resolve()
         failures.push(`${candidate.label} → ${error instanceof Error ? error.message : String(error)}`)
+        continue
       }
+      // A settings change or manual switch can happen while IAM is pending.
+      // Let that newer selection win for both this caller and the cache.
+      if (generation !== this.generation) return this.resolve()
+      if (!this.#candidateStillAllowed(candidate)) {
+        this.invalidate()
+        return this.resolve()
+      }
+      this.cached = resolved
+      this.resolvedFrom = candidate
+      this.candidateSignature = JSON.stringify(listCandidates())
+      this.lastError = null
+      this.#scheduleRenewal()
+      return resolved
     }
 
+    if (generation !== this.generation) return this.resolve()
     this.lastError = `所有凭证来源都不可用：\n${failures.map((line) => `  ${line}`).join('\n')}`
     throw new CredentialError(this.lastError)
   }
@@ -396,6 +420,7 @@ export class CredentialProvider {
         source: candidate.source,
         label: candidate.label,
         expiresAtMs: toEpochMs(key.expiresAt) ?? undefined,
+        ...(candidate.accountId ? { accountId: candidate.accountId } : {}),
       }
     }
 
@@ -407,6 +432,7 @@ export class CredentialProvider {
       source: candidate.source,
       label: candidate.label,
       expiresAtMs: toEpochMs(sts.expiresAt) ?? Date.now() + 3600_000,
+      ...(candidate.accountId ? { accountId: candidate.accountId } : {}),
     }
   }
 
@@ -431,20 +457,32 @@ export class CredentialProvider {
 
   /** Drop the cached credential, forcing the next call to re-resolve. */
   invalidate() {
+    this.generation += 1
     this.cached = null
+    this.candidateSignature = null
+    this.pending = null
+    this.resolvedFrom = null
     if (this.renewTimer) {
       clearTimeout(this.renewTimer)
       this.renewTimer = null
     }
   }
 
+  /** Recheck the selected account and secrets after pending IAM requests. */
+  #candidateStillAllowed(candidate: CredentialCandidate): boolean {
+    return listCandidates().some((entry) => entry.source === candidate.source &&
+      entry.accountId === candidate.accountId && entry.key.ak === candidate.key.ak &&
+      entry.key.sk === candidate.key.sk && entry.key.securityToken === candidate.key.securityToken)
+  }
+
   /** Stop the renewal timer; call when the plugin unloads. */
   dispose() {
+    this.disposed = true
     if (this.renewTimer) {
       clearTimeout(this.renewTimer)
       this.renewTimer = null
     }
-    this.cached = null
+    this.invalidate()
   }
 
   /** The last resolution failure, for the settings page. */

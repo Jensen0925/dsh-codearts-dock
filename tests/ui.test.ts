@@ -241,7 +241,7 @@ assert.equal(button('保存模型配置').props.disabled, true)
 assert.match(app.text(panel('models')), /已保存/)
 console.log('✓ save preserves existing overrides and completes without waiting for account probes')
 
-const status = { ok: true, provider: 'codearts', catalog: { source: 'cache', models: 2, error: 'SECRET_ERROR', refreshedAt: 1 }, credential: { configured: true, source: 'file', savedAk: 'SECRET_AK', savedSk: 'SECRET_SK', sourceLabel: 'SECRET_LABEL', path: '/SECRET_PATH', candidates: [{ label: 'SECRET_CANDIDATE' }] }, registration: { configSchema: true, settingsNs: 'SECRET_NAMESPACE' }, settings: { gateway: 'https://SECRET_HOST' } }
+const status = { ok: true, provider: 'codearts', catalog: { source: 'cache', models: 2, error: 'SECRET_ERROR', refreshedAt: 1 }, credential: { configured: true, source: 'file', savedAk: 'SECRET_AK', savedSk: 'SECRET_SK', sourceLabel: 'SECRET_LABEL', path: '/SECRET_PATH', candidates: [{ label: 'SECRET_CANDIDATE' }] }, registration: { configSchema: true, settingsNs: 'SECRET_NAMESPACE' }, settings: { gateway: 'https://SECRET_HOST', dailyCheckinEnabled: false } }
 await app.settle('/status', status)
 await app.settle('/account', { ok: true, account: 'SECRET_ACCOUNT', userId: 'SECRET_USER', roles: ['SECRET_ROLE'], credit: { total: 1000, remain: 99 } })
 await button('复制脱敏诊断信息').props.onClick()
@@ -281,7 +281,7 @@ const fixtures = {
   ] },
   '/status': status,
   '/account': { ok: true, credit: { total: 1000, remain: 99 } },
-  '/accounts': { ok: true, activeId: 'account-1', accounts: [{ id: 'account-1', label: 'Example', ak: 'TEST…MASK', isActive: true, health: { state: 'credentials', checkedAt: features.controls.now - 300000 }, error: 'RAW_GATEWAY_ERROR_FOR_DETAILS', credit: null, checkin: null }] },
+  '/accounts': { ok: true, memberAccountIds: ['account-1'], activeId: 'account-1', accounts: [{ id: 'account-1', label: 'Example', ak: 'TEST…MASK', isActive: true, health: { state: 'credentials', checkedAt: features.controls.now - 300000 }, error: 'RAW_GATEWAY_ERROR_FOR_DETAILS', credit: null, checkin: null }] },
 }
 const ft = (id) => features.one((node) => node.props.role === 'tab' && node.props.id.endsWith(`-tab-${id}`))
 const fp = (id) => features.one((node) => node.props.role === 'tabpanel' && node.props.id.endsWith(`-panel-${id}`))
@@ -311,10 +311,13 @@ async function act(fn) {
 }
 await drain()
 
-assert.equal(features.findAll((node) => node.props.role === 'tab').length, 3)
-assert.doesNotMatch(features.text(fp('account')), /余额提醒|自动签到/)
+assert.equal(features.findAll((node) => node.props.role === 'tab').length, 4)
+assert.doesNotMatch(features.text(fp('account')), /余额提醒/)
 assert.ok(!features.pending.some((request) => ['/usage', '/preferences'].includes(request.path)))
-console.log('✓ settings retain three tabs and never request retired alert or history data')
+const dailyToggle = () => features.one((node) => node.props.role === 'switch' && node.props['aria-label'] === '每天自动签到')
+assert.equal(dailyToggle().type, 'button', 'automatic check-in uses a switch button, not a checkbox')
+assert.equal(dailyToggle().props['aria-checked'], false, 'automatic daily check-in is off by default')
+console.log('✓ settings retain the account tools and show the opt-in daily check-in switch')
 const checkTime = () => features.one((node) => node.type === 'time')
 assert.equal(features.text(checkTime()), '5 分钟前')
 assert.match(checkTime().props.title, /最近检查/)
@@ -332,17 +335,24 @@ console.log('✓ account check times advance without fetching; raw errors stay i
 fb('更新凭证').props.onClick()
 features.render(); features.render()
 assert.match(features.text(fp('account')), /填写同一个 AK 和新的 SK/)
-features.postResponses.set('/accounts/check', { ok: true, account: { label: 'Example', health: { state: 'available' } } })
-await act(() => fb('重新检查').props.onClick())
-assert.ok(features.writes.some((entry) => entry.path === '/accounts/check' && entry.body.id === 'account-1'))
-console.log('✓ unhealthy accounts expose credential repair and account-specific rechecks')
-assert.ok(!features.writes.some((entry) => entry.path.startsWith('/checkin')), 'loading and rechecking accounts never claims benefits')
+features.postResponses.set('/accounts/check-all', { ok: true, accounts: [{ health: { state: 'available' } }] })
+await act(() => fb('检查全部账号').props.onClick())
+assert.ok(features.writes.some((entry) => entry.path === '/accounts/check-all' && Object.keys(entry.body).length === 0))
+assert.match(features.text(fp('account')), /检查完成：1 个账号，1 个可用，0 个异常/)
+console.log('✓ account health checks run for the whole pool from the top action')
+assert.ok(!features.writes.some((entry) => entry.path.startsWith('/checkin')), 'checking accounts never claims benefits')
+features.postResponses.set('/preferences/save', { ok: true, preferences: { dailyCheckinEnabled: true } })
+fixtures['/status'] = { ...status, settings: { ...status.settings, dailyCheckinEnabled: true } }
+await act(() => dailyToggle().props.onClick())
+assert.deepEqual(features.writes.at(-1), { path: '/preferences/save', body: { dailyCheckinEnabled: true } })
+assert.equal(dailyToggle().props['aria-checked'], true, 'the switch reflects the saved preference')
+assert.ok(!features.writes.some((entry) => entry.path.startsWith('/checkin')), 'enabling scheduling does not claim from the browser')
 features.postResponses.set('/checkin/claim-all', { ok: true, summary: { claimed: 1, failures: [] } })
 await act(() => fb('一键签到').props.onClick())
 const manualClaims = features.writes.filter((entry) => entry.path.startsWith('/checkin'))
 assert.equal(manualClaims.length, 1)
 assert.deepEqual(manualClaims[0], { path: '/checkin/claim-all', body: {} })
-console.log('✓ check-in only runs on an explicit click and never sends automation preferences')
+console.log('✓ daily switch persists separately; manual welfare claims remain a separate action')
 
 
 ft('models').props.onClick(); features.render()
@@ -355,111 +365,27 @@ capability('支持推理', true)
 assert.equal(features.findAll((node) => node.type === 'input' && node.props['aria-label'] === 'Free').length, 0)
 capability('支持推理', false)
 assert.equal(features.findAll((node) => node.type === 'input' && node.props.maxLength === 48).length, 0)
-const presetSelect = () => features.one((node) => node.type === 'select' && node.props['aria-label'] === '模型配置预设')
-presetSelect().props.onChange({ target: { value: 'builtin:daily' } }); features.render()
-const writesBeforePreview = features.writes.length
-const previewList = features.one((node) => node.type === 'ul' && node.props.className === 'dca-preset-preview')
-assert.match(features.text(previewList), /Free/)
-assert.doesNotMatch(features.text(previewList), /Expensive/)
-assert.equal(features.writes.length, writesBeforePreview)
-fb('应用到草稿').props.onClick(); features.render()
-assert.equal(features.writes.length, writesBeforePreview)
+assert.doesNotMatch(features.text(fp('models')), /模型配置预设|保存为预设|应用到草稿/)
+assert.equal(features.findAll((node) => node.type === 'select' && node.props['aria-label'] === '模型配置预设').length, 0)
+const writesBeforeFilters = features.writes.length
+features.one((node) => node.type === 'input' && node.props['aria-label'] === 'Expensive').props.onChange({ target: { checked: false } }); features.render()
+features.one((node) => node.type === 'select' && node.props['aria-label'] === '模型排序').props.onChange({ target: { value: 'ratio' } }); features.render()
+assert.deepEqual(features.findAll((node) => node.type === 'input' && node.props.className === 'dca-model-check').map((node) => node.props['aria-label']), ['Free', 'Reasoner', 'Coder', 'Expensive'])
+features.one((node) => node.type === 'input' && node.props.type === 'search').props.onChange({ target: { value: 'free' } }); features.render()
+assert.equal(features.findAll((node) => node.type === 'input' && node.props.className === 'dca-model-check').length, 1)
+assert.equal(features.one((node) => node.type === 'input' && node.props['aria-label'] === 'Free').props.checked, true)
+features.one((node) => node.type === 'input' && node.props.type === 'search').props.onChange({ target: { value: '' } }); features.render()
 assert.equal(features.one((node) => node.type === 'input' && node.props['aria-label'] === 'Expensive').props.checked, false)
 assert.match(features.text(fp('models')), /未保存/)
-fb('保存为预设').props.onClick(); features.render()
-const presetName = features.one((node) => node.type === 'input' && node.props.maxLength === 48)
-presetName.props.onChange({ target: { value: 'My draft' } }); features.render()
-features.postResponses.set('/presets', (body) => ({ ok: true, presets: [{ ...body, id: 'custom-1' }] }))
-await act(() => features.one((node) => node.type === 'form' && features.findAll((child) => child.type === 'input' && child.props.maxLength === 48, node).length === 1).props.onSubmit({ preventDefault() {} }))
-assert.equal(latest(features.writes).path, '/presets')
-assert.equal(latest(features.writes).body.modelOverrides.reasoner.allowOff, false)
-assert.ok(!features.writes.slice(writesBeforePreview).some((entry) => entry.path === '/models/select'))
-console.log('✓ capability filters and presets preserve drafts, include zero-cost models, and never auto-save the live selection')
+assert.equal(features.writes.length, writesBeforeFilters)
+console.log('✓ model filters and sorting preserve manual drafts and zero-cost models without preset controls or automatic saves')
 
 ft('account').props.onClick(); features.render()
-const backupRoot = () => features.one((node) => node.type === 'details' && node.props.className === 'dca-card dca-details' && features.findAll((child) => child.type === 'summary' && features.text(child) === '配置备份与迁移', node).length === 1)
-assert.equal(features.findAll((node) => node.type === 'input' && node.props.type === 'password' && node.props.autoComplete === 'new-password').length, 0)
-assert.equal(features.findAll((node) => node.type === 'textarea' && node.props.rows === 4).length, 0, 'restore controls are absent in export mode')
-assert.equal(fb('下载备份').props.disabled, false, 'config-only export needs no password by default')
-labelled('加密备份').props.onChange({ target: { checked: true } }); features.render()
-assert.equal(fb('下载备份').props.disabled, true)
-labelled('加密密码').props.onChange({ target: { value: 'password-123' } })
-labelled('确认加密密码').props.onChange({ target: { value: 'different' } }); features.render()
-assert.equal(fb('下载备份').props.disabled, true)
-labelled('确认加密密码').props.onChange({ target: { value: 'password-123' } }); features.render()
-labelled('加密备份').props.onChange({ target: { checked: false } }); features.render()
+assert.doesNotMatch(features.text(fp('account')), /凭证管理|清除已保存的凭证|配置备份与迁移|下载备份|恢复配置/)
 assert.equal(features.findAll((node) => node.type === 'input' && node.props.autoComplete === 'new-password').length, 0)
-labelled('包含账号凭证（AK/SK）').props.onChange({ target: { checked: true } }); features.render()
-assert.equal(fb('下载备份').props.disabled, true)
-assert.equal(labelled('加密密码').props.value, '', 'turning off encryption clears its password')
-labelled('加密密码').props.onChange({ target: { value: 'password-123' } })
-labelled('确认加密密码').props.onChange({ target: { value: 'password-123' } }); features.render()
-assert.equal(fb('下载备份').props.disabled, false)
-const backupForm = () => features.one((node) => node.type === 'form' && features.findAll((child) => child.type === 'button' && features.text(child) === '下载备份', node).length === 1)
-const exportedEnvelope = { format: 'dsh-codearts-dock-encrypted', version: 1, data: 'fake-test-ciphertext' }
-features.postResponses.set('/backup/export', { ok: true, backup: exportedEnvelope })
-await act(() => backupForm().props.onSubmit({ preventDefault() {} }))
-assert.equal(latest(features.writes).body.includeCredentials, true)
-assert.equal(latest(features.writes).body.password, 'password-123')
-assert.equal(features.downloads.length, 1)
-const download = latest(features.downloads)
-assert.match(download.name, /^codearts-backup-\d{4}-\d{2}-\d{2}\.json$/)
-assert.ok(download.blob, 'the download references the generated backup')
-assert.deepEqual(JSON.parse(await download.blob.text()), exportedEnvelope)
-assert.equal(labelled('加密密码').props.value, '')
-assert.equal(labelled('确认加密密码').props.value, '')
-fb('恢复配置').props.onClick(); features.render()
-assert.equal(features.findAll((node) => node.type === 'button' && features.text(node) === '下载备份').length, 0)
-assert.equal(features.findAll((node) => node.type === 'input' && node.props.autoComplete === 'off' && node.props.type === 'password', backupRoot()).length, 0)
-const advancedPaste = features.one((node) => node.type === 'details' && features.findAll((child) => child.type === 'summary' && features.text(child) === '粘贴 JSON（高级）', node).length === 1 && features.findAll((child) => child.type === 'textarea', node).length === 1 && node.props.className === 'dca-details')
-assert.notEqual(advancedPaste.props.open, true)
-const backupText = JSON.stringify(exportedEnvelope)
-const inputFile = () => features.one((node) => node.type === 'input' && node.props.type === 'file' && node.props.accept === '.json,application/json')
-await act(() => inputFile().props.onChange({ target: { value: 'file.json', files: [{ name: 'my-backup.json', size: backupText.length, text: async () => backupText }] } }))
-assert.match(features.text(fp('account')), /已选择：my-backup.json/)
-assert.equal(fb('读取并预览').props.disabled, true, 'encrypted files require a password')
-labelled('解密密码').props.onChange({ target: { value: 'password-123' } }); features.render()
-features.postResponses.set('/backup/preview', { ok: true, changes: ['composerChip'], preferences: { composerChip: false }, accounts: { added: 1, updated: 0 } })
-await act(() => fb('读取并预览').props.onClick())
-assert.equal(latest(features.writes).path, '/backup/preview')
-assert.ok(!features.writes.some((entry) => entry.path === '/backup/restore'))
-labelled('解密密码').props.onChange({ target: { value: 'new-password' } }); features.render()
-assert.equal(features.findAll((node) => node.type === 'button' && features.text(node) === '确认恢复').length, 0)
-await act(() => fb('读取并预览').props.onClick())
-features.postResponses.set('/backup/restore', { ok: true, added: 1, updated: 0 })
-await act(() => fb('确认恢复').props.onClick())
-assert.equal(latest(features.writes).path, '/backup/restore')
-assert.equal(latest(features.writes).body.text, backupText)
-assert.equal(latest(features.writes).body.password, 'new-password')
-assert.equal(labelled('备份内容（也可粘贴 JSON）', 'textarea').props.value, '')
-assert.equal(features.findAll((node) => node.type === 'input' && node.props.autoComplete === 'off' && node.props.type === 'password', backupRoot()).length, 0)
-console.log('✓ backup modes reveal only relevant forms; encryption, file selection, restore preview and input clearing work')
-
-// Failed reads preserve input; selecting an invalid replacement never leaves a stale backup ready to restore.
-labelled('备份内容（也可粘贴 JSON）', 'textarea').props.onChange({ target: { value: backupText } }); features.render()
-labelled('解密密码').props.onChange({ target: { value: 'wrong-password' } }); features.render()
-features.postResponses.set('/backup/preview', { ok: false, error: '密码错误，或备份文件已损坏' })
-const restoreCount = features.writes.filter((entry) => entry.path === '/backup/restore').length
-await act(() => fb('读取并预览').props.onClick())
-assert.match(features.text(fp('account')), /密码错误/)
-assert.equal(labelled('备份内容（也可粘贴 JSON）', 'textarea').props.value, backupText)
-assert.equal(labelled('解密密码').props.value, 'wrong-password')
-assert.equal(features.findAll((node) => node.type === 'button' && features.text(node) === '确认恢复').length, 0)
-assert.equal(features.writes.filter((entry) => entry.path === '/backup/restore').length, restoreCount)
-await act(() => inputFile().props.onChange({ target: { value: 'too-big.json', files: [{ name: 'too-big.json', size: 800000 }] } }))
-assert.match(features.text(fp('account')), /备份文件过大/)
-assert.equal(labelled('备份内容（也可粘贴 JSON）', 'textarea').props.value, '')
-assert.equal(fb('读取并预览').props.disabled, true)
-const plainBackup = '{"format":"dsh-codearts-dock-backup","version":1,"preferences":{}}'
-labelled('备份内容（也可粘贴 JSON）', 'textarea').props.onChange({ target: { value: plainBackup } }); features.render()
-assert.equal(features.findAll((node) => node.type === 'input' && node.props.autoComplete === 'off' && node.props.type === 'password', backupRoot()).length, 0)
-features.postResponses.set('/backup/preview', { ok: true, changes: [], preferences: {}, accounts: { added: 0, updated: 0 } })
-await act(() => fb('读取并预览').props.onClick())
-assert.equal(latest(features.writes).body.password, '')
-fb('导出配置').props.onClick(); features.render()
-fb('恢复配置').props.onClick(); features.render()
-assert.equal(features.findAll((node) => node.type === 'button' && features.text(node) === '确认恢复').length, 0, 'changing modes invalidates the preview')
-console.log('✓ malformed replacements cannot restore stale contents; plain backups skip password inputs; mode changes invalidate previews')
+assert.equal(fb('测试连接').props.disabled, false, 'the connection test remains available')
+assert.equal(fb('导出').props.disabled, false, 'account export remains available')
+console.log('✓ account tools remain available without credential clearing or configuration backup controls')
 
 // The composer is a compact account picker, not a second diagnostics page.
 let openedSettings = 0
@@ -467,6 +393,7 @@ const chip = harness('composer', {
   useProjection: () => ({ next: { provider: 'codearts' } }),
   openSettings: () => { openedSettings += 1 },
 })
+
 const chipPool = { ok: true, accounts: [
   { id: 'primary', label: 'Primary', active: true, credit: { remain: 42 }, health: { state: 'available' } },
   { id: 'backup', label: 'Backup', credit: { remain: 13.25 }, health: { state: 'available' } },
@@ -533,19 +460,20 @@ const switchResponses = { ...fixtures, '/accounts': { ok: true, accounts: [
 ] } }
 await flushSettings(switching, switchResponses)
 const accountRow = (id) => switching.one((node) => node.type === 'div' && node.props.key === id && node.props.className?.startsWith('dca-pool-row'))
-const accountButton = (id, label) => {
-  const matches = switching.findAll((node) => node.type === 'button' && switching.text(node) === label, accountRow(id))
-  assert.equal(matches.length, 1)
-  return matches[0]
-}
+const accountSwitch = (id) => switching.one((node) => node.type === 'button' && switching.text(node) === '切换', accountRow(id))
+const chooseAccount = (id) => accountSwitch(id).props.onClick()
+assert.equal(accountSwitch('personal').props.disabled, true, 'the current account cannot be switched to again')
+assert.equal(accountSwitch('work').props.disabled, false)
 let finishSwitch
 switching.postResponses.set('/accounts/activate', () => new Promise((resolve) => { finishSwitch = resolve }))
-const pendingSwitch = accountButton('work', '切换').props.onClick()
+const pendingSwitch = chooseAccount('work')
 switching.render()
-assert.equal(accountButton('work', '正在切换…').props.disabled, true)
-assert.equal(accountButton('work', '正在切换…').props['aria-busy'], true)
-assert.equal(accountButton('work', '重新检查').props.disabled, true)
-assert.equal(accountButton('personal', '重新检查').props.disabled, true)
+assert.equal(accountSwitch('work').props.disabled, true)
+assert.equal(accountSwitch('work').props['aria-busy'], true)
+assert.equal(accountSwitch('personal').props.disabled, true)
+assert.match(accountRow('personal').props.className, /dca-pool-row-current/, 'the current account stays marked while activation is pending')
+assert.match(switching.text(accountRow('work')), /正在切换/)
+assert.equal(switching.one((node) => node.type === 'button' && switching.text(node) === '检查全部账号').props.disabled, true)
 assert.doesNotMatch(switching.text(accountRow('personal')), /正在切换/)
 assert.equal(switching.findAll((node) => node.type === 'button' && switching.text(node) === '加载中…').length, 0)
 assert.equal(switching.pending.length, 0, 'reload waits for activation acknowledgement')
@@ -558,50 +486,81 @@ await pendingSwitch; switching.render()
 assert.match(switching.text(accountRow('work')), /已切换到「工作」/)
 assert.doesNotMatch(switching.text(accountRow('personal')), /已切换到/)
 assert.equal(accountRow('work').props['aria-busy'], false)
-assert.equal(accountButton('personal', '切换').props.disabled, false)
+assert.equal(accountSwitch('personal').props.disabled, false)
+assert.equal(accountSwitch('work').props.disabled, true, 'the successfully selected account cannot be switched to again')
 switching.postResponses.set('/accounts/activate', { ok: false, error: 'Switch refused' })
-await accountButton('personal', '切换').props.onClick(); switching.render()
+await chooseAccount('personal'); switching.render()
 assert.match(switching.text(accountRow('personal')), /切换到「个人」失败：Switch refused/)
 assert.equal(switching.findAll((node) => node.props.role === 'alert', accountRow('personal')).length, 1)
-assert.equal(accountButton('personal', '切换').props.disabled, false)
+assert.equal(accountSwitch('personal').props.disabled, false)
+assert.equal(accountSwitch('work').props.disabled, true, 'the successfully selected account cannot be switched to again')
 assert.match(accountRow('work').props.className, /dca-pool-row-current/)
 assert.doesNotMatch(switching.text(accountRow('work')), /Switch refused|已切换到/)
 switching.postResponses.set('/accounts/activate', () => { throw new Error('Offline switch') })
-await accountButton('personal', '切换').props.onClick(); switching.render()
+await chooseAccount('personal'); switching.render()
 assert.match(switching.text(accountRow('personal')), /切换到「个人」失败：Offline switch/)
-assert.equal(accountButton('personal', '切换').props.disabled, false)
-console.log('✓ account switches show progress and outcomes on the target row, preserve current state on failure, and allow retry')
+assert.equal(accountSwitch('personal').props.disabled, false)
+assert.equal(accountSwitch('work').props.disabled, true, 'the successfully selected account cannot be switched to again')
+console.log('✓ row switch buttons show progress and outcomes on the target row, preserve current state on failure, and allow retry')
 
-// Rename is available from the row menu on touch surfaces. Enter saves once;
-// Escape discards, including the blur that follows either key press.
-const renames = harness()
-await flushSettings(renames, fixtures)
-renames.one((node) => node.props.role === 'tab' && node.props.id.endsWith('-tab-account')).props.onClick()
-renames.render()
-const renameRow = () => renames.one((node) => node.type === 'div' && node.props.key === 'account-1' && node.props.className?.startsWith('dca-pool-row'))
-const renameMenuButton = () => renames.one((node) => node.type === 'button' && renames.text(node) === '账号备注', renameRow())
-const renameEvent = (details) => ({ currentTarget: { closest: () => details } })
-const renameMenu = { open: true }
-renameMenuButton().props.onClick(renameEvent(renameMenu)); renames.render()
-let renameInput = renames.one((node) => node.type === 'input' && node.props['aria-label'] === '账号备注', renameRow())
-renameInput.props.onChange({ target: { value: '工作账号' } }); renames.render()
-renameInput = renames.one((node) => node.type === 'input' && node.props['aria-label'] === '账号备注', renameRow())
-let preventedEnter = false
-renameInput.props.onKeyDown({ key: 'Enter', preventDefault: () => { preventedEnter = true } })
-renameInput.props.onBlur()
-assert.equal(preventedEnter, true)
-assert.equal(renames.writes.filter((entry) => entry.path === '/accounts/rename').length, 1, 'Enter plus blur submits once')
-const renameMenu2 = { open: true }
-renameMenuButton().props.onClick(renameEvent(renameMenu2)); renames.render()
-renameInput = renames.one((node) => node.type === 'input' && node.props['aria-label'] === '账号备注', renameRow())
-renameInput.props.onChange({ target: { value: '误输入的名称' } }); renames.render()
-renameInput = renames.one((node) => node.type === 'input' && node.props['aria-label'] === '账号备注', renameRow())
-renameInput.props.onKeyDown({ key: 'Escape' })
-renameInput.props.onBlur()
-renames.render()
-assert.equal(renames.writes.filter((entry) => entry.path === '/accounts/rename').length, 1, 'Escape plus blur discards without writing')
-assert.equal(renames.one((node) => node.type === 'button' && renames.text(node).includes('Example'), renameRow()).type, 'button')
-console.log('✓ account rename is discoverable and Enter/Escape are safe across the follow-up blur')
+// Imported names can be replaced with a short name, hiding the original.
+const names = harness()
+const renameResponses = {
+  ...fixtures,
+  '/accounts': {
+    ...fixtures['/accounts'],
+    accounts: [{
+      ...fixtures['/accounts'].accounts[0],
+      renameable: true,
+      accountName: 'hw045252840967331',
+      akMasked: 'TEST…MASK',
+    }],
+  },
+}
+await flushSettings(names, renameResponses)
+const nameRow = () => names.one((node) => node.type === 'div' && node.props.key === 'account-1' && node.props.className?.startsWith('dca-pool-row'))
+const staticName = names.one((node) => node.props.className === 'dca-pool-account-name', nameRow())
+assert.equal(staticName.type, 'b')
+assert.equal(names.text(staticName), 'Example', 'the existing saved account label remains visible')
+assert.doesNotMatch(names.text(nameRow()), /hw045252840967331/, 'a custom name hides the original imported cloud name')
+assert.equal(names.findAll((node) => node.type === 'button' && names.text(node) === '修改名称', nameRow()).length, 1)
+assert.equal(names.findAll((node) => node.props.className === 'dca-account-menu' || node.props.className === 'dca-menu-actions').length, 0)
+assert.equal(names.findAll((node) => node.type === 'input' && node.props['aria-label'] === '账号名称').length, 0)
+assert.deepEqual(names.findAll((node) => node.type === 'button', nameRow()).map((node) => names.text(node)).slice(-2), ['切换', '移除'], 'switching sits immediately before removal')
+assert.equal(names.findAll((node) => node.type === 'button' && names.text(node) === '更新凭证', nameRow()).length, 1)
+names.one((node) => node.type === 'button' && names.text(node) === '修改名称', nameRow()).props.onClick()
+names.render()
+const nameInput = () => names.one((node) => node.type === 'input' && node.props['aria-label'] === '账号名称', nameRow())
+assert.equal(nameInput().props.value, 'Example')
+nameInput().props.onChange({ target: { value: '短名称' } })
+names.render()
+names.postResponses.set('/accounts/rename', { ok: true })
+const saveName = names.one((node) => node.type === 'button' && names.text(node) === '保存', nameRow()).props.onClick()
+renameResponses['/accounts'] = {
+  ...renameResponses['/accounts'],
+  accounts: renameResponses['/accounts'].accounts.map((account) => ({ ...account, label: '短名称' })),
+}
+await new Promise(setImmediate)
+await flushSettings(names, renameResponses)
+await saveName
+names.render()
+assert.deepEqual(names.writes.at(-1), { path: '/accounts/rename', body: { id: 'account-1', label: '短名称' } })
+assert.match(names.text(nameRow()), /短名称/)
+assert.doesNotMatch(names.text(nameRow()), /hw045252840967331/)
+names.one((node) => node.type === 'button' && names.text(node) === '添加账号').props.onClick()
+names.render()
+assert.equal(names.findAll((node) => node.type === 'input' && node.props.id === 'dca-label').length, 0)
+assert.doesNotMatch(names.text(names.one((node) => node.props.id === 'dca-add-account')), /名称（可选）|账号名称/)
+names.one((node) => node.type === 'input' && node.props['aria-label'] === 'Access Key ID').props.onChange({ target: { value: 'OFFLINE_NEW_AK' } })
+names.render()
+names.one((node) => node.type === 'input' && node.props['aria-label'] === 'Secret Access Key').props.onChange({ target: { value: 'OFFLINE_NEW_SK' } })
+names.render()
+names.postResponses.set('/accounts/add', { ok: true, added: true })
+names.one((node) => node.type === 'form').props.onSubmit({ preventDefault() {} })
+await flushSettings(names, fixtures)
+assert.deepEqual(names.writes.at(-1), { path: '/accounts/add', body: { ak: 'OFFLINE_NEW_AK', sk: 'OFFLINE_NEW_SK' } })
+assert.ok(names.writes.some((entry) => entry.path === '/accounts/rename'), 'the account name save uses the rename route')
+console.log('✓ account names can be edited, custom names hide imported names, and new credentials remain separate from account names')
 
 // Account import is a read-only preview of the entire confirmed batch.
 const imports = harness()
@@ -669,11 +628,11 @@ assert.match(balances.text(balanceCell('Primary')), /20.*上次结果.*7 分钟�
 balanceResponses['/accounts'] = { ok: true, accounts: [{ id: 'primary', creditIdentity: 'primary-key', label: 'Primary', credit: { remain: 0 }, creditCheckedAt: balances.controls.now }] }
 balances.intervals[0]()
 await flushSettings(balances, balanceResponses)
-assert.equal(balances.text(balanceCell('Primary')), '0')
+assert.equal(balances.text(balanceCell('Primary')), '积分0')
 balanceResponses['/accounts'] = { ok: true, accounts: [{ id: 'primary', creditIdentity: 'replaced-key', label: 'Primary', credit: null }] }
 balances.intervals[0]()
 await flushSettings(balances, balanceResponses)
-assert.equal(balances.text(balanceCell('Primary')), '—', 'new credentials must not inherit an old credential snapshot')
+assert.equal(balances.text(balanceCell('Primary')), '积分—', 'new credentials must not inherit an old credential snapshot')
 console.log('✓ settings retain successful balances and timestamps on gateway and route failures, recover zero balances, and isolate credential identities')
 
 const staleChip = harness('composer', { useProjection: () => ({ next: { provider: 'codearts' } }) })
@@ -770,12 +729,17 @@ const dualPool = [
 ]
 await flushSettings(dual, { ...fixtures, '/accounts': { ok: true, activeId: 'both', accounts: dualPool } })
 const dualRow = (id) => dual.one((node) => node.type === 'div' && node.props.key === id && node.props.className?.startsWith('dca-pool-row'))
+const checkinBadge = (id) => dual.one((node) => node.props.className?.includes('dca-checkin-badge'), dualRow(id))
 // Nothing signed yet: the count states what is left, not a bare "due".
 assert.match(dual.text(dualRow('both')), /已签 0\/2/)
+assert.match(checkinBadge('both').props.className, /dca-checkin-pending/)
 // One of two signed: still pending, and the count reflects the progress.
 assert.match(dual.text(dualRow('half')), /已签 1\/2/)
+assert.match(checkinBadge('half').props.className, /dca-checkin-progress/)
 // Both signed collapses back to the single word the row used before.
 assert.match(dual.text(dualRow('done')), /今日已签/)
+assert.match(checkinBadge('done').props.className, /dca-checkin-done/)
+assert.equal(dual.text(checkinBadge('done')).startsWith('✓'), true, 'completed check-in has a visible check mark')
 assert.doesNotMatch(dual.text(dualRow('done')), /2\/2/)
 // The campaign names are reachable as the cell tooltip, not just a bare count.
 const dualCell = dual.findAll((node) => node.props.className === 'dca-pool-probe-main')
@@ -867,4 +831,372 @@ assert.equal(await claimAnnounces(1), 1, 'a claim that claimed something announc
 assert.equal(await claimAnnounces(0), 0, 'a claim that claimed nothing announces nothing')
 console.log('✓ a claim announces a credit change, and a claim that claimed nothing stays quiet')
 
+})
+
+test('activity loads on demand, filters, retries without losing history, and confirms clearing', async () => {
+  const app = harness()
+  const tab = (id) => app.one((node) => node.props.role === 'tab' && node.props.id.endsWith(`-tab-${id}`))
+  const panel = () => app.one((node) => node.props.role === 'tabpanel' && node.props.id.endsWith('-panel-activity'))
+  const button = (label) => app.one((node) => node.type === 'button' && app.text(node) === label, panel())
+  const filter = (label) => app.one((node) => node.type === 'select', app.one((node) => node.type === 'label' && app.text(node).startsWith(label), panel()))
+  assert.ok(!app.pending.some((request) => request.path === '/activities'), 'the new tab does not slow initial settings reads')
+  tab('activity').props.onClick(); app.render()
+  assert.equal(app.pending.filter((request) => request.path === '/activities').length, 1)
+  await app.fail('/activities')
+  assert.match(app.text(panel()), /操作失败/)
+  const retry = button('重试').props.onClick()
+  const at = app.controls.now
+  const records = [
+    { id: 'first', at, action: 'account.add', category: 'account', status: 'success', details: { added: 1, text: 'PRIVATE_TEXT' } },
+    { id: 'second', at: at - 60000, action: 'checkin.auto', category: 'checkin', status: 'warning', details: { claimed: 2, failed: 1, reason: 'network' } },
+  ]
+  await app.settle('/activities', { ok: true, records, limit: 200 }); await retry
+  assert.equal(app.findAll((node) => node.type === 'li', panel()).length, 2)
+  assert.match(app.text(panel()), /添加账号/)
+  assert.match(app.text(panel()), /每天自动签到/)
+  assert.match(app.text(panel()), /网络异常/)
+  assert.doesNotMatch(app.text(panel()), /PRIVATE_TEXT/)
+  assert.equal(app.one((node) => node.type === 'time' && node.props.dateTime === new Date(at).toISOString(), panel()).props.className, 'dca-activity-time')
+  filter('活动类型').props.onChange({ target: { value: 'checkin' } }); app.render()
+  assert.equal(app.findAll((node) => node.type === 'li', panel()).length, 1)
+  filter('活动结果').props.onChange({ target: { value: 'error' } }); app.render()
+  assert.match(app.text(panel()), /没有符合筛选条件/)
+  filter('活动结果').props.onChange({ target: { value: 'warning' } }); app.render()
+  tab('account').props.onClick(); app.render()
+  tab('activity').props.onClick(); app.render()
+  await app.fail('/activities')
+  assert.equal(filter('活动类型').props.value, 'checkin', 'filters survive tab navigation')
+  assert.equal(app.findAll((node) => node.type === 'li', panel()).length, 1, 'refresh failures retain the last history')
+  app.controls.confirmAnswer = false
+  await button('清空记录').props.onClick(); app.render()
+  assert.equal(app.writes.length, 0, 'cancelling does not clear records')
+  app.controls.confirmAnswer = true
+  app.postResponses.set('/activities/clear', { ok: false })
+  await button('清空记录').props.onClick(); app.render()
+  assert.equal(app.findAll((node) => node.type === 'li', panel()).length, 1, 'a failed clear retains records')
+  let finishClear: (value: unknown) => void = () => {}
+  app.postResponses.set('/activities/clear', new Promise((resolve) => { finishClear = resolve }))
+  const clearing = button('清空记录').props.onClick()
+  app.render()
+  tab('account').props.onClick(); app.render()
+  tab('activity').props.onClick(); app.render()
+  assert.ok(!app.pending.some((request) => request.path === '/activities'), 'navigation cannot start a stale read while clearing')
+  finishClear({ ok: true })
+  await clearing; app.render()
+  assert.equal(latest(app.writes).path, '/activities/clear')
+  assert.match(app.text(panel()), /活动记录已清空/)
+  assert.match(app.text(panel()), /暂无活动记录/)
+  assert.equal(button('清空记录').props.disabled, true)
+})
+
+const modelContextFixture = (context?: number, contextLimit = 131072) => ({
+  ...initialModels,
+  models: initialModels.models.map((model) => ({
+    ...model,
+    context: model.id === 'reasoner' ? context ?? contextLimit : contextLimit,
+    maxOutput: 16384,
+    defaults: { context: contextLimit, maxOutput: 16384 },
+    overrides: model.id === 'reasoner' ? { ...model.overrides, ...(context === undefined ? {} : { context }) } : model.overrides,
+  })),
+})
+
+async function modelContextHarness(context?: number, contextLimit = 131072) {
+  const app = harness()
+  await app.settle('/models', modelContextFixture(context, contextLimit))
+  app.one((node) => node.props.role === 'tab' && node.props.id.endsWith('-tab-models')).props.onClick()
+  app.render()
+  const select = () => app.one((node) => node.type === 'select' && node.props['aria-label'] === '上下文长度 — Reasoner')
+  const button = (label: string) => app.one((node) => node.type === 'button' && app.text(node) === label)
+  const testButton = () => app.one((node) => node.type === 'button' && node.props['aria-label'] === '测试模型 — Reasoner')
+  const change = (value: string) => {
+    select().props.onChange({ target: { value } })
+    app.render()
+  }
+  const save = async (context?: number) => {
+    const saving = button('保存模型配置').props.onClick()
+    await new Promise(setImmediate)
+    await app.settle('/models', modelContextFixture(context, contextLimit))
+    await saving
+    app.render()
+  }
+  return { app, select, button, testButton, change, save }
+}
+
+test('model context choices preserve existing values, save selections, and restore the default', async () => {
+  const { app, select, button, change, save } = await modelContextHarness(202752, 524288)
+  assert.equal(Number(select().props.value), 202752, 'a saved non-preset context remains selectable')
+  const choices = app.findAll((node) => node.type === 'option', select()).map((node) => String(node.props.value))
+  for (const value of ['', '32768', '65536', '131072', '204800', '262144', '524288', '202752']) {
+    assert.ok(choices.includes(value), `context choice ${value || 'default'} is available`)
+  }
+  change('32768')
+  assert.equal(app.writes.length, 0, 'selecting a context only changes the local draft')
+  assert.equal(button('保存模型配置').props.disabled, false)
+  await save(32768)
+  assert.deepEqual(latest(app.writes), {
+    path: '/models/select',
+    body: { enabledIds: null, overrides: {
+      reasoner: { images: true, allowOff: false, defaultStrength: 'max', context: 32768 },
+      coder: {},
+    } },
+  })
+  assert.equal(button('保存模型配置').props.disabled, true, 'a successful reload clears the saved draft')
+  const reloadedChoices = app.findAll((node) => node.type === 'option', select()).map((node) => String(node.props.value))
+  assert.ok(reloadedChoices.includes('524288'), 'saving a lower context retains the upstream limit for subsequent choices')
+  assert.ok(reloadedChoices.includes('262144'), 'the saved 32K context does not hide larger valid choices')
+
+  change('')
+  assert.equal(select().props.value, '')
+  assert.equal(button('保存模型配置').props.disabled, false, 'returning to the default changes the saved override')
+  await save()
+  assert.equal(latest(app.writes).body.overrides.reasoner.context, null, 'the default choice explicitly clears the override')
+  assert.equal(latest(app.writes).body.overrides.reasoner.images, true, 'changing context preserves capability choices')
+  assert.equal(latest(app.writes).body.overrides.reasoner.defaultStrength, 'max')
+  assert.equal(select().props.value, '')
+  assert.equal(button('保存模型配置').props.disabled, true)
+})
+
+test('model tests use an unsaved context, expose progress and outcomes, and preserve the draft', async () => {
+  const { app, select, button, testButton, change } = await modelContextHarness()
+  change('65536')
+  // A model may be tested before it is offered in the conversation picker.
+  app.one((node) => node.type === 'input' && node.props['aria-label'] === 'Reasoner').props.onChange({ target: { checked: false } })
+  app.render()
+  assert.equal(testButton().props.disabled, false)
+  let finishTest: (value: unknown) => void = () => {}
+  app.postResponses.set('/models/test', new Promise((resolve) => { finishTest = resolve }))
+  const testing = testButton().props.onClick()
+  app.render()
+  assert.match(app.text(testButton()), /测试中/)
+  assert.equal(testButton().props.disabled, true, 'the in-flight test cannot be submitted twice')
+  assert.deepEqual(latest(app.writes), {
+    path: '/models/test',
+    body: { modelId: 'reasoner', overrides: { images: true, allowOff: false, defaultStrength: 'max', context: 65536 } },
+  })
+  finishTest({ ok: true, elapsedMs: 124 })
+  await testing
+  app.render()
+  assert.match(app.text(app.render()), /测试成功.*124.*ms/)
+  assert.equal(Number(select().props.value), 65536)
+  assert.equal(button('保存模型配置').props.disabled, false, 'testing leaves the local changes unsaved')
+  assert.ok(!app.writes.some((entry) => entry.path === '/models/select'), 'testing never saves model settings')
+  assert.ok(!app.pending.some((entry) => entry.path === '/models'), 'testing does not reload and replace the draft')
+
+  app.postResponses.set('/models/test', { ok: false, elapsedMs: 60, error: 'MODEL_UNAVAILABLE' })
+  await testButton().props.onClick()
+  app.render()
+  assert.match(app.text(app.render()), /测试失败.*MODEL_UNAVAILABLE/)
+  assert.doesNotMatch(app.text(app.render()), /测试成功/)
+  assert.equal(Number(select().props.value), 65536, 'a rejected test preserves the selected context')
+  assert.equal(testButton().props.disabled, false, 'a failed test can be retried')
+})
+
+test('model context options respect each upstream limit and include its exact value', async () => {
+  const app = harness()
+  const limits = [202752, 524288, 1048576, 2097152]
+  const expected = [
+    ['', '32768', '65536', '131072', '202752'],
+    ['', '32768', '65536', '131072', '204800', '262144', '524288'],
+    ['', '32768', '65536', '131072', '204800', '262144', '524288', '1048576'],
+    ['', '32768', '65536', '131072', '204800', '262144', '524288', '1048576', '2097152'],
+  ]
+  await app.settle('/models', { ...initialModels, models: limits.map((limit) => ({
+    id: `limit-${limit}`, name: `Limit ${limit}`, strengths: [], supportsImages: false,
+    context: limit, maxOutput: 16384, defaults: { context: limit, maxOutput: 16384 }, overrides: null,
+  })) })
+  app.one((node) => node.props.role === 'tab' && node.props.id.endsWith('-tab-models')).props.onClick()
+  app.render()
+  limits.forEach((limit, index) => {
+    const select = app.one((node) => node.type === 'select' && node.props['aria-label'] === `上下文长度 — Limit ${limit}`)
+    const choices = app.findAll((node) => node.type === 'option', select).map((node) => String(node.props.value))
+    assert.deepEqual(choices, expected[index], `only supported choices are offered for the ${limit}-token model`)
+  })
+})
+
+test('outdated context overrides above the upstream limit render as default and are cleared in requests', async () => {
+  const { app, select, button, testButton, save } = await modelContextHarness(2097152, 131072)
+  assert.equal(select().props.value, '', 'an old 2M override is unavailable for a 128K model')
+  const choices = app.findAll((node) => node.type === 'option', select()).map((node) => String(node.props.value))
+  assert.ok(!choices.includes('2097152'), 'an unsupported saved value cannot be reselected')
+  app.postResponses.set('/models/test', { ok: true, elapsedMs: 10 })
+  await testButton().props.onClick()
+  app.render()
+  assert.equal(latest(app.writes).body.overrides.context, null, 'testing clears the stale override instead of forwarding it')
+  app.one((node) => node.type === 'input' && node.props['aria-label'] === 'Coder').props.onChange({ target: { checked: false } })
+  app.render()
+  assert.equal(button('保存模型配置').props.disabled, false)
+  await save()
+  assert.equal(latest(app.writes).path, '/models/select')
+  assert.equal(latest(app.writes).body.overrides.reasoner.context, null, 'saving any model changes also clears the stale override')
+  assert.equal(select().props.value, '')
+})
+
+test('row buttons switch accounts manually and automatic check-in saves after acknowledgement', async () => {
+  const app = harness()
+  const responses = {
+    '/status': { ok: true, settings: { dailyCheckinEnabled: false } },
+    '/models': initialModels,
+    '/account': { ok: true, credit: { remain: 10 } },
+    '/accounts': { ok: true, memberAccountIds: ['primary'], activeId: 'primary', accounts: [
+      { id: 'primary', label: '主账号', active: true },
+      { id: 'backup', label: '备用账号', active: false },
+    ] },
+  }
+  const drain = async () => {
+    await new Promise(setImmediate)
+    for (let turns = 0; app.pending.length && turns < 20; turns += 1) {
+      const path = app.pending[0].path
+      assert.ok(path in responses, `Unexpected account-pool request ${path}`)
+      await app.settle(path, responses[path])
+    }
+    assert.equal(app.pending.length, 0)
+    app.render()
+  }
+  const row = (id: string) => app.one((node) => node.props.key === id && node.props.className?.startsWith('dca-pool-row'))
+  const activate = (id: string) => app.one((node) => node.type === 'button' && app.text(node) === '切换', row(id))
+  const panel = () => app.one((node) => node.props.role === 'tabpanel' && node.props.id.endsWith('-panel-account'))
+  await drain()
+  assert.equal(app.findAll((node) => node.props.role === 'switch' && node.props['aria-label'] === '启用账号池').length, 0)
+  assert.equal(app.findAll((node) => node.type === 'select', panel()).length, 0, 'the account dropdown is removed')
+  assert.equal(activate('primary').props.disabled, true)
+  assert.equal(activate('backup').props.disabled, false)
+  for (const id of ['primary', 'backup']) {
+    assert.deepEqual(app.findAll((node) => node.type === 'button', row(id)).map((node) => app.text(node)), ['修改名称', '切换', '移除'])
+  }
+  const pool = app.one((node) => node.props.className === 'dca-pool')
+  assert.deepEqual(pool.props.children.filter(Boolean).map((node) => node.props.className), [
+    'dca-pool-head', 'dca-pool-modebar', 'dca-pool-toolbar', 'dca-pool-table',
+  ], 'account title, check-in settings, batch actions and rows follow the reference module order')
+  const header = app.one((node) => node.props.className === 'dca-pool-head')
+  assert.equal(app.findAll((node) => node.type === 'button' || node.type === 'p', header).length, 0, 'the title row contains only the title')
+  const modebar = app.one((node) => node.props.className === 'dca-pool-modebar')
+  assert.deepEqual(app.findAll((node) => node.props.role === 'switch', modebar).map((node) => node.props['aria-label']), ['每天自动签到'])
+  const batch = app.one((node) => node.props.className === 'dca-pool-toolbar')
+  assert.deepEqual(app.findAll((node) => node.type === 'button', batch).map((node) => app.text(node)), ['检查全部账号', '一键签到', '测试连接'])
+  const primaryRow = app.one((node) => node.props.key === 'primary' && node.props.className?.startsWith('dca-pool-row'))
+  assert.deepEqual(primaryRow.props.children.filter(Boolean).map((node) => node.props.className), [
+    'dca-pool-col-account', 'dca-pool-probe', 'dca-pool-credits-row', 'dca-pool-probe-cell', 'dca-pool-col-actions',
+  ], 'health is its own grid cell beside check-in and actions')
+  assert.equal(app.findAll((node) => node.props.className === 'dca-pool-col-account' && app.text(node).includes('最近检查')).length, 0)
+  assert.match(app.text(primaryRow), /积分—未读取/)
+  assert.match(app.one((node) => node.props.className?.includes('dca-checkin-badge'), primaryRow).props.className, /dca-checkin-unknown/)
+  const tools = app.one((node) => node.props.className === 'dca-account-tools-bar')
+  assert.deepEqual(app.findAll((node) => node.type === 'button', tools).map((node) => app.text(node)), ['添加账号', '导入', '导出'])
+  const addForm = () => app.one((node) => node.props.id === 'dca-add-account')
+  assert.equal(addForm().props.open, false)
+  const file = app.one((node) => node.type === 'input' && node.props.type === 'file')
+  let pickerOpened = 0
+  file.props.ref.current = { click: () => { pickerOpened += 1 } }
+  app.one((node) => node.type === 'button' && app.text(node) === '导入', tools).props.onClick()
+  assert.equal(pickerOpened, 1, 'file import is available while manual credentials stay collapsed')
+  assert.equal(addForm().props.open, false)
+  app.one((node) => node.type === 'button' && app.text(node) === '添加账号', tools).props.onClick()
+  app.render()
+  assert.equal(addForm().props.open, true, 'the bottom add action controls the existing credential form')
+
+  let acknowledge: (body: unknown) => void = () => {}
+  app.postResponses.set('/accounts/activate', { ok: false, error: '切换被拒绝' })
+  activate('backup').props.onClick()
+  await drain()
+  assert.deepEqual(app.writes.at(-1), { path: '/accounts/activate', body: { id: 'backup' } })
+  assert.match(row('primary').props.className, /dca-pool-row-current/, 'failed activation preserves the current account')
+  assert.equal(activate('backup').props.disabled, false)
+  assert.match(app.text(panel()), /切换到「备用账号」失败：切换被拒绝/)
+
+  app.postResponses.set('/accounts/activate', { ok: true })
+  responses['/accounts'] = { ...responses['/accounts'], activeId: 'backup', accounts: responses['/accounts'].accounts.map((account) => ({ ...account, active: account.id === 'backup' })) }
+  activate('backup').props.onClick()
+  app.render()
+  assert.equal(activate('backup').props.disabled, true)
+  assert.equal(activate('backup').props['aria-busy'], true)
+  assert.match(app.text(row('backup')), /正在切换/)
+  await drain()
+  assert.match(row('backup').props.className, /dca-pool-row-current/)
+  assert.equal(activate('backup').props.disabled, true)
+  assert.equal(activate('primary').props.disabled, false)
+  assert.match(app.text(panel()), /已切换到「备用账号」/)
+
+  const daily = () => app.one((node) => node.props.role === 'switch' && node.props['aria-label'] === '每天自动签到')
+  const previousWrites = app.writes.length
+  app.postResponses.set('/preferences/save', () => new Promise((resolve) => { acknowledge = resolve }))
+  const scheduling = daily().props.onClick()
+  app.render()
+  assert.equal(daily().props['aria-checked'], false, 'daily scheduling also waits for saved acknowledgement')
+  assert.equal(daily().props['aria-busy'], true)
+  assert.equal(daily().props.disabled, true)
+  assert.equal(activate('primary').props.disabled, true, 'manual account switches cannot race a preference save')
+  await daily().props.onClick()
+  assert.equal(app.writes.length, previousWrites + 1)
+  assert.deepEqual(app.writes.at(-1), { path: '/preferences/save', body: { dailyCheckinEnabled: true } })
+  responses['/status'] = { ok: true, settings: { dailyCheckinEnabled: true } }
+  acknowledge({ ok: true, preferences: { dailyCheckinEnabled: true } })
+  await drain()
+  await scheduling
+  app.render()
+  assert.equal(daily().props['aria-checked'], true)
+  app.postResponses.set('/preferences/save', { ok: false, error: '签到设置保存被拒绝' })
+  await daily().props.onClick()
+  app.render()
+  assert.equal(daily().props['aria-checked'], true, 'a failed daily-check-in preference keeps the saved schedule')
+  assert.match(app.text(panel()), /保存自动签到设置失败：签到设置保存被拒绝/)
+})
+
+test('batch account actions include every account without membership controls', async () => {
+  const app = harness()
+  const responses: Record<string, any> = {
+    '/status': { ok: true, settings: { accountPoolEnabled: true, accountPoolMemberIds: [], dailyCheckinEnabled: false } },
+    '/models': initialModels,
+    '/account': { ok: true, credit: { remain: 10 } },
+    '/accounts': { ok: true, activeId: 'primary', memberAccountIds: [], accounts: [
+      { id: 'primary', label: '主账号', active: true, checkin: { claimable: false } },
+      { id: 'backup', label: '备用账号', active: false, checkin: { claimable: true } },
+      { id: 'third', label: '第三账号', active: false, checkin: { claimable: true } },
+    ] },
+  }
+  const drain = async () => {
+    await new Promise(setImmediate)
+    for (let turns = 0; app.pending.length && turns < 30; turns += 1) {
+      const path = app.pending[0].path
+      assert.ok(path in responses, `Unexpected batch-account request ${path}`)
+      await app.settle(path, responses[path])
+    }
+    assert.equal(app.pending.length, 0)
+    app.render()
+  }
+  const panel = () => app.one((node) => node.props.role === 'tabpanel' && node.props.id.endsWith('-panel-account'))
+  const button = (name: string) => app.one((node) => node.type === 'button' && app.text(node) === name, panel())
+  const currentRow = () => app.one((node) => node.props.key === 'primary' && node.props.className?.startsWith('dca-pool-row'))
+  const save = async (operation: () => unknown) => {
+    const result = operation()
+    await drain()
+    await result
+    app.render()
+  }
+  await drain()
+  assert.equal(app.findAll((node) => node.type === 'input' && node.props.type === 'checkbox', panel()).length, 0)
+  assert.doesNotMatch(app.text(panel()), /本池包含的账号|全选|全不选|勾选加入账号池/)
+  assert.equal(button('检查全部账号').props.disabled, false)
+  assert.equal(button('一键签到').props.disabled, false, 'any eligible account enables claims, regardless of retired membership settings')
+  assert.equal(button('测试连接').props.disabled, false)
+  assert.equal(app.writes.length, 0, 'opening the page never writes membership settings')
+  assert.equal(app.findAll((node) => node.type === 'button' && app.text(node) === '切换', panel()).length, 3, 'retired automatic-selection settings do not hide manual switch buttons')
+
+  app.postResponses.set('/accounts/check-all', { ok: true, accounts: responses['/accounts'].accounts.map((account) => ({ ...account, health: { state: 'available' } })) })
+  await save(() => button('检查全部账号').props.onClick())
+  assert.deepEqual(app.writes.at(-1), { path: '/accounts/check-all', body: {} })
+  assert.match(app.text(panel()), /检查完成：3 个账号，3 个可用/)
+  app.postResponses.set('/checkin/claim-all', { ok: true, summary: { claimed: 2, failures: [] } })
+  await save(() => button('一键签到').props.onClick())
+  assert.deepEqual(app.writes.at(-1), { path: '/checkin/claim-all', body: {} })
+  assert.match(currentRow().props.className, /dca-pool-row-current/, 'batch check-in preserves the manual account choice')
+
+  responses['/accounts'].accounts = responses['/accounts'].accounts.map((account) => ({ ...account, checkin: { claimable: false } }))
+  app.intervals[0]()
+  await drain()
+  assert.equal(button('一键签到').props.disabled, true)
+  responses['/accounts'].accounts.push({ id: 'imported', label: '新导入账号', active: false, checkin: { claimable: true } })
+  app.intervals[0]()
+  await drain()
+  assert.equal(button('一键签到').props.disabled, false, 'new accounts take part in batch actions immediately')
+  assert.equal(app.findAll((node) => node.type === 'button' && app.text(node) === '切换', panel()).length, 4, 'new accounts get their own manual switch button')
 })

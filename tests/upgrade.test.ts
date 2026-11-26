@@ -1,8 +1,8 @@
 /**
  * Upgrading from the pre-1.2 name keeps the user's data.
  *
- * The package was renamed to `dsh-codearts-dock`; the config directory, the
- * backup format ids and the settings namespace followed. That makes exactly one
+ * The package was renamed to `dsh-codearts-dock`; the config directory and
+ * settings namespace followed. That makes exactly one
  * thing dangerous: an install that upgrades must not come up looking empty.
  * "No accounts, no preferences, no claim history" is indistinguishable from a
  * first run, so nothing would report the bug — the user would simply be told to
@@ -45,39 +45,6 @@ const checkinModule = await import('../src/checkin.ts')
 const checkin = checkinModule as unknown as {
   readCheckinState(): { accounts: Record<string, Record<string, { claimed: boolean }>> }
 }
-type BackupAccount = { ak: string; sk: string; label?: string }
-type BackupPreferences = Record<string, unknown>
-type EncodedBackup = {
-  format: string
-  version: number
-  createdAt?: string
-  preferences: BackupPreferences
-  accounts?: BackupAccount[]
-  activeAccountId?: string
-  cipher?: string
-  kdf?: string
-  salt?: string
-  iv?: string
-  tag?: string
-  data?: string
-}
-type DecodedBackup = {
-  format: string
-  version: number
-  preferences: BackupPreferences
-  accounts?: BackupAccount[]
-  activeAccountId?: string
-}
-const backupModule = await import('../src/backup.ts')
-const encodeBackup = backupModule.encodeBackup as unknown as (input: {
-  preferences: BackupPreferences
-  accounts?: BackupAccount[]
-  includeCredentials?: boolean
-  activeAccountId?: string
-  password?: string
-}) => Promise<EncodedBackup>
-const decodeBackup = backupModule.decodeBackup as unknown as (text: string, password?: string) => Promise<DecodedBackup>
-
 await check('configuration paths prefer the current name and include the legacy fallback', () => {
   assert.ok(CONFIG_DIR.endsWith('dsh-codearts-dock'), `current dir uses the new name: ${CONFIG_DIR}`)
   assert.ok(LEGACY_CONFIG_DIR.endsWith('dsh-connect-codearts'), `legacy dir uses the old name: ${LEGACY_CONFIG_DIR}`)
@@ -112,13 +79,13 @@ await check('an account store written under the old name is still read', () => {
 await check('preferences written under the old name are still read', () => {
   writeFileSync(
     join(LEGACY_CONFIG_DIR, 'preferences.json'),
-    JSON.stringify({ composerChip: false, refreshIntervalMs: 120000, favoriteModelIds: ['kept-model'] }),
+    JSON.stringify({ composerChip: false, refreshIntervalMs: 120000, favoriteModelIds: ['kept-model'], modelPresets: [{ id: 'legacy-preset', name: 'Legacy', enabledModelIds: ['old-preset-model'], modelOverrides: {} }], enabledModelIds: ['kept-model'], modelOverrides: { 'kept-model': { images: true } } }),
   )
   const read = readPreferences()
   assert.equal(read.composerChip, false)
   assert.equal(read.refreshIntervalMs, 120000)
   assert.deepEqual(read.favoriteModelIds, ['kept-model'])
-  assert.deepEqual(preferences.validatePreferences(read), { composerChip: false, refreshIntervalMs: 120000 })
+  assert.deepEqual(preferences.validatePreferences(read), { composerChip: false, refreshIntervalMs: 120000, enabledModelIds: ['kept-model'], modelOverrides: { 'kept-model': { images: true } } })
 })
 
 await check('the check-in record written under the old name is still read', () => {
@@ -147,78 +114,6 @@ await check('the current directory wins once it exists, so a stale old file cann
   assert.equal(stored.refreshIntervalMs, 600000)
   const legacy = JSON.parse(readFileSync(join(LEGACY_CONFIG_DIR, 'preferences.json'), 'utf8'))
   assert.equal(legacy.refreshIntervalMs, 120000, 'the old file is never rewritten')
-})
-
-await check('a backup exported under the old format id still decrypts', async () => {
-  // Hand-build a pre-rename envelope: old format id AND the old AAD, because the
-  // seal authenticates the id it was written with. Reusing the current encoder
-  // would test the new path against itself and prove nothing.
-  const { randomBytes, scrypt, createCipheriv } = await import('node:crypto')
-  const { promisify } = await import('node:util')
-  const derive = (password: string, salt: Buffer, length: number, options: { N: number; r: number; p: number; maxmem: number }) =>
-    new Promise<Buffer>((resolve, reject) => {
-      scrypt(password, salt, length, options, (error, key) => {
-        if (error) reject(error)
-        else resolve(key)
-      })
-    })
-  const payload = {
-    format: 'dsh-connect-codearts-backup',
-    version: 1,
-    createdAt: '2026-11-20T00:00:00.000Z',
-    preferences: { composerChip: false, favoriteModelIds: ['legacy-pin'] },
-    accounts: [{ ak: 'AKFROMOLDBACKUP01', sk: 'sk-backup', label: '备份账号' }],
-    // The store's own id derivation: sha256(ak) truncated. Writing any other
-    // value would be rejected as an inconsistent file rather than exercising
-    // the legacy-format path this check is about.
-    activeAccountId: (await import('node:crypto')).createHash('sha256').update('AKFROMOLDBACKUP01').digest('hex').slice(0, 16),
-  }
-  const data = Buffer.from(JSON.stringify(payload))
-  const password = 'old-backup-password'
-  const salt = randomBytes(16), iv = randomBytes(12)
-  const key = await derive(password, salt, 32, { N: 32768, r: 8, p: 1, maxmem: 64 * 1024 * 1024 })
-  let envelope
-  try {
-    const cipher = createCipheriv('aes-256-gcm', key, iv)
-    cipher.setAAD(Buffer.from('dsh-connect-codearts-encrypted:1'))
-    const sealed = Buffer.concat([cipher.update(data), cipher.final()])
-    envelope = {
-      format: 'dsh-connect-codearts-encrypted',
-      version: 1,
-      cipher: 'aes-256-gcm',
-      kdf: 'scrypt',
-      salt: salt.toString('base64'),
-      iv: iv.toString('base64'),
-      tag: cipher.getAuthTag().toString('base64'),
-      data: sealed.toString('base64'),
-    }
-  } finally {
-    key.fill(0)
-  }
-
-  const decoded = await decodeBackup(JSON.stringify(envelope), password)
-  assert.ok(decoded.accounts)
-  assert.equal(decoded.accounts.length, 1, 'the old backup restores its account')
-  assert.equal(decoded.accounts[0].ak, 'AKFROMOLDBACKUP01')
-  assert.equal(decoded.format, 'dsh-codearts-dock-backup', 'normalised to the new id on the way in')
-  assert.ok(!('favoriteModelIds' in decoded.preferences), 'old pin preferences are ignored during restore')
-
-  // The wrong password must still fail: the old-AAD path is not a bypass of the
-  // seal, it only names the id that was authenticated.
-  await assert.rejects(decodeBackup(JSON.stringify(envelope), 'wrong-password'), /密码错误/)
-})
-
-await check('a backup exported now uses the new ids and still round-trips', async () => {
-  const exported = await encodeBackup({
-    preferences: { composerChip: true },
-    accounts: [{ ak: 'AKNEWBACKUP000001', sk: 'sk-new' }],
-    includeCredentials: true,
-    password: 'new-backup-password',
-  })
-  assert.equal(exported.format, 'dsh-codearts-dock-encrypted')
-  const decoded = await decodeBackup(JSON.stringify(exported), 'new-backup-password')
-  assert.ok(decoded.accounts)
-  assert.equal(decoded.accounts[0].ak, 'AKNEWBACKUP000001')
 })
 
 test('cleanup scratch data', () => {

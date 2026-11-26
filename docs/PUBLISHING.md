@@ -80,13 +80,15 @@ npm trust github dsh-codearts-dock --file release.yml --allow-publish --dry-run 
 
 ### 每次发布
 
-1. 将 `CHANGELOG.md` 的 `[Unreleased]` 内容整理到新版本条目，再运行 `node scripts/release.mjs 1.4.0` 更新 `package.json`。版本号必须高于当前版本。
-2. 检查 `pnpm test`、`pnpm run check:release`、`pnpm run check:package` 和 `pnpm pack` 的输出，确认包内不含账号、令牌、本机笔记、导出或备份。
+以下命令中的 `X.Y.Z` 均须替换为本次发布的新版本号。
+
+1. 将 `CHANGELOG.md` 的 `[Unreleased]` 内容整理到新版本条目，再运行 `node scripts/release.mjs X.Y.Z` 更新 `package.json`。版本号必须高于当前版本。
+2. 检查 `pnpm run typecheck`、`pnpm test`、`pnpm run check:release`、`pnpm run check:package` 和 `pnpm pack` 的输出，确认包内不含账号、令牌、本机笔记、导出或备份。界面改动后同步更新 `docs/assets/` 中的截图和根目录 `screenshots.json` 的相对路径清单，确认截图文件均已提交并进入发布包；隐私扫描只检查文本，截图的脱敏和可读性需人工核对。
 3. 提交并推 tag：
 
    ```bash
-   git add package.json CHANGELOG.md && git commit -m "chore: release v1.4.0"
-   git tag -a v1.4.0 -m "v1.4.0" && git push origin main --follow-tags
+   git add package.json CHANGELOG.md && git commit -m "chore: release vX.Y.Z"
+   git tag -a vX.Y.Z -m "vX.Y.Z" && git push origin main --follow-tags
    ```
 
    tag 触发 `.github/workflows/release.yml`：它先校验 tag 与 `package.json` 版本一致、离线测试全绿、该版本尚未存在，然后发布。
@@ -97,7 +99,7 @@ npm trust github dsh-codearts-dock --file release.yml --allow-publish --dry-run 
 
    ```bash
    node scripts/release.mjs --repin
-   git add market-index.json && git commit -m "chore: repin index for v1.4.0" && git push
+   git add market-index.json && git commit -m "chore: repin index for vX.Y.Z" && git push
    ```
 
    这步在版本尚未出现在 registry 时会拒绝并列出已发布版本——那说明第 3 步没成功，不是索引脚本的问题。索引重钉提交沿用已发布版本号，不会再次触发 npm 发布。
@@ -106,4 +108,4 @@ npm trust github dsh-codearts-dock --file release.yml --allow-publish --dry-run 
 
 `main` 分支的每次推送都会跑 `.github/workflows/ci.yml`（冻结依赖安装、类型检查、离线测试、入口与隐私检查、发布元数据和打包清单），它不发布任何东西。
 
-1.1.0 及更早版本的包名是 `dsh-connect-codearts`，配置目录与内部标识也是这个名字。从 1.2.0 起统一为 `dsh-codearts-dock`：配置目录、loader 行 id、HTTP 路由前缀、客户端槽位 id 和备份格式 id 全部改名，读取侧保留对旧目录、旧设置命名空间与旧备份格式的兼容，升级不丢账号和偏好。模型 provider 仍为 `codearts`。不要同时启用新旧两个包——两者会注册同一个 provider 路由。
+1.1.0 及更早版本的包名是 `dsh-connect-codearts`，配置目录与内部标识也是这个名字。从 1.2.0 起统一为 `dsh-codearts-dock`：配置目录、loader 行 id、HTTP 路由前缀和客户端槽位 id 全部改名，读取侧保留对旧目录与旧设置命名空间的兼容，升级不丢账号和偏好。模型 provider 仍为 `codearts`。不要同时启用新旧两个包——两者会注册同一个 provider 路由。

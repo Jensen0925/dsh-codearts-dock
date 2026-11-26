@@ -404,6 +404,8 @@ function failedRead(reason) {
  * @param {string} options.accountId whose record to update.
  * @param {Date} [options.now] clock, for tests.
  * @param {boolean} [options.force] claim even when the local record says it was attempted today (never used by the batch action).
+ * @param {boolean} [options.dailyOnly] ignore non-recurring rewards (used by automatic daily check-in).
+ * @param {() => boolean} [options.shouldContinue] stop before the next campaign when a scheduled run is disabled.
  * @returns {Promise<{claimed: boolean, amount: number, reasons: string[], campaigns: Array<{key: string, claimed: boolean, amount?: number, reason?: string}>}>} the outcome.
  */
 export async function claimDaily(client, options) {
@@ -417,13 +419,19 @@ export async function claimDaily(client, options) {
     return { claimed: false, amount: 0, reasons: [`读取福利列表失败：${error?.message ?? error}`], campaigns: [] }
   }
 
-  const eligible = claimableCampaigns(items)
+  const eligible = claimableCampaigns(items).filter((item) => !options.dailyOnly || isDailyCampaign(item))
   if (eligible.length === 0) {
-    return { claimed: false, amount: 0, reasons: ['上游当前没有可领取的福利活动'], campaigns: [] }
+    return {
+      claimed: false,
+      amount: 0,
+      reasons: options.dailyOnly ? [] : ['上游当前没有可领取的福利活动'],
+      campaigns: [],
+    }
   }
 
   const results = []
   for (const item of eligible) {
+    if (options.shouldContinue && !options.shouldContinue()) break
     results.push(await claimOne(client, { now, state, item, accountId: options.accountId, force: options.force }))
   }
 
@@ -488,15 +496,20 @@ async function recordAttempt(state, accountId, campaignId, now, claimed, amount,
  * @param {object} options run options.
  * @param {Array<{id: string, client: import('./gateway.js').MadaoClient}>} options.targets accounts to check, in order.
  * @param {Date} [options.now] clock, for tests.
+ * @param {boolean} [options.dailyOnly] restrict claims to recurring daily campaigns.
+ * @param {() => boolean} [options.shouldContinue] checked before each account.
+ * @param {(id: string) => boolean} [options.shouldInclude] recheck membership before each account and claim.
  * @returns {Promise<{attempted: number, claimed: number, skipped: number, failures: Array<{id: string, reason: string}>}>} the summary.
  */
-export async function claimAllDaily({ targets, now = new Date() }) {
+export async function claimAllDaily({ targets, now = new Date(), dailyOnly = false, shouldContinue = () => true, shouldInclude = () => true }) {
   const summary = { attempted: 0, claimed: 0, skipped: 0, failures: [] }
 
   for (const target of targets ?? []) {
+    if (!shouldContinue()) break
+    if (!shouldInclude(target.id)) continue
     summary.attempted += 1
     try {
-      const result = await claimDaily(target.client, { accountId: target.id, now, force: false })
+      const result = await claimDaily(target.client, { accountId: target.id, now, force: false, dailyOnly, shouldContinue: () => shouldContinue() && shouldInclude(target.id) })
       if (result.claimed) summary.claimed += 1
       else if (result.reasons.length === 0) summary.skipped += 1
       for (const reason of result.reasons) summary.failures.push({ id: target.id, reason })

@@ -221,6 +221,7 @@ await check('a Config schema is declared, so the settings namespace exists', asy
   assert.equal(typeof resolved, 'object', 'the schema must resolve defaults')
   assert.equal(resolved.enabled, true, 'defaults must be applied')
   assert.ok('composerChip' in resolved, 'the fields the card reads must be declared')
+  assert.equal(resolved.dailyCheckinEnabled, false, 'daily check-in is opt-in')
 })
 
 await check('Config satisfies the two gates Settings → Models applies', async () => {
@@ -239,10 +240,10 @@ await check('Config satisfies the two gates Settings → Models applies', async 
   const json = schema.toJSON()
   assert.equal(typeof json, 'object', 'gate 1: toJSON must produce a schema document')
   // Gate 2 needs the schema to resolve the values the card reads.
-  assert.ok(!('autoCheckin' in plugin.DEFAULTS), 'removed automatic preference has no default')
+  assert.equal(plugin.DEFAULTS.dailyCheckinEnabled, false, 'automatic check-in defaults off')
   const values = schema({})
-  assert.ok(!('autoCheckin' in values), 'removed automatic preference is not offered by settings')
-  for (const field of ['enabled', 'composerChip', 'registerProvider']) {
+  assert.equal(values.dailyCheckinEnabled, false, 'the config schema defaults automatic check-in off')
+  for (const field of ['enabled', 'composerChip', 'registerProvider', 'dailyCheckinEnabled']) {
     assert.ok(field in values, `gate 2: ${field} must resolve from the schema`)
   }
 })
