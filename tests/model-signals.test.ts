@@ -10,6 +10,7 @@ import {
   batchModelIds,
   normalizeBusyLevel,
   parseBusyLevels,
+  resolveBusyBadge,
 } from '../src/busy.ts'
 import { resolveModelPromo } from '../src/promo.ts'
 import { discoverModels, fetchBusyLevels } from '../src/models.ts'
@@ -32,6 +33,15 @@ await check('busy levels accept known values and map malformed or prototype keys
     null,
   ])
   assert.deepEqual([...parsed], [['busy-model', 'busy'], ['new-enum', 'unknown']])
+})
+
+await check('busy badges use compact queue icons and omit unknown levels', () => {
+  assert.equal(resolveBusyBadge('idle')?.symbol, '🚀')
+  assert.equal(resolveBusyBadge('normal')?.symbol, '🧍')
+  assert.equal(resolveBusyBadge('busy')?.symbol, '🧍🧍')
+  assert.equal(resolveBusyBadge('congested')?.symbol, '🧍🧍🧍')
+  assert.equal(resolveBusyBadge('unavailable')?.symbol, '🚫')
+  assert.equal(resolveBusyBadge('unknown'), undefined)
 })
 
 await check('model ids are deduplicated and split at the upstream limit', () => {

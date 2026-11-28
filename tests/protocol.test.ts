@@ -9,6 +9,7 @@ import { createHash, createHmac } from 'node:crypto'
 import { canonicalUri, formatSdkDate, signRequest } from '../src/protocol/sign.ts'
 import { deriveSessionKey, deriveRequestEnvelope, openChunk } from '../src/protocol/crypto.ts'
 import { parseStreamEvent, splitSseEvents } from '../src/protocol/sse.ts'
+import { MadaoClient, GatewayError } from '../src/gateway.ts'
 
 const check = (name: string, fn: () => void | Promise<void>) => test(name, fn)
 
@@ -165,4 +166,147 @@ check('an upstream error frame is surfaced', () => {
 check('an unrecognised frame yields nothing rather than throwing', () => {
   assert.deepEqual(parseStreamEvent('not json'), {})
   assert.deepEqual(parseStreamEvent('{"unrelated":true}'), {})
+})
+
+const makeStreamClient = (body: string | ReadableStream<Uint8Array>, streamIdleTimeoutMs = 300_000) => {
+  const client: any = new MadaoClient({
+    credentials: { ak: 'AK', sk: 'SK', securityToken: 'TOKEN' },
+    streamIdleTimeoutMs,
+    fetch: async () => ({
+      ok: true,
+      headers: new Headers(),
+      body: typeof body === 'string'
+        ? ReadableStream.from([new TextEncoder().encode(body)])
+        : body,
+    }) as Response,
+  })
+  client.sessionKey = { keyId: 'test-key', key: Buffer.alloc(16), expiresAt: Date.now() + 3_600_000 }
+  return client
+}
+
+check('an unexpected chat-stream EOF is reported instead of successful partial completion', async () => {
+  const client = makeStreamClient('data: {"choices":[{"delta":{"content":"partial"}}]}\n\n')
+  const received: ParsedEvent[] = []
+  await assert.rejects(async () => {
+    for await (const event of client.streamChat({ model: 'm', messages: [] })) received.push(event)
+  }, (error) => {
+    const failure = error as GatewayError & { code?: string; retryable?: boolean }
+    return failure instanceof GatewayError && failure.code === 'REQUEST_FAILED' && failure.retryable === true
+  })
+  assert.equal(received[0]?.text, 'partial', 'already received text remains available before the terminal error')
+})
+
+check('a finish reason is enough when a gateway omits the trailing DONE sentinel', async () => {
+  const client = makeStreamClient('data: {"choices":[{"delta":{"content":"complete"}}]}\n\ndata: {"choices":[{"delta":{},"finish_reason":"stop"}]}\n\n')
+  const received: ParsedEvent[] = []
+  for await (const event of client.streamChat({ model: 'm', messages: [] })) received.push(event)
+  assert.equal(received.at(-1)?.finish, 'stop')
+})
+
+check('the stream parser survives byte-by-byte UTF-8 and SSE delimiter splits', async () => {
+  const bytes = new TextEncoder().encode(
+    'data: {"choices":[{"delta":{"content":"你好，世界 🌍"},"finish_reason":null}]}\r\n\r\n' +
+    'data: {"choices":[{"delta":{},"finish_reason":"stop"}]}\r\n\r\n',
+  )
+  const body = ReadableStream.from(Array.from(bytes, (byte) => Uint8Array.of(byte)))
+  const received: ParsedEvent[] = []
+  for await (const event of makeStreamClient(body).streamChat({ model: 'm', messages: [] })) received.push(event)
+  assert.equal(received.find((event) => event.text)?.text, '你好，世界 🌍')
+  assert.equal(received.find((event) => event.finish)?.finish, 'stop')
+})
+
+check('a body stream reset after partial output becomes a retryable transport failure', async () => {
+  let sentPartial = false
+  const body = new ReadableStream<Uint8Array>({
+    async pull(controller) {
+      if (sentPartial) return
+      sentPartial = true
+      controller.enqueue(new TextEncoder().encode('data: {"choices":[{"delta":{"content":"partial"}}]}\n\n'))
+      await new Promise((resolve) => setTimeout(resolve, 0))
+      controller.error(new TypeError('socket reset'))
+    },
+  })
+  const received: ParsedEvent[] = []
+  await assert.rejects(async () => {
+    for await (const event of makeStreamClient(body).streamChat({ model: 'm', messages: [] })) received.push(event)
+  }, (error) => {
+    const failure = error as GatewayError & { code?: string; retryable?: boolean }
+    return failure instanceof GatewayError && failure.code === 'REQUEST_FAILED' && failure.retryable === true
+  })
+  assert.equal(received[0]?.text, 'partial')
+})
+
+check('a body reset after the finish reason preserves the completed answer', async () => {
+  let sentFinish = false
+  const body = new ReadableStream<Uint8Array>({
+    async pull(controller) {
+      if (!sentFinish) {
+        sentFinish = true
+        controller.enqueue(new TextEncoder().encode('data: {"choices":[{"delta":{},"finish_reason":"stop"}]}\n\n'))
+        return
+      }
+      await new Promise((resolve) => setTimeout(resolve, 0))
+      controller.error(new TypeError('socket reset after completion'))
+    },
+  })
+  const received: ParsedEvent[] = []
+  for await (const event of makeStreamClient(body).streamChat({ model: 'm', messages: [] })) received.push(event)
+  assert.equal(received.find((event) => event.finish)?.finish, 'stop')
+})
+
+check('a standalone DONE sentinel completes a response without a finish reason', async () => {
+  const received: ParsedEvent[] = []
+  for await (const event of makeStreamClient('data: [DONE]\n\n').streamChat({ model: 'm', messages: [] })) received.push(event)
+  assert.deepEqual(received, [{ done: true }])
+})
+
+check('a stalled response body times out as a retryable failure', async () => {
+  const body = new ReadableStream<Uint8Array>({ pull: () => new Promise(() => {}) })
+  await assert.rejects(async () => {
+    for await (const _event of makeStreamClient(body, 10).streamChat({ model: 'm', messages: [] })) {}
+  }, (error) => {
+    const failure = error as GatewayError & { code?: string; retryable?: boolean }
+    return failure instanceof GatewayError && /超时/.test(failure.message) && failure.code === 'REQUEST_FAILED' && failure.retryable === true
+  })
+})
+
+check('a gateway that never sends response headers times out as a retryable failure', async () => {
+  const client: any = new MadaoClient({
+    credentials: { ak: 'AK', sk: 'SK', securityToken: 'TOKEN' },
+    streamIdleTimeoutMs: 10,
+    fetch: () => new Promise(() => {}),
+  })
+  client.sessionKey = { keyId: 'test-key', key: Buffer.alloc(16), expiresAt: Date.now() + 3_600_000 }
+  await assert.rejects(async () => {
+    for await (const _event of client.streamChat({ model: 'm', messages: [] })) {}
+  }, (error) => {
+    const failure = error as GatewayError & { code?: string; retryable?: boolean }
+    return failure instanceof GatewayError && /超时/.test(failure.message) && failure.code === 'REQUEST_FAILED' && failure.retryable === true
+  })
+})
+
+check('a complete final finish frame without a blank-line delimiter is still parsed', async () => {
+  const received: ParsedEvent[] = []
+  const payload = 'data: {"choices":[{"delta":{},"finish_reason":"stop"}]}'
+  for await (const event of makeStreamClient(payload).streamChat({ model: 'm', messages: [] })) received.push(event)
+  assert.equal(received[0]?.finish, 'stop')
+})
+
+check('an aborted chat stream remains an abort instead of an incomplete-stream failure', async () => {
+  const controller = new AbortController()
+  controller.abort()
+  const client = makeStreamClient('')
+  await assert.rejects(async () => {
+    for await (const _event of client.streamChat({ model: 'm', messages: [], signal: controller.signal })) {}
+  }, { name: 'AbortError' })
+})
+
+check('an abort while waiting for the next body chunk cancels promptly', async () => {
+  const controller = new AbortController()
+  const body = new ReadableStream<Uint8Array>({ pull: () => new Promise(() => {}) })
+  const pending = (async () => {
+    for await (const _event of makeStreamClient(body).streamChat({ model: 'm', messages: [], signal: controller.signal })) {}
+  })
+  setTimeout(() => controller.abort(), 5)
+  await assert.rejects(pending, { name: 'AbortError' })
 })

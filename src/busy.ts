@@ -38,6 +38,15 @@ export const BUSY_COLORS: Record<BusyLevel, string> = {
   unknown: '#6b7280',
 }
 
+/** Compact symbols for the model picker, where the host renders badge text only. */
+export const BUSY_SYMBOLS: Record<Exclude<BusyLevel, 'unknown'>, string> = {
+  idle: '🚀',
+  normal: '🧍',
+  busy: '🧍🧍',
+  congested: '🧍🧍🧍',
+  unavailable: '🚫',
+}
+
 /** The upstream's batch limit for the read-only load probe. */
 export const BUSY_BATCH_SIZE = 50
 
@@ -70,14 +79,19 @@ export function batchModelIds(ids: readonly string[], size = BUSY_BATCH_SIZE): s
   return batches
 }
 
-/** Format the busy level as a badge for LlmModelInfo.badge. */
+/** Format the busy level as an icon and label for LlmModelInfo.badge. */
 export function resolveBusyBadge(level: BusyLevel) {
-  if (level === 'idle' || level === 'unknown') return undefined
+  if (level === 'unknown') return undefined
   return {
+    symbol: BUSY_SYMBOLS[level],
     text: {
       zh: BUSY_TITLES_ZH[level],
       en: BUSY_TITLES_EN[level],
     },
-    tone: level === 'congested' || level === 'unavailable' ? 'warning' : 'info' as const,
+    tone: level === 'idle'
+      ? 'success' as const
+      : level === 'busy' || level === 'congested' || level === 'unavailable'
+        ? 'warning' as const
+        : 'info' as const,
   }
 }

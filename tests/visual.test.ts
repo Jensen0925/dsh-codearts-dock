@@ -166,6 +166,12 @@ check('model rows indent their second line to the name', () => {
   has('padding-inline-start:22px', '22px = the checkbox box plus its gap')
 })
 
+check('model tab keeps the busy icon after the promotion badge', () => {
+  const promo = source.indexOf("className: `dca-model-promo")
+  const busy = source.indexOf("className: 'dca-model-busy'")
+  assert.ok(promo >= 0 && busy > promo, 'busy icon is rendered after the promotion badge')
+})
+
 check('import opens the system picker, and export downloads a file', () => {
   // The reference opens the OS picker straight from the button: a ceremony
   // dialog in front of a dialog the OS is about to show is one click of

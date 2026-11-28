@@ -257,6 +257,8 @@ class CodeArtsAdapter extends LlmAdapter {
     let sawToolCall = false
     /** Finish reason seen on the wire, emitted once the stream settles. */
     let pendingFinish
+    /** Busy heartbeat is best-effort, but idle must follow it to avoid a race. */
+    let busyHeartbeat = Promise.resolve()
 
     const closeAll = function* () {
       if (textIndex !== undefined) {
@@ -307,7 +309,9 @@ class CodeArtsAdapter extends LlmAdapter {
         signal: options.signal,
       }
 
-      await client.heartbeat('busy')
+      // The heartbeat only optimises the gateway's session quota; it must not
+      // hold a model request behind a slow or unreachable heartbeat endpoint.
+      busyHeartbeat = Promise.resolve().then(() => client.heartbeat('busy')).catch(() => {})
 
       for await (const event of client.streamChat(request)) {
         if (options.signal?.aborted) {
@@ -444,7 +448,7 @@ class CodeArtsAdapter extends LlmAdapter {
     } finally {
       // Releasing the concurrency slot matters even on failure: the gateway
       // allows only a few sessions, and a held slot blocks every new turn.
-      void client.heartbeat('idle').catch(() => {})
+      void busyHeartbeat.then(() => client.heartbeat('idle')).catch(() => {})
     }
   }
 
@@ -493,12 +497,20 @@ class CodeArtsAdapter extends LlmAdapter {
     const badge = promoBadge && busyBadge
       ? {
           text: {
-            zh: `${promoBadge.text.zh} · ${busyBadge.text.zh}`,
-            en: `${promoBadge.text.en} · ${busyBadge.text.en}`,
+            zh: `${promoBadge.text.zh} ${busyBadge.symbol} · ${busyBadge.text.zh}`,
+            en: `${promoBadge.text.en} ${busyBadge.symbol} · ${busyBadge.text.en}`,
           },
           tone: promoBadge.tone,
         }
-      : promoBadge ?? busyBadge
+      : promoBadge ?? (busyBadge
+          ? {
+              text: {
+                zh: `${busyBadge.symbol} ${busyBadge.text.zh}`,
+                en: `${busyBadge.symbol} ${busyBadge.text.en}`,
+              },
+              tone: busyBadge.tone,
+            }
+          : undefined)
 
     return {
       provider,

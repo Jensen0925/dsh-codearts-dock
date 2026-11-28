@@ -53,6 +53,8 @@ export const HEARTBEAT_PATH = '/snap-manager/v1/chat-session/heartbeat'
 
 /** Renew the session key this long before it expires. */
 const REFRESH_MARGIN_MS = 300_000
+/** Fail a provider stream after five minutes without response progress. */
+const DEFAULT_STREAM_IDLE_TIMEOUT_MS = 300_000
 
 /**
  * Headers every request to this gateway must carry. Each one is required:
@@ -101,6 +103,7 @@ export class MadaoClient {
    * @param {object} [options.identity] client identity overrides.
    * @param {string} [options.language] language header value.
    * @param {string} [options.sessionId] fixed `user-session-id`.
+   * @param {number} [options.streamIdleTimeoutMs] per-wait timeout while opening or reading a chat stream.
    */
   constructor(options) {
     this.gateway = (options.gateway ?? DEFAULT_GATEWAY).replace(/\/+$/, '')
@@ -108,6 +111,10 @@ export class MadaoClient {
     this.fetch = options.fetch ?? globalThis.fetch.bind(globalThis)
     this.identity = { ...DEFAULT_IDENTITY, ...options.identity }
     this.language = options.language ?? 'zh-cn'
+    this.streamIdleTimeoutMs = options.streamIdleTimeoutMs ?? DEFAULT_STREAM_IDLE_TIMEOUT_MS
+    if (!Number.isFinite(this.streamIdleTimeoutMs) || this.streamIdleTimeoutMs <= 0) {
+      throw new RangeError('streamIdleTimeoutMs must be a positive finite number')
+    }
     this.sessionKey = null
     this.negotiating = null
     this.sessionId = options.sessionId ?? null
@@ -309,6 +316,7 @@ export class MadaoClient {
           ...this.#identityHeaders(),
           'user-session-id': this.defaultSessionId,
         },
+        signal: typeof AbortSignal.timeout === 'function' ? AbortSignal.timeout(5000) : undefined,
       })
       return response.ok
     } catch {
@@ -375,9 +383,38 @@ export class MadaoClient {
       credentials: this.credentials,
     })
 
+    const idleAbortController = new AbortController()
+    const streamSignal = request.signal
+      ? AbortSignal.any([request.signal, idleAbortController.signal])
+      : idleAbortController.signal
+    let idleTimedOut = false
+    const waitForProgress = (operation) => {
+      let timer
+      let onAbort
+      const callerAbort = request.signal
+        ? new Promise((_resolve, reject) => {
+            onAbort = () => reject(Object.assign(new Error('已取消'), { name: 'AbortError' }))
+            if (request.signal.aborted) onAbort()
+            else request.signal.addEventListener('abort', onAbort, { once: true })
+          })
+        : null
+      const timeout = new Promise((_resolve, reject) => {
+        timer = setTimeout(() => {
+          idleTimedOut = true
+          idleAbortController.abort()
+          reject(new Error('stream idle timeout'))
+        }, this.streamIdleTimeoutMs)
+      })
+      const pending = callerAbort ? [operation, timeout, callerAbort] : [operation, timeout]
+      return Promise.race(pending).finally(() => {
+        clearTimeout(timer)
+        if (onAbort) request.signal.removeEventListener('abort', onAbort)
+      })
+    }
+
     let response
     try {
-      response = await this.fetch(url, {
+      response = await waitForProgress(Promise.resolve().then(() => this.fetch(url, {
         method: 'POST',
         headers: {
           ...signed,
@@ -390,9 +427,18 @@ export class MadaoClient {
           'user-msg-id': randomUUID(),
         },
         body: envelope.body,
-        signal: request.signal,
-      })
+        signal: streamSignal,
+      })))
     } catch (error) {
+      if (request.signal?.aborted) {
+        throw Object.assign(new Error('已取消'), { name: 'AbortError' })
+      }
+      if (idleTimedOut) {
+        throw new GatewayError('等待码道对话流响应超时', {
+          code: 'REQUEST_FAILED',
+          retryable: true,
+        })
+      }
       if (error?.name === 'AbortError') throw error
       throw new GatewayError(`无法连接码道网关：${error?.message ?? error}`, { retryable: true })
     }
@@ -410,37 +456,87 @@ export class MadaoClient {
     }
 
     const sealed = response.headers.get('x-encrypt-algo') === 'sm4-gcm'
-    if (!response.body) throw new GatewayError('chat response carried no body')
+    if (!response.body) {
+      throw new GatewayError('码道网关未返回对话流', {
+        code: 'REQUEST_FAILED',
+        retryable: true,
+      })
+    }
 
     const decoder = new TextDecoder()
     let buffer = ''
     let index = 0
+    let sawFinish = false
 
-    for await (const bytes of response.body) {
-      buffer += decoder.decode(bytes, { stream: true })
-      const { blocks, rest } = splitSseEvents(buffer)
-      buffer = rest
-
-      for (const block of blocks) {
-        // Decrypt first, then parse: a sealed block carries no `data:` prefix
-        // until it is opened.
-        const plaintext = sealed ? openChunk(block, session.key, session.keyId, index) : block
-        index += 1
-        if (plaintext === null) continue
-        for (const event of parseFrames(plaintext)) {
-          if (event.error) {
-            throw new GatewayError(`码道上游返回错误：${event.error}`, {
-              code: event.error,
-              retryable: false,
+    const reader = response.body.getReader()
+    let bodyComplete = false
+    try {
+      while (true) {
+        let item
+        try {
+          item = await waitForProgress(reader.read())
+        } catch (error) {
+          if (request.signal?.aborted) {
+            throw Object.assign(new Error('已取消'), { name: 'AbortError' })
+          }
+          // The provider's finish reason is authoritative. The gateway may
+          // still send a separate usage frame and [DONE], but losing either
+          // after a finished answer must not trigger a replay of the request.
+          if (sawFinish) break
+          if (idleTimedOut) {
+            throw new GatewayError('等待码道对话流数据超时', {
+              code: 'REQUEST_FAILED',
+              retryable: true,
             })
           }
-          yield event
-          if (event.done) return
+          if (error?.name === 'AbortError') throw error
+          throw new GatewayError(`读取码道对话流失败：${error?.message ?? error}`, {
+            code: 'REQUEST_FAILED',
+            retryable: true,
+          })
+        }
+        if (item.done) {
+          bodyComplete = true
+          break
+        }
+
+        const bytes = item.value
+        buffer += decoder.decode(bytes, { stream: true })
+        const { blocks, rest } = splitSseEvents(buffer)
+        buffer = rest
+
+        for (const block of blocks) {
+          // Decrypt first, then parse: a sealed block carries no `data:` prefix
+          // until it is opened.
+          const plaintext = sealed ? openChunk(block, session.key, session.keyId, index) : block
+          index += 1
+          if (plaintext === null) continue
+          for (const event of parseFrames(plaintext)) {
+            if (event.error) {
+              throw new GatewayError(`码道上游返回错误：${event.error}`, {
+                code: event.error,
+                retryable: false,
+              })
+            }
+            if (event.finish) sawFinish = true
+            yield event
+            if (event.done) return
+          }
         }
       }
+    } finally {
+      if (!bodyComplete) await reader.cancel().catch(() => {})
+      reader.releaseLock()
     }
 
-    // A stream that ends without `[DONE]` still has to settle.
+    // Flush TextDecoder's pending bytes at EOF. In particular, never silently
+    // discard the final half of a multibyte character split across transport
+    // chunks; the completion check below will reject an incomplete response.
+    buffer += decoder.decode()
+
+    // Some gateways omit `[DONE]` after a final finish frame, so process any
+    // complete payload left in the decoder buffer before deciding whether the
+    // response was truncated.
     if (buffer.trim() !== '') {
       const plaintext = sealed ? openChunk(buffer.trim(), session.key, session.keyId, index) : buffer.trim()
       if (plaintext) {
@@ -448,10 +544,26 @@ export class MadaoClient {
           if (event.error) {
             throw new GatewayError(`码道上游返回错误：${event.error}`, { code: event.error })
           }
+          if (event.finish) sawFinish = true
           yield event
           if (event.done) return
         }
       }
+    }
+
+    // A clean HTTP EOF is not necessarily a completed model response. Without
+    // a finish reason or the SSE terminal sentinel, the Host would otherwise
+    // treat a truncated answer as a successful `stop` and leave the user to
+    // notice the missing work and prompt again. A finish reason is sufficient
+    // for gateways that omit [DONE] after a complete response.
+    if (request.signal?.aborted) {
+      throw Object.assign(new Error('已取消'), { name: 'AbortError' })
+    }
+    if (!sawFinish) {
+      throw new GatewayError('码道对话流意外结束，未收到完成信号', {
+        code: 'REQUEST_FAILED',
+        retryable: true,
+      })
     }
   }
 }

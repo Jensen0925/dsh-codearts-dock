@@ -13,6 +13,8 @@ type CatalogModel = {
   supportsImages: boolean;
   strengths: string[];
   defaultStrength?: string;
+  busyLevel?: 'idle' | 'normal' | 'busy' | 'congested' | 'unavailable' | 'unknown';
+  limitedTimeHalfPrice?: boolean;
 };
 
 type GatewayEvent = {
@@ -116,6 +118,20 @@ await check('listModels renders the credit ratio into the name', async () => {
   assert.equal(list[0].name, 'Model One · 0.1x');
   assert.deepEqual(list[0].inputModalities, ['text','image']);
   assert.deepEqual(list[1].inputModalities, ['text']);
+});
+
+await check('listModels places the upstream busy icon immediately after a promotion badge', async () => {
+  const catalog = fakeCatalog([
+    { ...models[0], limitedTimeHalfPrice: true, busyLevel: 'congested' },
+    { ...models[1], busyLevel: 'idle' },
+  ]);
+  const adapter = createCodeArtsAdapter({
+    credentials: { resolve: async () => ({ key: { ak: 'TEST_AK', sk: 'TEST_SK', securityToken: 'TEST_TOKEN' } }) },
+    catalog,
+  });
+  const list = await adapter.listModels(PROVIDER_ID);
+  assert.equal(list[0].badge.text.zh, '限时半价 🧍🧍🧍 · 极度拥堵');
+  assert.equal(list[1].badge.text.zh, '🚀 空闲');
 });
 
 await check('resolveModel declares context, output cap, and reasoning', async () => {
@@ -351,6 +367,24 @@ await check('successful streams and user cancellations never notify request fail
   });
   await assert.rejects(collect(cancelledCredential, { provider: PROVIDER_ID, model: 'm1', messages: [] }), { name: 'AbortError' });
   assert.deepEqual(reported, []);
+});
+
+await check('a slow busy heartbeat cannot block starting the model stream', async () => {
+  let requested = false;
+  const adapter = createCodeArtsAdapter({
+    credentials: { resolve: async () => ({ key: { ak: 'TEST_AK', sk: 'TEST_SK', securityToken: 'TEST_TOKEN' } }) },
+    catalog: fakeCatalog(models),
+    createClient: () => ({
+      heartbeat: async (state) => state === 'busy' ? new Promise(() => {}) : true,
+      streamChat: async function* () { requested = true; yield { finish: 'stop' }; },
+    }),
+  });
+  const outcome = await Promise.race([
+    collect(adapter, { provider: PROVIDER_ID, model: 'm1', messages: [] }).then(() => 'settled'),
+    new Promise<string>((resolve) => setTimeout(() => resolve('blocked'), 100)),
+  ]);
+  assert.equal(outcome, 'settled');
+  assert.equal(requested, true);
 });
 
 await check('max-tokens maps through', async () => {
